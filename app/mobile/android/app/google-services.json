@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "548084257282",
+    "project_id": "pricer-ee440",
+    "storage_bucket": "pricer-ee440.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:548084257282:android:13bef7c3b51b6604068d1b",
+        "android_client_info": {
+          "package_name": "com.example.pricer_mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC8DNlfA-9iQtux0MjL1HoUd_bomTMOBhs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:548084257282:android:d6f6684ed712d2c4068d1b",
+        "android_client_info": {
+          "package_name": "com.pricer.mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC8DNlfA-9iQtux0MjL1HoUd_bomTMOBhs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

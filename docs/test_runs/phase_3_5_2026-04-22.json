@@ -1,0 +1,20 @@
+{
+  "phase": "phase_3_5",
+  "timestamp": "2026-04-22T00:00:00Z",
+  "commands": [
+    "npm test",
+    "npm run test:phase3_5",
+    "npm run verify",
+    "npm run validate:docs"
+  ],
+  "results": [
+    "npm test: PASS - Phase tests: 17 passed, 0 failed, 17 total; Phase 2 tests: 7 passed, 0 failed, 7 total; Phase 3 tests: 5 passed, 0 failed, 5 total; Phase 3.5 tests: 4 passed, 0 failed, 4 total",
+    "npm run test:phase3_5: PASS - Phase 3.5 tests: 4 passed, 0 failed, 4 total",
+    "npm run verify: PASS - Basic verify passed.",
+    "npm run validate:docs: PASS - JSON docs parse successfully."
+  ],
+  "notes": [
+    "Phase 3.5 reads from raw snapshots only and does not depend on AI or matcher output.",
+    "Aggregates are append-only and idempotent per date."
+  ]
+}

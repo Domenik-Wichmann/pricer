@@ -1,0 +1,31 @@
+name: pricer_mobile
+description: Minimal Flutter client for the Pricer backend.
+publish_to: none
+version: 0.1.0+1
+
+environment:
+  sdk: ">=3.4.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  cloud_firestore: ^5.4.4
+  firebase_core: ^3.6.0
+  fl_chart: ^0.69.0
+  google_mobile_ads: ^8.0.0
+  http: ^1.2.2
+  intl: ^0.20.2
+  purchases_flutter: ^9.10.2
+  shared_preferences: ^2.3.2
+  speech_to_text: ^7.0.0
+
+dev_dependencies:
+  flutter_lints: ^5.0.0
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true
+  generate: true

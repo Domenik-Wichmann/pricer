@@ -1,0 +1,332 @@
+{
+  "@@locale": "bg",
+  "appTitle": "Pricer",
+  "navSearch": "Търсене",
+  "navLists": "Списъци",
+  "navWatchlist": "Наблюдавани",
+  "homeTagline": "Намери най-евтината кошница бързо и я пусни отново утре също толкова лесно.",
+  "homeSearchCardTitle": "Какво искаш да купиш?",
+  "homeSearchCardSubtitle": "Търси на български и сравни най-евтиния резултат за днес.",
+  "searchFieldLabel": "Заявка за продукти на български",
+  "searchFieldHint": "прясно мляко 1л",
+  "searchButton": "Намери най-добра цена",
+  "recentSearchesTitle": "Последни търсения",
+  "recentSearchesSubtitle": "Пусни отново обичайните си продукти с едно докосване.",
+  "recentSearchesEmptyTitle": "Още няма последни търсения",
+  "recentSearchesEmptyMessage": "Направи едно бързо търсене и то ще се появи тук за утре.",
+  "recentSearchesSampleAction": "Пробвай пример",
+  "recentListsTitle": "Последни списъци",
+  "recentListsSubtitle": "Върни се към запазените кошници и ги пусни отново бързо.",
+  "recentListsEmptyTitle": "Още няма запазени списъци",
+  "recentListsEmptyMessage": "Запази резултат като списък, за да пазаруваш повторно почти мигновено.",
+  "rerunButton": "Пусни пак",
+  "quickInsightLabel": "Бърз поглед",
+  "todayLabel": "Днес",
+  "watchlistDropsReady": "{count} наблюдавани продукта са готови за повторна проверка.",
+  "@watchlistDropsReady": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "rerunListInsight": "Пусни отново {listName}, за да опресниш общата цена за днес.",
+  "@rerunListInsight": {
+    "placeholders": {
+      "listName": {
+        "type": "String"
+      }
+    }
+  },
+  "rerunSearchInsight": "Най-бързата печалба днес: пусни пак „{query}“.",
+  "@rerunSearchInsight": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "searchStapleInsight": "Потърси един основен продукт и виж най-евтиния магазин за секунди.",
+  "watchlistDropsCaption": "Отвори наблюдаваните продукти, за да видиш кои цени вече са на или под целта.",
+  "watchlistReadyCaption": "{count} наблюдавани продукта са готови за бърза дневна проверка на цената.",
+  "@watchlistReadyCaption": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "recentRerunCaption": "Последните търсения и списъци са наблизо, за да ги пускаш пак с един палец.",
+  "loadResultsError": "Не успяхме да заредим резултатите в момента. Моля, опитай пак.",
+  "firestoreNotConfiguredStatus": "Firebase още не е конфигуриран. Списъците и наблюдаваните продукти работят в паметта.",
+  "firestoreConnectedStatus": "Firestore е свързан за анонимни списъци и наблюдавани продукти.",
+  "firestoreBootstrapFailedStatus": "Инициализацията на Firebase се провали. Списъците и наблюдаваните продукти работят в паметта.",
+  "resultsNoMatchesTitle": "Още няма съвпадения",
+  "resultsNoMatchesMessage": "Опитай с по-точен продукт, марка или разфасовка, за да излезе най-евтиният резултат.",
+  "tryAgainButton": "Опитай пак",
+  "resultsSummaryTitle": "Най-евтината кошница днес",
+  "resultsSummarySubtitle": "Спестяването остава на преден план при всеки резултат.",
+  "noStoreMatchYet": "Още няма съвпадение за магазин",
+  "youSaveLabel": "Спестяваш",
+  "badgeLabel": "Значка",
+  "cheapestTodayBadge": "Най-евтино днес",
+  "savingsVsAverage": "Спестяваш {amount} спрямо последните средни цени",
+  "@savingsVsAverage": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "cheapestTodayForQuery": "Най-евтино днес за текущата заявка",
+  "saveResultTitle": "Запази този резултат",
+  "saveResultSubtitle": "Дръж тази кошница под ръка и я пускай пак по-късно с едно докосване.",
+  "saveAsListButton": "Запази като списък",
+  "saveToShoppingListTitle": "Запази в списък за пазаруване",
+  "listNameLabel": "Име на списъка",
+  "cancelButton": "Отказ",
+  "saveButton": "Запази",
+  "savedToListSnackBar": "{name} е запазен в {listName}",
+  "@savedToListSnackBar": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "listName": {
+        "type": "String"
+      }
+    }
+  },
+  "defaultSavedResultListName": "Запазен резултат",
+  "resultSavedSnackBar": "Резултатът е запазен в {listName}",
+  "@resultSavedSnackBar": {
+    "placeholders": {
+      "listName": {
+        "type": "String"
+      }
+    }
+  },
+  "addedToWatchlistSnackBar": "{name} е добавен в наблюдавани",
+  "@addedToWatchlistSnackBar": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "shareCopiedSnackBar": "Текстът за споделяне е копиран",
+  "shareNoMatchText": "Pricer: още няма съвпадение за „{query}“.",
+  "@shareNoMatchText": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "shareResultText": "Pricer: спестявам {amount} за „{query}“, а най-евтиният магазин днес е {store}.",
+  "@shareResultText": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "query": {
+        "type": "String"
+      },
+      "store": {
+        "type": "String"
+      }
+    }
+  },
+  "watchButton": "Следи",
+  "addToListButton": "Добави в списък",
+  "detailsButton": "Детайли",
+  "storeLabel": "Магазин",
+  "matchLabel": "Съвпадение",
+  "saveLabel": "Спестяваш",
+  "vsAverageShort": "срещу средно {amount}",
+  "@vsAverageShort": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "productHistoryLoadError": "Не успяхме да заредим историята на продукта в момента.",
+  "bestStoreToday": "Най-добрият магазин днес: {store}",
+  "@bestStoreToday": {
+    "placeholders": {
+      "store": {
+        "type": "String"
+      }
+    }
+  },
+  "priceHistoryTitle": "История на цената",
+  "priceHistorySubtitle": "Текуща цена спрямо последния тренд",
+  "noHistoryYet": "Още няма история",
+  "recentPricePointsTitle": "Последни ценови точки",
+  "recentPricePointsSubtitle": "Използвай ги, за да прецениш дали днес е добър момент за покупка.",
+  "noRecordedHistoryTitle": "Няма записана история",
+  "noRecordedHistoryMessage": "Този продукт има нужда от още дневни снимки, преди трендът да стане полезен.",
+  "priceRangeLabel": "Мин {minPrice}  Макс {maxPrice}",
+  "@priceRangeLabel": {
+    "placeholders": {
+      "minPrice": {
+        "type": "String"
+      },
+      "maxPrice": {
+        "type": "String"
+      }
+    }
+  },
+  "trackPriceDropsTitle": "Следи спадовете в цената",
+  "trackPriceDropsSubtitle": "Следи този продукт сега и се върни, когато цената се промени.",
+  "watchItemButton": "Следи продукта",
+  "quickListName": "Бърз списък",
+  "shoppingListsTitle": "Списъци за пазаруване",
+  "createShoppingListTitle": "Създай списък за пазаруване",
+  "createButton": "Създай",
+  "shoppingListsLoadError": "Не успяхме да заредим запазените ти списъци.",
+  "savedBasketsTitle": "Запазени кошници",
+  "savedBasketsSubtitle": "Дръж повторните покупки централни и лесни за пускане отново.",
+  "newListButton": "Нов списък",
+  "noShoppingListsTitle": "Още няма списъци за пазаруване",
+  "noShoppingListsMessage": "Запази резултат или създай списък тук, за да повтаряш покупките много по-бързо.",
+  "updatedItemsSubtitle": "Обновен {date} • {count} артикула",
+  "@updatedItemsSubtitle": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "openButton": "Отвори",
+  "addItemTitle": "Добави артикул",
+  "bulgarianQueryLabel": "Заявка на български",
+  "addButton": "Добави",
+  "shoppingListLoadError": "Не успяхме да заредим този списък.",
+  "itemsReadyToCompare": "{count} артикула са готови за сравнение",
+  "@itemsReadyToCompare": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "noStoreWinnerYet": "Още няма печеливш магазин",
+  "bestOneThumbRerun": "Най-удобното повторно пускане с един палец за днес",
+  "updatedPricesLabel": "Обновени цени",
+  "availableNowLabel": "Налични сега",
+  "runComparisonHint": "Пусни сравнение, за да видиш най-евтината обща сума и най-бързия повторен вариант.",
+  "addGroceriesFirstTitle": "Първо добави няколко продукта",
+  "addGroceriesFirstMessage": "Когато този списък има няколко артикула, можеш да сравниш най-евтината текуща обща цена с едно докосване.",
+  "qtyLabel": "Бр. {count}",
+  "@qtyLabel": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "refreshPricesTitle": "Опресни днешните цени",
+  "bestCurrentTotalTitle": "Най-добра текуща обща сума",
+  "compareListSubtitle": "Сравни този списък, за да изкараш най-евтината текуща кошница.",
+  "cheapestStoreTotalSubtitle": "Най-евтин магазин {store} • Общо {total}",
+  "@cheapestStoreTotalSubtitle": {
+    "placeholders": {
+      "store": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "runComparisonButton": "Пусни сравнение",
+  "watchlistTitle": "Наблюдавани",
+  "watchlistLoadError": "Не успяхме да заредим наблюдаваните продукти.",
+  "dropsSummaryTitle": "Обобщение на спадовете",
+  "dropsSummarySubtitle": "Този банер държи спешността при наблюдаваните цени видима.",
+  "noTrackedItemsYet": "Още няма наблюдавани продукти",
+  "watchlistDropsStatus": "{drops} от {count} наблюдавани продукта са на или под целевата цена.",
+  "@watchlistDropsStatus": {
+    "placeholders": {
+      "drops": {
+        "type": "int"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "watchlistEmptyTitle": "Наблюдаваните продукти ще се появят тук",
+  "watchlistEmptyMessage": "Добави продукт от резултатите, за да изградиш навик за наблюдение на цените.",
+  "currentPriceLabel": "Текуща {price}",
+  "@currentPriceLabel": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "somethingWentWrongTitle": "Нещо се обърка",
+  "retryButton": "Опитай пак",
+  "belowRecentAverage": "Под последната средна цена",
+  "higherThanRecentAverage": "Над последната средна цена",
+  "aroundUsualPrice": "Около обичайната цена",
+  "notAvailableShort": "-",
+  "premiumHomeTitle": "Premium отключва по-умни спестявания",
+  "premiumHomeSubtitle": "Включи оптимизация на кошница между магазини, известия за целева цена и приложение без реклами.",
+  "premiumActiveHomeTitle": "Premium е активен",
+  "premiumActiveHomeSubtitle": "Оптимизацията между магазини и известията са готови за това устройство.",
+  "viewPremiumButton": "Виж Premium",
+  "managePlanButton": "Управлявай плана",
+  "paywallTitle": "Premium",
+  "paywallHeroTitle": "Спестявай повече с Premium",
+  "paywallHeroSubtitle": "Отключи оптимизация на кошница между магазини, известия за наблюдавани продукти и изживяване без реклами.",
+  "paywallPremiumActive": "Premium правото е активно на това устройство.",
+  "paywallFeatureLabel": "Включва",
+  "paywallFeatureOptimizer": "Оптимизатор на кошница между магазини",
+  "paywallFeatureAlerts": "Известия за целева цена",
+  "paywallFeatureNoAds": "Изживяване без реклами",
+  "subscriptionStatusTitle": "Статус на абонамента",
+  "subscriptionPremiumStatus": "Premium е активен",
+  "subscriptionFreeStatus": "Безплатен план",
+  "watchlistLimitValue": "Лимит за наблюдавани продукти: {count}",
+  "@watchlistLimitValue": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "optimizerLimitValue": "Лимит на артикули за оптимизатора: {count}",
+  "@optimizerLimitValue": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "billingNotConfiguredTitle": "Плащанията още не са конфигурирани",
+  "billingNotConfiguredMessage": "RevenueCat ключовете липсват за тази версия, затова paywall екранът е в режим на преглед.",
+  "noSubscriptionPackagesTitle": "Няма налични абонаментни пакети",
+  "noSubscriptionPackagesMessage": "RevenueCat е свързан, но за това приложение още няма публикувани оферти.",
+  "purchaseButton": "Купи",
+  "restoreButton": "Възстанови",
+  "restorePurchasesTitle": "Вече имаш абонамент?",
+  "restorePurchasesSubtitle": "Възстанови покупките на това устройство, ако си надградил другаде.",
+  "premiumPurchaseSuccess": "Покупката на Premium завърши.",
+  "premiumStillPendingMessage": "Покупката завърши, но Premium още не е активен. Опитай да обновиш след малко.",
+  "premiumPurchaseFailed": "Не успяхме да завършим покупката.",
+  "restorePurchasesSuccess": "Premium беше възстановен на това устройство.",
+  "restorePurchasesNoActive": "Не беше намерен активен Premium абонамент за възстановяване.",
+  "restorePurchasesFailed": "Не успяхме да възстановим покупките в момента.",
+  "multiStorePremiumTitle": "Сравнявай между магазини",
+  "multiStorePremiumMessage": "Premium отключва оптимизатора на кошница между магазини върху днешните съвпадения.",
+  "unlockPremiumButton": "Отключи Premium",
+  "watchlistPremiumTitle": "Premium известията са изключени",
+  "watchlistPremiumMessage": "Надгради, за да включиш известия за целева цена и по-умни напомняния за наблюдавани продукти."
+}

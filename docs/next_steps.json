@@ -1,0 +1,8 @@
+{
+  "next_actions": [
+    "Begin Phase 2 using docs/PHASE_2_MATCHING.md and the matching implementation contract.",
+    "Build canonical-product and alias structures on top of source_products and source_product_enrichment.",
+    "Keep Phase 1 source identities immutable while adding canonical resolution in Phase 2.",
+    "Preserve the same test-run, decision-log, changelog, and handoff discipline for the next phase."
+  ]
+}

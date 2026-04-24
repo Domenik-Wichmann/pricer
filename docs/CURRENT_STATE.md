@@ -1,0 +1,127 @@
+# Current State
+
+## Status
+Phase DB1 Postgres foundation is now implemented and locally verified on April 24, 2026 as a sidecar-only foundation: local/dev Postgres compose support, connection helpers, migration tooling, health checks, and import metadata tables exist without changing the current `kolkostruva.bg -> Firestore/flat store -> App` runtime path. Phase DB0 Postgres transition architecture remains the governing boundary: Postgres is planned for relational source truth, heavy imports, USDA/Open Food Facts joins, source dedupe, mapping-review staging, and future recipe-source processing, while Firestore/flat store remains the active app-facing cache and user-state runtime. Phase 16.0 price lookup is implemented and verified locally alongside the already-implemented Phase 15.4 basket planner and Phase M0 meal foundations. The repo still keeps the Phase 13 cross-chain canonical product layer, with strict deterministic guards for infant-formula stages, count families, age bands, reserve tiers, flavors, colors, pack-count variants, explicit numeric ranges, and normalized volume-or-weight markers, plus the governed Phase 14 unresolved-warning adjudication lane and reversible applied-view policy layer. Phase 15 added additive canonical enrichment keyed by canonical fingerprint. Phase 15.1 added explicit reader contracts for canonical truth, applied view, enrichment, and explicit combinations of those layers; deterministic enrichment-backed filtering and search; lightweight enrichment analytics rollups; and an intended runtime default of `ENABLE_LLM_ENRICHMENT=true` while keeping missing-key behavior non-fatal and cache-first. Phase 15.2 exposes those reader contracts through bounded product-facing API handlers and live HTTP routes for product detail, product search, enrichment-backed facets, and enrichment analytics summaries, with `canonical_with_enrichment` as the default consumer layer and applied-view access remaining opt-in only. Phase 15.3 adds a read-only shopping-list resolution layer that normalizes messy item text, ranks canonical product candidates deterministically through the product-service search surface, and returns explicit resolved, ambiguous, or unresolved outcomes without mutating canonical truth or enrichment state. Phase 15.4 turns that resolver output into a deterministic basket-planning contract with ready, ambiguous, and unresolved planning buckets; optimization-readiness and confirmation flags; preserved quantity and marker requests; and policy-driven handling for carried ambiguity and unresolved placeholders or blocking items. Phase 16.0 now adds a deterministic canonical price-lookup layer over existing snapshot truth, canonical mappings, and source-product metadata so future optimizers can ask what known current prices exist for ready basket items and carried ambiguous candidates without mutating canonical truth, enrichment, price history, or user state. Phase M0 adds a separate meal domain with flat ingredient, ingredient-family, ingredient-category, unit, unit-conversion, ingredient-unit-rule, and product-to-ingredient-mapping collections; deterministic ingredient validation; seeded base units; ingredient-aware edible-to-purchase conversion; and ingredient-level cost projection with an explicit fallback ladder from exact local store price through other-store mapped price, category-average estimate, and ingredient estimate. Deterministic markers still win over all later interpretation layers, canonical products plus mappings remain immutable truth, and ingredients remain a separate domain bridged to retailer products rather than folded into `canonical_products`. Phase 12 search quality remains implemented and verified, including deterministic canonical search terms, synonym mapping, conservative fuzzy correction, canonical query objects, matcher integration on canonical fields, and a demand-log-driven feedback loop for learned typo synonyms. The backend persistence blocker from Phase 11 is partially closed: the data backbone now supports Firestore-backed runtime persistence with environment-based store selection, while local JSON and in-memory stores remain available for local development and tests. The backend is now wrapped for Firebase Cloud Functions deployment with repo-root Firebase manifests and a self-contained `functions/` source tree. Deployment blockers still remain: Firestore rules and indexes are not defined, Firebase anonymous auth is not wired in the mobile app, FCM device-token registration is not implemented, and the mobile runners still use example package identifiers and release-signing placeholders.
+
+## What exists now
+- daily TSV and streamed CSV/ZIP snapshot ingestion
+- raw snapshot persistence model
+- stable `snapshot_id` and `source_product_id` generation
+- deterministic enrichment, matching, AI fallback, and daily aggregation layers
+- append-only product and category history collections
+- unified query parser, planner, executor, filters, ranker, and endpoint
+- flat SQL sync targets for products and price aggregates
+- flat vector sync targets for embeddings
+- a Phase M0 meal-foundation layer for:
+  - flat `ingredient_families`, `ingredient_categories`, and `ingredients`
+  - flat `units`, `unit_conversions`, and `ingredient_unit_rules`
+  - flat `product_ingredient_mappings` as an explicit bridge from retailer products to meal ingredients
+  - deterministic ingredient validation with runtime-safe field enforcement
+  - seeded base units for `g`, `kg`, `ml`, `l`, `piece`, and `pack`
+  - generic same-type unit conversion plus ingredient-specific `piece -> grams` rules
+  - edible-to-purchase conversion with yield-aware conservative rounding
+  - ingredient-level price estimation with explicit fallback provenance and confidence
+- an environment-selectable backend persistence layer with:
+  - Firestore-backed runtime storage for production
+  - JSON-file persistence for local CLI development
+  - in-memory persistence for tests
+- a Phase DB0 hybrid persistence architecture decision that keeps current Firestore/flat runtime intact while assigning future large relational imports and nutrition joins to Postgres
+- a Phase DB1 Postgres sidecar foundation for local/dev connection, migrations, health checks, and import metadata tables without replacing Firestore or product runtime reads
+- idempotent sync jobs
+- Phase 6 streamed production modules for:
+  - latest snapshot discovery
+  - ZIP download without full-file memory buffering
+  - streamed unzip and CSV parsing across all supported CSV files inside each daily ZIP archive
+  - filename-derived source provenance metadata for reporting-chain grouping and debugging
+  - duplicate-row suppression on existing stable source-product keys
+  - pre-enrichment dedupe buckets keyed by normalized source chain plus product code
+  - enrichment reuse across repeated chain/product rows inside one full daily archive
+  - cross-chain canonical product grouping built on deterministic enriched attributes
+  - deterministic variant guards for stages, count families, age bands, reserve tiers, flavors, colors, pack-count variants, numeric size or weight ranges, year-or-age expressions, and normalized volume-or-weight markers
+  - flat `canonical_products` and `canonical_product_mappings` persistence
+  - flat `canonical_enrichment_store` persistence keyed by canonical fingerprint
+  - explicit canonical-product readers that can return canonical truth only, canonical plus applied view, canonical plus enrichment, or the explicit combined layer
+  - deterministic enrichment-backed list and search helpers with bounded filtering by category, brand, base product, flavor, attributes, diet tags, usage context, and confidence thresholds
+  - lightweight enrichment analytics and ingest-run rollups for coverage, category, brand, base product, flavor, cache reuse, created, rejected, and offline-missing counts
+  - bounded product API handlers and HTTP routes for canonical detail, search, filter facets, and enrichment analytics summaries with explicit layer-mode reporting
+  - a bounded shopping-list resolution service and HTTP route that turn messy item text into ranked canonical product candidates with explicit status and confidence outputs
+  - a deterministic basket-input planner and HTTP route that classify resolver results into ready, ambiguous, and unresolved planning buckets for later optimization
+  - a deterministic price-lookup layer and HTTP route that expose latest known canonical-product prices in EUR, stale or missing status, best-price selection, and basket-plan price collection without mutating price history
+  - a deterministic single-store basket optimizer and HTTP route that ranks single-chain basket options using separate actual totals and internal penalty-based score totals
+  - a bounded multi-store basket optimizer that compares opt-in split baskets against the best single-store option without adding travel or locality scoring yet
+  - an optional basket explanation layer that turns optimizer results into app-ready English summaries, item notes, warnings, and limitations
+  - canonical merge diagnostics, review samples, and warning logs for potential over-canonicalization
+  - durable `canonical_disambiguation_queue` records for unresolved plausible warning pairs
+  - durable `canonical_disambiguation_decisions` keyed by stable pair fingerprints for future reuse
+  - a dry-run adjudication helper that emits only pending unresolved pairs and skips already-decided fingerprints
+  - an opt-in LLM adjudication runner that validates responses and persists decisions without mutating canonical products
+  - human review decision recording with `reviewed_human` status and human-over-LLM effective decision resolution
+  - a controlled disambiguation application preview that computes applied merges, blocked merges, skipped conflicts, unchanged pairs, and an audit log without mutating canonical truth
+  - a strict enrichment prompt/validation path that enriches only net-new canonical fingerprints, caches validated results, and stays offline-compatible when cached data already exists
+  - intended live enrichment enablement by default runtime config while preserving non-fatal missing-key behavior
+  - ingest run tracking
+  - analytics event tracking
+  - pipeline logging
+  - watchlist alert detection and notification queuing
+  - scheduler-ready daily orchestration
+  - env-configurable Grok ambiguity resolution
+  - env-configurable remote embedding backfill with deterministic fallback
+- a Flutter mobile app under `app/mobile/` with search, results, product detail, shopping lists, and watchlist screens
+- backend API client wiring for `/query` and `/product/:id/history`
+- Firestore-backed repositories for anonymous shopping lists and watchlists, plus in-memory fallback for local development
+- a shared mobile UI system for spacing, cards, buttons, chart framing, loading, empty, and error states
+- a standard Flutter localization stack with ARB inputs under `app/mobile/lib/l10n/` and generated `AppLocalizations` under `app/mobile/lib/src/generated/l10n/`
+- English and Bulgarian ARB files covering major visible mobile UI copy
+- locale-aware app-shell formatting helpers for prices, dates, and missing-value placeholders
+- passing Flutter widget tests for English rendering, Bulgarian rendering, unsupported-locale fallback, localized results, and localized watchlist flows
+- a repo-root Firebase project configuration with `firebase.json` and `.firebaserc`
+- a deployable Firebase Functions package under `functions/` with HTTP endpoints for query, product history, watchlist, demand, optimizer, and entitlement flows
+- a vendored backend runtime under `functions/src/` so Cloud Functions deployment does not import code from outside the deploy source
+- automated repo-level verification for Phases 1, 1.5, 2, 3, 3.5, 4, 5, 5.5, 5.6, 6, 7, 8, 9, 10, 11, 12, 15, 15.1, 15.2, 15.3, 15.4, 16.0, 16.1, DB1, and M0
+- a Phase 7 demand-intelligence layer for:
+  - zero-result query capture in the existing Phase 4 flow
+  - manual "can't find this" feedback logging
+  - flat `demand_logs`, `demand_aggregates`, `demand_embeddings`, and `demand_clusters`
+  - deterministic batch aggregation and clustering of unmet demand
+  - top-demand and trending-demand service endpoints
+  - analytics events for automatic and manual unmet-demand capture
+- a Phase 8 best-basket layer for:
+  - deterministic basket splitting over existing item queries
+  - bounded single-store optimization
+  - bounded multi-store optimization
+  - explicit price/store/match weighting
+  - weak-match filtering for basket safety
+  - an optimize-basket request handler built on top of Phase 4 results
+- a Phase 9 watchlist-intelligence layer for:
+  - recurring drop-interval detection with confidence
+  - smart nudges with cooldowns
+  - significance and good-deal evaluation
+  - target-price management
+  - list auto-refresh up/down diff tracking
+  - daily per-user watchlist summaries
+  - summary, insights, and target-price request handlers
+- a Phase 10 monetization layer for:
+  - flat backend entitlement records and RevenueCat sync events
+  - premium-only backend gating for multi-store optimizer and alerts
+  - free-tier optimizer and alert limits
+  - Flutter RevenueCat purchase, restore, and status wrappers
+  - Firestore-backed user billing profiles per anonymous device id
+  - AdMob banner and interstitial wrappers with premium suppression
+  - a localized paywall screen and premium upgrade entry points
+  - monetization analytics events on entitlement changes
+- a Phase 11 deployment audit for:
+  - runtime env-var discovery across backend scripts and Flutter `--dart-define` usage
+  - external account and service inventory
+  - production blocker identification
+  - step-by-step production checklist and operator runbook
+  - explicit repo-level missing-config inventory
+- a Phase 12 search-quality layer for:
+  - flat canonical search-term records
+  - flat synonym-map records
+  - deterministic canonical query objects
+  - conservative fuzzy token correction
+  - synonym expansion before candidate filtering
+  - demand-log-driven typo-synonym learning
+
+## Ready next
+The next step can now go in five parallel directions: build DB2 USDA macro import on top of the Postgres sidecar, build locality-aware or travel-aware basket optimization on top of the bounded multi-store result, build Phase M1 recipe and component ingest on top of the meal foundations, add reporting around Phase 14.3 applied-view counts plus Phase 15 and 16 enrichment and price-coverage metrics at runtime, and close the remaining deployment gaps from Phase 11. A real rollout still needs secure Firestore rules and auth configuration, mobile FCM token registration, native permission fixes for voice input, real bundle identifiers and release signing, and then live Firebase, xAI, RevenueCat, AdMob, and future Postgres credentials plus scheduler registration and store runtime verification.

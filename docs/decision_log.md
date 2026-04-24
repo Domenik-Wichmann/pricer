@@ -1,0 +1,85 @@
+# Decision Log
+
+## Latest additions
+- DB1 introduces Postgres only as sidecar foundation: connection helpers, migration tooling, health checks, and general import metadata tables.
+- DB1 keeps the existing `kolkostruva.bg -> Firestore/flat store -> App` product runtime authoritative and does not switch product, shopping, watchlist, or basket read paths.
+- DB1 migration tracking uses a repo-owned `schema_migrations` table with SQL-file checksums and deterministic filename ordering.
+- DB1 import metadata is intentionally general (`source_datasets`, `source_files`, `import_batches`) so DB2 can add USDA-specific schemas without mixing source truth with runtime read models.
+- DB0 amendment: Postgres must be introduced as an additive sidecar, not a replacement; the existing `kolkostruva.bg -> Firestore -> App` product runtime remains authoritative through DB1 and early DB phases.
+- DB1 must not rewrite `phase1/store.js`, change product ingest behavior, remove Firestore usage, move canonical products, alter product search, alter shopping-list resolution, or affect basket output.
+- Existing product data may be mirrored into Postgres later for parity checks, historical aggregation, trends, and analytics, but migration of product read paths requires verified data parity, tests proving identical or accepted outputs, tested fallback, production performance validation, and no pricing or basket regressions.
+- Firestore keeps current/live app-facing data and user state; Postgres should carry historical price snapshots, long-range aggregates, source audit history, trends, analytics, and heavy external dataset processing.
+- Phase DB0 adopts a hybrid persistence boundary: Postgres should own future relational source truth, heavy imports, USDA/Open Food Facts joins, source dedupe, and mapping-review staging; Firestore/flat store remains the app-facing cache and user-state runtime.
+- DB0 must be design-only; Postgres dependencies, migration runners, and live connection handling begin in DB1, not in the architecture phase.
+- Future dataset ingest must preserve raw source truth, run deterministic identity and dedupe first, enrich only net-new or enrichment-missing entity concepts, cache enrichment, review uncertainty, and publish runtime-safe read models.
+- User-facing/searchable food entities must support `name_bg`, `name_en`, `aliases_bg`, and `aliases_en`; raw third-party names are source truth, not runtime search truth.
+- Phase 16.3 keeps explanation as a pure read-only translation layer over optimizer output; it must not alter ranking, scoring, price selection, or persistence.
+- Phase 16.2 should recommend a multi-store split only when it improves or preserves coverage, meets configured actual savings, and does not worsen penalty-adjusted score.
+- Phase 16.2 keeps travel, distance, time, delivery, and locality costs out of scope until a later locality-aware optimization phase.
+- Phase 16.1 should rank single-chain basket options with an internal missing-item penalty while keeping user-facing `actual_total` limited to real known EUR prices.
+- Phase 16 source prices are treated as EUR; the backend must not perform BGN defaults, currency conversion, or exchange-rate calls in price lookup or basket optimization.
+- Phase 16.1 may auto-select carried ambiguous candidates only under an explicit cheapest-candidate policy and must surface that choice as a warning.
+- Phase 16.0 should expose current price truth through a deterministic canonical lookup layer over existing snapshots and mappings, not by inventing a new canonical-price store.
+- Phase 15.4 should keep basket-input planning as a pure deterministic classification layer between shopping-list resolution and optimization, preserving request signals without performing pricing or persistence.
+- Phase 15.3 should resolve shopping-list intent through the product-service layer with deterministic ranking and explicit resolved, ambiguous, or unresolved outputs instead of introducing a separate canonical join path.
+- Phase M0 keeps meal ingredients as a separate domain with explicit bridge mappings from `canonical_products`; retailer-product truth must not be repurposed as ingredient truth.
+- Phase M0 owns unit conversion, ingredient-specific conversion rules, and ingredient-level price projection inside the meal domain first, even if some helpers become shared later.
+- Ingredient-level price projection should preserve explicit fallback provenance in this order: exact local mapped price, other-store mapped price, category-average estimate, then ingredient estimate.
+- Phase 15.2 should expose the first product-facing consumers through bounded API contracts that default to `canonical_with_enrichment` while keeping applied disambiguation opt-in only.
+- Phase A inspection concludes that meal intelligence must be added as a parallel domain with explicit bridge layers, not by collapsing ingredients into `canonical_products` or by forcing recipe ingest into the retailer-price ingest pipeline.
+- The repo's active persistence truth is the flat backend store plus Firestore-compatible collections; relational migrations and Data Connect are not current implementation anchors for meal-domain planning.
+- Any future meal-domain backend work must preserve the duplicated deploy/runtime backend trees under both `functions/src/` and `app/functions/src/`.
+- Phase 15.1 should expose enrichment only through explicit reader layer selections so downstream code cannot accidentally blur canonical truth, applied view, and additive enrichment.
+- Phase 15 should keep semantic enrichment additive and cache-first by canonical fingerprint, never a mutation of deterministic canonical truth or marker precedence.
+- Phase 14.3 should apply canonical disambiguation decisions only as a reversible audited view; canonical products, source identity, and deterministic grouping state remain immutable truth in this phase.
+- Phase 14.2 should make human canonical disambiguation reviews the highest-trust effective decision while preserving prior LLM decision provenance and still avoiding live canonical mutation.
+- Phase 14.1 should keep LLM canonical disambiguation opt-in, cache-first, strictly schema-validated, and provenance-only until a later explicit decision-application phase.
+- Phase 14.0 should persist unresolved canonical warnings as durable queue records with stable pair fingerprints and a separate reusable decision store before any live LLM merge application is attempted.
+- Phase 13.9 should classify numeric families contextually so count, age-band, and reserve-tier markers become hard canonical boundaries while bare ambiguous numbers remain unresolved for later review.
+- Phase 13.8 should treat normalized volume and weight markers as canonical-variant boundaries, including ml-versus-liter, cl-versus-ml, kg-versus-g, and conservative bare-decimal volume expressions.
+- Android and iOS app identifiers now converge on `com.pricer.mobile`, and FlutterFire/Firebase CLI regenerated the Android+iOS Firebase config against `pricer-ee440`.
+- Firebase Cloud Functions should run from `europe-west1`, and repo-controlled backend URL examples should point at `https://europe-west1-pricer-ee440.cloudfunctions.net/api`.
+- Phase 13.7 should treat vintage years and age statements as canonical-variant boundaries whenever deterministic year or age markers are clearly present.
+- Phase 13.6 should treat explicit numeric range markers as canonical-variant boundaries, including slash-separated and unit-suffixed ranges.
+- Phase 13.5 should tighten canonical keys with explicit deterministic variant markers such as stages, age bands, flavors, colors, and pack counts when those markers are clearly present.
+- Cross-chain canonical product grouping must be additive above stable source-product identity and chain-plus-product-code dedupe, never a replacement for either layer.
+- Phase 13 canonical keys should prefer under-grouping to over-grouping and use deterministic enrichment attributes only, without embeddings or LLM calls in the grouping path.
+- Phase 6 pre-enrichment dedupe should reuse one enrichment result per `source_chain_name_normalized + "::" + product_code`, with a safe fallback to stable source-product identity when that bucket key cannot be formed.
+- KolkoStruva CSV filenames are treated as additional provenance metadata for chain-level grouping and debugging, never as primary product identity.
+- Daily KolkoStruva ZIP archives must be processed across all supported CSV entries sequentially; duplicate suppression is archive-wide rather than per-file.
+- Firebase deployment should use a repo-root `functions/` source package that vendors its runtime dependencies under the deploy tree instead of importing backend code from `app/functions/src`.
+- Backend persistence now uses an environment-selectable store contract: Firestore for production runtime, JSON files for local CLI work, and in-memory state for tests.
+- The Firestore adapter preserves the existing flat collection shapes instead of introducing a new backend schema.
+- Flutter localization should keep ARB source files separate from generated Dart outputs; the repo now generates `AppLocalizations` into `app/mobile/lib/src/generated/l10n/`.
+- Phase 12 keeps canonicalization deterministic and conservative, preferring missed rewrites over risky rewrites.
+- Phase 7 demand aggregates may teach search-quality typo mappings only when a single best canonical token is clearly identifiable.
+- Phase 11 treats deployment as an audit-first phase because the repo still has production blockers beyond missing secrets.
+- Deployment readiness must distinguish operator-owned setup from codebase gaps such as local JSON persistence, missing function wrappers, and missing auth or notification registration paths.
+- Phase 10 keeps backend entitlement records flat and backend-authoritative instead of trusting client-only premium flags.
+- Alert gating stays backward-compatible for legacy unsynced users so earlier watchlist flows keep working until RevenueCat sync is present.
+- RevenueCat and AdMob remain environment-configured; default Google test app ids are acceptable for local development but not for release.
+- Phase 9 builds on Phase 6 drop detection and daily price history instead of creating a separate alert-evaluation path.
+- Low notification spam is enforced through deterministic per-item cooldowns and daily summary aggregation.
+- Basket-level and watchlist-level weak-signal handling should be conservative, preferring no nudge over a noisy nudge.
+- Phase 8 reuses Phase 4 ranked item results instead of rebuilding a separate basket-matching path.
+- Basket optimization stays deterministic and bounded by explicit candidate-store and combination limits to avoid combinatorial blowups.
+- Phase 8 applies a basket-level minimum match-score floor so ultra-weak query results do not silently become basket picks.
+- Phase 7 logs unmet demand only after the deterministic Phase 4 query flow returns zero results; matched queries are not duplicated into the demand layer.
+- Manual "can't find this" reports should write both the existing `feedback_events` record and a new Phase 7 demand log so human feedback and automatic zero-result capture stay comparable.
+- Demand clustering remains batch-based and deterministic, using token-derived embeddings rather than runtime AI calls.
+- `MASTER_PRODUCT_SPEC.md` was missing, so the repo now includes a source-product-backed spec aligned with the implemented data model.
+- Phase 6 uses the existing stable source-product identity for ingest dedupe because the repo data model has no separate `store_id` field.
+- Phase 6 keeps live provider configuration environment-driven instead of hardcoding Grok, embedding, Firebase, or FCM credentials into the repo.
+- The Flutter app should detect placeholder Firebase options without relying on a custom property that would disappear when a real generated `firebase_options.dart` replaces the placeholder.
+- Phase 5.6 keeps localization strictly in the Flutter UI layer; backend product and store content remain backend-driven.
+- English is the safe UI fallback locale when the device locale is unsupported.
+- Shared formatting helpers should read the active Flutter locale instead of hardcoding English-style output.
+- Phase 5.5 keeps growth hooks inside the existing mobile client instead of adding new backend endpoints by default.
+- Savings, reruns, and watchlist urgency should be visible on-screen before any secondary metadata.
+- The shared UI system is intentionally lightweight and screen-driven rather than introducing heavyweight app-wide state or design-system tooling.
+- Phase 5 reuses the existing `/query` and `/product/:id/history` contracts instead of creating mobile-specific backend endpoints.
+- Anonymous device-local identity is sufficient for the initial Firestore list and watchlist paths; full authentication remains out of scope.
+- The repository keeps a checked-in placeholder `firebase_options.dart` and falls back to in-memory repositories until real Firebase settings are generated on a Flutter-enabled machine.
+- Phase 4 is a composition layer over existing phases rather than a rewrite.
+- SQL and vector sync targets remain flat and idempotent.
+- Deterministic matching remains primary and AI stays fallback only.

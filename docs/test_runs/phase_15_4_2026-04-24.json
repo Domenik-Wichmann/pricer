@@ -1,0 +1,69 @@
+{
+  "phase": "15.4",
+  "label": "basket_input_planner",
+  "date": "2026-04-24",
+  "commands": [
+    "node tests/phase_15_4_basket_input_planner.test.js",
+    "node tests/phase_15_3_shopping_list_resolution.test.js",
+    "node tests/phase_15_2_product_api.test.js",
+    "node tests/phase_15_1_enrichment_readers.test.js",
+    "node tests/phase_15_hyper_rich_enrichment.test.js",
+    "node tests/phase_6_production_pipeline.test.js",
+    "node tests/phase_11_production_persistence.test.js",
+    "node tests/phase_1_data_backbone.test.js",
+    "npm run validate:docs",
+    "node -e \"require('./functions/src/index.js'); console.log('functions runtime loaded')\""
+  ],
+  "results": [
+    {
+      "command": "node tests/phase_15_4_basket_input_planner.test.js",
+      "status": "passed",
+      "summary": "Phase 15.4 tests: 8 passed, 0 failed, 8 total"
+    },
+    {
+      "command": "node tests/phase_15_3_shopping_list_resolution.test.js",
+      "status": "passed",
+      "summary": "Phase 15.3 tests: 9 passed, 0 failed, 9 total"
+    },
+    {
+      "command": "node tests/phase_15_2_product_api.test.js",
+      "status": "passed",
+      "summary": "Phase 15.2 tests: 9 passed, 0 failed, 9 total"
+    },
+    {
+      "command": "node tests/phase_15_1_enrichment_readers.test.js",
+      "status": "passed",
+      "summary": "Phase 15.1 tests: 7 passed, 0 failed, 7 total"
+    },
+    {
+      "command": "node tests/phase_15_hyper_rich_enrichment.test.js",
+      "status": "passed",
+      "summary": "Phase 15 tests: 7 passed, 0 failed, 7 total"
+    },
+    {
+      "command": "node tests/phase_6_production_pipeline.test.js",
+      "status": "passed",
+      "summary": "Phase 6 tests: 73 passed, 0 failed, 73 total"
+    },
+    {
+      "command": "node tests/phase_11_production_persistence.test.js",
+      "status": "passed",
+      "summary": "Phase 11 tests: 3 passed, 0 failed, 3 total"
+    },
+    {
+      "command": "node tests/phase_1_data_backbone.test.js",
+      "status": "passed",
+      "summary": "Phase tests: 17 passed, 0 failed, 17 total"
+    },
+    {
+      "command": "npm run validate:docs",
+      "status": "passed",
+      "summary": "JSON docs parse successfully."
+    },
+    {
+      "command": "node -e \"require('./functions/src/index.js'); console.log('functions runtime loaded')\"",
+      "status": "passed",
+      "summary": "functions runtime loaded"
+    }
+  ]
+}

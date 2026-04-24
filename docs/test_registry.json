@@ -1,0 +1,1306 @@
+{
+  "tests": [
+    {
+      "id": "REPO-VERIFY-001",
+      "description": "Base repo files exist and docs JSON parse successfully.",
+      "phase": 0,
+      "status": "passed"
+    },
+    {
+      "id": "P1-DATA-BACKBONE-001",
+      "description": "Snapshot key stability is deterministic for the same daily source row identity.",
+      "phase": 1,
+      "status": "passed"
+    },
+    {
+      "id": "P1-DATA-BACKBONE-002",
+      "description": "Source product keys stay stable across dates for the same locality, outlet, product code, and category code.",
+      "phase": 1,
+      "status": "passed"
+    },
+    {
+      "id": "P1-DATA-BACKBONE-003",
+      "description": "Different outlets produce different source product identities.",
+      "phase": 1,
+      "status": "passed"
+    },
+    {
+      "id": "P1-DATA-BACKBONE-004",
+      "description": "Different localities produce different source product identities.",
+      "phase": 1,
+      "status": "passed"
+    },
+    {
+      "id": "P1-DATA-BACKBONE-005",
+      "description": "Blank promo values normalize to numeric zero while raw promo text is preserved.",
+      "phase": 1,
+      "status": "passed"
+    },
+    {
+      "id": "P1-DATA-BACKBONE-006",
+      "description": "Enrichment is reused for existing source products unless revalidation is required.",
+      "phase": 1,
+      "status": "passed"
+    },
+    {
+      "id": "P1-DATA-BACKBONE-007",
+      "description": "Minor name drift avoids re-enrichment while major name drift triggers revalidation.",
+      "phase": 1,
+      "status": "passed"
+    },
+    {
+      "id": "P1-DATA-BACKBONE-008",
+      "description": "Missing products are retained and marked inactive rather than deleted.",
+      "phase": 1,
+      "status": "passed"
+    },
+    {
+      "id": "P1-DATA-BACKBONE-009",
+      "description": "The sample Bulgarian fixture imports successfully and yields deterministic enrichment output.",
+      "phase": 1,
+      "status": "passed"
+    },
+    {
+      "id": "P1.5-MULTILINGUAL-001",
+      "description": "Bulgarian enrichment maps into deterministic canonical English metadata.",
+      "phase": 1.5,
+      "status": "passed"
+    },
+    {
+      "id": "P1.5-MULTILINGUAL-002",
+      "description": "English display formatting is deterministic and supports partial-data fallback.",
+      "phase": 1.5,
+      "status": "passed"
+    },
+    {
+      "id": "P1.5-MULTILINGUAL-003",
+      "description": "New enrichment rows automatically include English metadata and pending translation slots.",
+      "phase": 1.5,
+      "status": "passed"
+    },
+    {
+      "id": "P1.5-MULTILINGUAL-004",
+      "description": "English backfill is idempotent and does not overwrite existing values.",
+      "phase": 1.5,
+      "status": "passed"
+    },
+    {
+      "id": "P1.5-MULTILINGUAL-005",
+      "description": "Translated display values are stored and marked complete for supported languages.",
+      "phase": 1.5,
+      "status": "passed"
+    },
+    {
+      "id": "P1.5-MULTILINGUAL-006",
+      "description": "Translation reruns do not overwrite or retranslate cached values.",
+      "phase": 1.5,
+      "status": "passed"
+    },
+    {
+      "id": "P1.5-MULTILINGUAL-007",
+      "description": "Translation failures are recorded without erasing successful translations.",
+      "phase": 1.5,
+      "status": "passed"
+    },
+    {
+      "id": "P1.5-MULTILINGUAL-008",
+      "description": "Per-run translation limits cap translation work for cost control.",
+      "phase": 1.5,
+      "status": "passed"
+    },
+    {
+      "id": "P2-MATCHING-001",
+      "description": "Bulgarian input normalization and tokenization preserve deterministic matching terms.",
+      "phase": 2,
+      "status": "passed"
+    },
+    {
+      "id": "P2-MATCHING-002",
+      "description": "Specific Bulgarian free-text matches the expected enriched source product.",
+      "phase": 2,
+      "status": "passed"
+    },
+    {
+      "id": "P2-MATCHING-003",
+      "description": "Scoring behavior rewards exact and attribute-aware matches over looser candidates.",
+      "phase": 2,
+      "status": "passed"
+    },
+    {
+      "id": "P2-MATCHING-004",
+      "description": "Price aggregation returns the cheapest current store result from the latest snapshots.",
+      "phase": 2,
+      "status": "passed"
+    },
+    {
+      "id": "P2-MATCHING-005",
+      "description": "Ambiguity detection flags close or weak matches without invoking AI.",
+      "phase": 2,
+      "status": "passed"
+    },
+    {
+      "id": "P2-MATCHING-006",
+      "description": "The query service endpoint returns matched products and cheapest-store results.",
+      "phase": 2,
+      "status": "passed"
+    },
+    {
+      "id": "P2-MATCHING-007",
+      "description": "The query service endpoint validates missing query input.",
+      "phase": 2,
+      "status": "passed"
+    },
+    {
+      "id": "P3-AI-LAYER-001",
+      "description": "AI fallback reranks already-ambiguous deterministic candidates without acting as the primary matcher.",
+      "phase": 3,
+      "status": "passed"
+    },
+    {
+      "id": "P3-AI-LAYER-002",
+      "description": "Semantic enrichment batch jobs store flat SQL-compatible semantic profile records.",
+      "phase": 3,
+      "status": "passed"
+    },
+    {
+      "id": "P3-AI-LAYER-003",
+      "description": "Embedding generation stores deterministic flat embedding records and skips existing ones.",
+      "phase": 3,
+      "status": "passed"
+    },
+    {
+      "id": "P3-AI-LAYER-004",
+      "description": "Feedback capture stores flat feedback events.",
+      "phase": 3,
+      "status": "passed"
+    },
+    {
+      "id": "P3-AI-LAYER-005",
+      "description": "Direct embedding generation returns deterministic storage payloads.",
+      "phase": 3,
+      "status": "passed"
+    },
+    {
+      "id": "P3.5-AGG-001",
+      "description": "Daily aggregation computes correct product and category averages, minimums, maximums, and counts.",
+      "phase": 3.5,
+      "status": "passed"
+    },
+    {
+      "id": "P3.5-AGG-002",
+      "description": "Daily aggregation is idempotent and append-only for the same date.",
+      "phase": 3.5,
+      "status": "passed"
+    },
+    {
+      "id": "P3.5-AGG-003",
+      "description": "Product history endpoint returns ordered history rows.",
+      "phase": 3.5,
+      "status": "passed"
+    },
+    {
+      "id": "P3.5-AGG-004",
+      "description": "Category trends endpoint returns ordered aggregate rows.",
+      "phase": 3.5,
+      "status": "passed"
+    },
+    {
+      "id": "P4-QUERY-001",
+      "description": "Query parsing extracts intent, constraints, and product hints deterministically.",
+      "phase": 4,
+      "status": "passed"
+    },
+    {
+      "id": "P4-QUERY-002",
+      "description": "Constraint filtering applies deterministic price and category limits.",
+      "phase": 4,
+      "status": "passed"
+    },
+    {
+      "id": "P4-QUERY-003",
+      "description": "Ranking surfaces better cheap-query candidates first.",
+      "phase": 4,
+      "status": "passed"
+    },
+    {
+      "id": "P4-QUERY-004",
+      "description": "Unified query engine returns flat ranked results and applied filters.",
+      "phase": 4,
+      "status": "passed"
+    },
+    {
+      "id": "P4-QUERY-005",
+      "description": "Unified query engine endpoint validates missing query input.",
+      "phase": 4,
+      "status": "passed"
+    },
+    {
+      "id": "P4-SYNC-001",
+      "description": "Firestore-to-SQL sync maps flat rows correctly and remains idempotent.",
+      "phase": 4,
+      "status": "passed"
+    },
+    {
+      "id": "P4-SYNC-002",
+      "description": "Firestore-to-vector sync indexes embeddings only once.",
+      "phase": 4,
+      "status": "passed"
+    },
+    {
+      "id": "P5-FLUTTER-001",
+      "description": "Phase 5 mobile scaffold files and required dependencies exist in app/mobile.",
+      "phase": 5,
+      "status": "passed"
+    },
+    {
+      "id": "P5-FLUTTER-002",
+      "description": "Mobile bootstrap wires backend API configuration and Firestore/in-memory repository selection.",
+      "phase": 5,
+      "status": "passed"
+    },
+    {
+      "id": "P5-FLUTTER-003",
+      "description": "Flutter widget tests cover the search flow, shopping list creation, and watchlist removal flows.",
+      "phase": 5,
+      "status": "passed"
+    },
+    {
+      "id": "P5-FLUTTER-004",
+      "description": "Native Android and iOS runner verification remains pending until real mobile runner checks are completed with generated Firebase options.",
+      "phase": 5,
+      "status": "pending_operator_runtime"
+    },
+    {
+      "id": "P5.5-UI-001",
+      "description": "Phase 5.5 shared UI system files and recent-activity support exist in the mobile app.",
+      "phase": 5.5,
+      "status": "passed"
+    },
+    {
+      "id": "P5.5-UI-002",
+      "description": "Home, results, and product-detail screens expose the required growth hooks and savings-first affordances.",
+      "phase": 5.5,
+      "status": "passed"
+    },
+    {
+      "id": "P5.5-UI-003",
+      "description": "Flutter widget tests cover polished growth hooks and key one-thumb mobile flows.",
+      "phase": 5.5,
+      "status": "passed"
+    },
+    {
+      "id": "P5.5-UI-004",
+      "description": "Native Flutter execution remains pending until Android and iOS runtime checks complete with real Firebase options.",
+      "phase": 5.5,
+      "status": "pending_operator_runtime"
+    },
+    {
+      "id": "P5.6-L10N-001",
+      "description": "Flutter localization configuration, delegates, supported locales, and ARB files are wired correctly.",
+      "phase": 5.6,
+      "status": "passed"
+    },
+    {
+      "id": "P5.6-L10N-002",
+      "description": "Flutter widget tests render the app shell correctly in English and Bulgarian and fall back safely for unsupported locales.",
+      "phase": 5.6,
+      "status": "passed"
+    },
+    {
+      "id": "P5.6-L10N-003",
+      "description": "Localized widget tests cover result rendering and watchlist rendering without localization-context crashes.",
+      "phase": 5.6,
+      "status": "passed"
+    },
+    {
+      "id": "P5.6-L10N-004",
+      "description": "Repo-level static localization tests verify l10n files, delegates, supported locales, and widget-test coverage.",
+      "phase": 5.6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-PIPELINE-001",
+      "description": "Streamed ZIP ingest dedupes duplicate rows and enriches only valid net-new products.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-PIPELINE-002",
+      "description": "Streamed CSV ingest reuses enrichment for known products and only enriches true net-new rows.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-PIPELINE-003",
+      "description": "Pre-enrichment dedupe reuses one enrichment result for repeated chain-plus-product-code rows inside one ingest batch.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-PIPELINE-004",
+      "description": "Different normalized source chains keep separate pre-enrichment dedupe buckets even when product codes match.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-PIPELINE-005",
+      "description": "Rows without a usable chain-plus-product-code enrichment key fall back safely instead of collapsing unrelated products.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-PIPELINE-006",
+      "description": "Deterministic cross-chain canonicalization merges obvious same-product variants while keeping flat canonical-product records and mappings.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-PIPELINE-007",
+      "description": "Deterministic cross-chain canonicalization does not merge different sizes or clearly different variants.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-PIPELINE-008",
+      "description": "Canonical product mappings remain stable across reruns for the same source products.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-PIPELINE-009",
+      "description": "Deterministic canonicalization keeps infant-formula stages, count families, kids age bands, reserve tiers, flavors, colors, pack-count variants, explicit year-or-age markers, and normalized volume-or-weight markers in separate groups when those markers differ.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-PIPELINE-010",
+      "description": "Deterministic canonicalization keeps explicit numeric ranges separate while allowing equivalent slash and hyphen range formatting to merge.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-PIPELINE-011",
+      "description": "Latest snapshot resolution selects the newest available ZIP in the lookback window.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-PIPELINE-012",
+      "description": "Grok escalation runs only on ambiguous match cases and remains budget-controlled.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-PIPELINE-013",
+      "description": "Remote embedding backfill stores vectors for canonical products.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-PIPELINE-014",
+      "description": "Watchlist alert detection produces notification-ready payloads for price drops.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-PIPELINE-015",
+      "description": "Daily production orchestration runs once for a snapshot date and skips repeat reruns.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-PIPELINE-016",
+      "description": "Analytics tracking stores flat search and unmatched-query events.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P7-DEMAND-001",
+      "description": "Zero-result Phase 4 queries are captured as normalized demand logs with locality context.",
+      "phase": 7,
+      "status": "passed"
+    },
+    {
+      "id": "P7-DEMAND-002",
+      "description": "Matched queries do not create Phase 7 demand logs.",
+      "phase": 7,
+      "status": "passed"
+    },
+    {
+      "id": "P7-DEMAND-003",
+      "description": "Manual can't-find-this feedback stores both feedback history and demand logs.",
+      "phase": 7,
+      "status": "passed"
+    },
+    {
+      "id": "P7-DEMAND-004",
+      "description": "Demand aggregation merges duplicate logs and separates automatic versus manual frequencies.",
+      "phase": 7,
+      "status": "passed"
+    },
+    {
+      "id": "P7-DEMAND-005",
+      "description": "Demand embeddings and clusters are rebuilt deterministically in batch.",
+      "phase": 7,
+      "status": "passed"
+    },
+    {
+      "id": "P7-DEMAND-006",
+      "description": "Top-demand and trending-demand services return ranked unmet-demand outputs.",
+      "phase": 7,
+      "status": "passed"
+    },
+    {
+      "id": "P8-BASKET-001",
+      "description": "Single-store optimization selects the cheapest common-store basket plan.",
+      "phase": 8,
+      "status": "passed"
+    },
+    {
+      "id": "P8-BASKET-002",
+      "description": "Multi-store optimization can select a cheaper split basket when preferences allow it.",
+      "phase": 8,
+      "status": "passed"
+    },
+    {
+      "id": "P8-BASKET-003",
+      "description": "Preference weighting can favor fewer stores over the cheapest split basket.",
+      "phase": 8,
+      "status": "passed"
+    },
+    {
+      "id": "P8-BASKET-004",
+      "description": "Store and combination limits bound the basket search space deterministically.",
+      "phase": 8,
+      "status": "passed"
+    },
+    {
+      "id": "P8-BASKET-005",
+      "description": "Weak or unmatched basket items are carried without failing the whole request.",
+      "phase": 8,
+      "status": "passed"
+    },
+    {
+      "id": "P8-BASKET-006",
+      "description": "The optimize-basket endpoint validates missing query input.",
+      "phase": 8,
+      "status": "passed"
+    },
+    {
+      "id": "P9-WATCHLIST-001",
+      "description": "Recurring watchlist detection computes interval and confidence from repeated price-drop cadence.",
+      "phase": 9,
+      "status": "passed"
+    },
+    {
+      "id": "P9-WATCHLIST-002",
+      "description": "Daily watchlist evaluation computes significance, good-deal flags, target hits, and list diffs.",
+      "phase": 9,
+      "status": "passed"
+    },
+    {
+      "id": "P9-WATCHLIST-003",
+      "description": "Cooldown-aware nudges suppress repeat notifications within the configured window.",
+      "phase": 9,
+      "status": "passed"
+    },
+    {
+      "id": "P9-WATCHLIST-004",
+      "description": "Daily per-user watchlist summaries aggregate low-spam insight counts.",
+      "phase": 9,
+      "status": "passed"
+    },
+    {
+      "id": "P9-WATCHLIST-005",
+      "description": "Target-price updates upsert watchlist profile state deterministically.",
+      "phase": 9,
+      "status": "passed"
+    },
+    {
+      "id": "P9-WATCHLIST-006",
+      "description": "Watchlist summary and insights endpoints return current intelligence state.",
+      "phase": 9,
+      "status": "passed"
+    },
+    {
+      "id": "P10-MONETIZATION-001",
+      "description": "RevenueCat entitlement sync stores premium tier state and analytics events deterministically.",
+      "phase": 10,
+      "status": "passed"
+    },
+    {
+      "id": "P10-MONETIZATION-002",
+      "description": "Entitlement status falls back safely and premium activation is reflected in tier state.",
+      "phase": 10,
+      "status": "passed"
+    },
+    {
+      "id": "P10-MONETIZATION-003",
+      "description": "Explicit multi-store optimizer requests are gated for free-tier users and allowed for premium users.",
+      "phase": 10,
+      "status": "passed"
+    },
+    {
+      "id": "P10-MONETIZATION-004",
+      "description": "Target-price alert updates are gated by monetization entitlement state.",
+      "phase": 10,
+      "status": "passed"
+    },
+    {
+      "id": "P10-MONETIZATION-005",
+      "description": "Alert delivery blocks synced free-tier users and allows premium users.",
+      "phase": 10,
+      "status": "passed"
+    },
+    {
+      "id": "P10-MONETIZATION-006",
+      "description": "Flutter widget tests cover paywall rendering and premium ad suppression.",
+      "phase": 10,
+      "status": "passed"
+    },
+    {
+      "id": "P11-DEPLOYMENT-001",
+      "description": "The repository deployment audit enumerates all runtime env vars and Flutter dart-define inputs referenced by code.",
+      "phase": 11,
+      "status": "passed"
+    },
+    {
+      "id": "P11-DEPLOYMENT-002",
+      "description": "The deployment handoff documents required external accounts, missing configs, and production blockers.",
+      "phase": 11,
+      "status": "passed"
+    },
+    {
+      "id": "P11-DEPLOYMENT-003",
+      "description": "Firestore-backed persistence preserves flat backend records, deletes stale rows on save, and keeps environment-based backend selection explicit.",
+      "phase": 11,
+      "status": "passed"
+    },
+    {
+      "id": "P11-DEPLOYMENT-004",
+      "description": "Firestore-backed runtime keeps ingest, aggregation, and entitlement flows idempotent across reloads.",
+      "phase": 11,
+      "status": "passed"
+    },
+    {
+      "id": "P11-DEPLOYMENT-005",
+      "description": "Docs JSON validation still passes after Phase 11 deployment documentation updates.",
+      "phase": 11,
+      "status": "passed"
+    },
+    {
+      "id": "P11-DEPLOYMENT-006",
+      "description": "Basic repo verification still passes after Phase 11 deployment documentation updates.",
+      "phase": 11,
+      "status": "passed"
+    },
+    {
+      "id": "P12-SEARCH-QUALITY-001",
+      "description": "Canonical query generation produces deterministic corrected and expanded query fields.",
+      "phase": 12,
+      "status": "passed"
+    },
+    {
+      "id": "P12-SEARCH-QUALITY-002",
+      "description": "Conservative fuzzy correction handles simple typos without introducing ambiguous rewrites.",
+      "phase": 12,
+      "status": "passed"
+    },
+    {
+      "id": "P12-SEARCH-QUALITY-003",
+      "description": "Synonym mapping expands configured terms into canonical query tokens.",
+      "phase": 12,
+      "status": "passed"
+    },
+    {
+      "id": "P12-SEARCH-QUALITY-004",
+      "description": "The matcher improves deterministic accuracy when canonical synonym expansion is available.",
+      "phase": 12,
+      "status": "passed"
+    },
+    {
+      "id": "P12-SEARCH-QUALITY-005",
+      "description": "Demand aggregates can deterministically learn typo synonyms without duplicating existing mappings.",
+      "phase": 12,
+      "status": "passed"
+    },
+    {
+      "id": "P14-DISAMBIGUATION-001",
+      "description": "Unresolved canonical warnings can be normalized into durable queue records with structured product evidence.",
+      "phase": 14,
+      "status": "passed"
+    },
+    {
+      "id": "P14-DISAMBIGUATION-002",
+      "description": "Canonical disambiguation fingerprints stay stable across reruns and A/B ordering changes.",
+      "phase": 14,
+      "status": "passed"
+    },
+    {
+      "id": "P14-DISAMBIGUATION-003",
+      "description": "Existing adjudication decisions are reused by pair fingerprint and hard-marker conflicts are excluded from the queue scaffolding path.",
+      "phase": 14,
+      "status": "passed"
+    },
+    {
+      "id": "P14-DISAMBIGUATION-004",
+      "description": "The opt-in adjudication runner reports dry-run metrics without making model calls.",
+      "phase": 14,
+      "status": "passed"
+    },
+    {
+      "id": "P14-DISAMBIGUATION-005",
+      "description": "Valid LLM disambiguation responses are persisted with model, prompt-version, decision-source, and confidence provenance.",
+      "phase": 14,
+      "status": "passed"
+    },
+    {
+      "id": "P14-DISAMBIGUATION-006",
+      "description": "Malformed LLM disambiguation responses are rejected without persisting partial decisions.",
+      "phase": 14,
+      "status": "passed"
+    },
+    {
+      "id": "P14-DISAMBIGUATION-007",
+      "description": "Repeated adjudication runs reuse cached decisions and avoid new model calls for already decided fingerprints.",
+      "phase": 14,
+      "status": "passed"
+    },
+    {
+      "id": "P14-DISAMBIGUATION-008",
+      "description": "Human disambiguation decisions persist with review note and reviewer provenance.",
+      "phase": 14,
+      "status": "passed"
+    },
+    {
+      "id": "P14-DISAMBIGUATION-009",
+      "description": "Human decisions outrank LLM decisions for the same fingerprint while preserving prior LLM provenance.",
+      "phase": 14,
+      "status": "passed"
+    },
+    {
+      "id": "P14-DISAMBIGUATION-010",
+      "description": "Human-reviewed fingerprints are reused across adjudication reruns without model calls and without canonical output mutation.",
+      "phase": 14,
+      "status": "passed"
+    },
+    {
+      "id": "P14-DISAMBIGUATION-011",
+      "description": "Effective canonical decisions are applied only to a reversible view with merge, block, skipped-conflict, unchanged, and audit outputs.",
+      "phase": 14,
+      "status": "passed"
+    },
+    {
+      "id": "P14-DISAMBIGUATION-012",
+      "description": "Controlled apply mode produces an applied grouping map without mutating canonical products or canonical mappings.",
+      "phase": 14,
+      "status": "passed"
+    },
+    {
+      "id": "P14-DISAMBIGUATION-013",
+      "description": "Ingest results include a dry-run disambiguation application preview.",
+      "phase": 14,
+      "status": "passed"
+    },
+    {
+      "id": "P15-ENRICHMENT-001",
+      "description": "A new canonical fingerprint triggers one enrichment call and caches the validated result.",
+      "phase": 15,
+      "status": "passed"
+    },
+    {
+      "id": "P15-ENRICHMENT-002",
+      "description": "An existing canonical fingerprint reuses cached enrichment without a new model call.",
+      "phase": 15,
+      "status": "passed"
+    },
+    {
+      "id": "P15-ENRICHMENT-003",
+      "description": "Invalid enrichment output is rejected and not persisted.",
+      "phase": 15,
+      "status": "passed"
+    },
+    {
+      "id": "P15-ENRICHMENT-004",
+      "description": "Strict schema validation rejects uncontrolled fields and normalizes stored values.",
+      "phase": 15,
+      "status": "passed"
+    },
+    {
+      "id": "P15-ENRICHMENT-005",
+      "description": "Controlled category hierarchy validation rejects invalid category combinations.",
+      "phase": 15,
+      "status": "passed"
+    },
+    {
+      "id": "P15-ENRICHMENT-006",
+      "description": "Canonical grouping remains unchanged whether enrichment exists or not.",
+      "phase": 15,
+      "status": "passed"
+    },
+    {
+      "id": "P15-ENRICHMENT-007",
+      "description": "The enrichment prompt exposes the strict schema and controlled category tree.",
+      "phase": 15,
+      "status": "passed"
+    },
+    {
+      "id": "P15.1-READERS-001",
+      "description": "Canonical product readers can explicitly combine canonical truth, applied view, and enrichment.",
+      "phase": 15.1,
+      "status": "passed"
+    },
+    {
+      "id": "P15.1-READERS-002",
+      "description": "Deterministic list and search helpers filter canonical product views by enrichment-backed category, brand, base product, flavor, and attributes.",
+      "phase": 15.1,
+      "status": "passed"
+    },
+    {
+      "id": "P15.1-READERS-003",
+      "description": "Enrichment analytics expose coverage, category, brand, base-product, flavor, and ingest-run summaries.",
+      "phase": 15.1,
+      "status": "passed"
+    },
+    {
+      "id": "P15.1-READERS-004",
+      "description": "Canonical-truth-only readers reject enrichment-backed filters instead of blurring layer boundaries.",
+      "phase": 15.1,
+      "status": "passed"
+    },
+    {
+      "id": "P15.1-READERS-005",
+      "description": "Live enrichment default intent is enabled unless the environment explicitly disables it.",
+      "phase": 15.1,
+      "status": "passed"
+    },
+    {
+      "id": "P15.1-READERS-006",
+      "description": "Live enrichment remains non-blocking when enabled but XAI_API_KEY is missing.",
+      "phase": 15.1,
+      "status": "passed"
+    },
+    {
+      "id": "P15.1-READERS-007",
+      "description": "Reader and analytics helpers do not mutate canonical products or canonical mappings.",
+      "phase": 15.1,
+      "status": "passed"
+    },
+    {
+      "id": "P15.2-PRODUCT-API-001",
+      "description": "Product detail handlers return stable product-facing fields with canonical id, canonical name, markers, enrichment, and explicit layer mode.",
+      "phase": 15.2,
+      "status": "passed"
+    },
+    {
+      "id": "P15.2-PRODUCT-API-002",
+      "description": "Product search handlers default to canonical_with_enrichment and return bounded deterministic results.",
+      "phase": 15.2,
+      "status": "passed"
+    },
+    {
+      "id": "P15.2-PRODUCT-API-003",
+      "description": "Invalid layer-mode input is rejected safely instead of silently switching layers.",
+      "phase": 15.2,
+      "status": "passed"
+    },
+    {
+      "id": "P15.2-PRODUCT-API-004",
+      "description": "Enrichment-backed API filtering works across supported category, brand, base-product, flavor, and attribute filters.",
+      "phase": 15.2,
+      "status": "passed"
+    },
+    {
+      "id": "P15.2-PRODUCT-API-005",
+      "description": "Facet handlers return deterministic counts for the supported enrichment dimensions.",
+      "phase": 15.2,
+      "status": "passed"
+    },
+    {
+      "id": "P15.2-PRODUCT-API-006",
+      "description": "Enrichment analytics summary handlers expose coverage and category, brand, base-product, and flavor rollups.",
+      "phase": 15.2,
+      "status": "passed"
+    },
+    {
+      "id": "P15.2-PRODUCT-API-007",
+      "description": "Product API handlers do not mutate canonical products or canonical mappings.",
+      "phase": 15.2,
+      "status": "passed"
+    },
+    {
+      "id": "P15.2-PRODUCT-API-008",
+      "description": "Applied-view data is only returned when the caller explicitly requests an applied-view layer.",
+      "phase": 15.2,
+      "status": "passed"
+    },
+    {
+      "id": "P15.2-PRODUCT-API-009",
+      "description": "Missing canonical product ids return bounded not-found responses instead of crashing.",
+      "phase": 15.2,
+      "status": "passed"
+    },
+    {
+      "id": "P15.3-SHOPPING-LIST-001",
+      "description": "Exact and simple shopping-list items resolve into ranked canonical candidates.",
+      "phase": 15.3,
+      "status": "passed"
+    },
+    {
+      "id": "P15.3-SHOPPING-LIST-002",
+      "description": "Close competing candidates return ambiguous instead of forcing a single resolved output.",
+      "phase": 15.3,
+      "status": "passed"
+    },
+    {
+      "id": "P15.3-SHOPPING-LIST-003",
+      "description": "Items with no viable candidates return unresolved without crashing the request.",
+      "phase": 15.3,
+      "status": "passed"
+    },
+    {
+      "id": "P15.3-SHOPPING-LIST-004",
+      "description": "Ranked candidate outputs include deterministic match reasons.",
+      "phase": 15.3,
+      "status": "passed"
+    },
+    {
+      "id": "P15.3-SHOPPING-LIST-005",
+      "description": "limit_per_item is respected without changing the underlying ambiguity policy.",
+      "phase": 15.3,
+      "status": "passed"
+    },
+    {
+      "id": "P15.3-SHOPPING-LIST-006",
+      "description": "Invalid layer-mode inputs are rejected safely.",
+      "phase": 15.3,
+      "status": "passed"
+    },
+    {
+      "id": "P15.3-SHOPPING-LIST-007",
+      "description": "Empty shopping-list requests are rejected safely.",
+      "phase": 15.3,
+      "status": "passed"
+    },
+    {
+      "id": "P15.3-SHOPPING-LIST-008",
+      "description": "Shopping-list resolution accepts both string items and object items with text.",
+      "phase": 15.3,
+      "status": "passed"
+    },
+    {
+      "id": "P15.3-SHOPPING-LIST-009",
+      "description": "Shopping-list resolution does not mutate canonical products, mappings, or enrichment cache.",
+      "phase": 15.3,
+      "status": "passed"
+    },
+    {
+      "id": "P15.4-BASKET-PLAN-001",
+      "description": "All-resolved shopping lists produce optimization-ready basket plans.",
+      "phase": 15.4,
+      "status": "passed"
+    },
+    {
+      "id": "P15.4-BASKET-PLAN-002",
+      "description": "Ambiguous carry-top-n planning keeps optimization ready while requiring confirmation.",
+      "phase": 15.4,
+      "status": "passed"
+    },
+    {
+      "id": "P15.4-BASKET-PLAN-003",
+      "description": "Ambiguous require-confirmation planning blocks optimization readiness.",
+      "phase": 15.4,
+      "status": "passed"
+    },
+    {
+      "id": "P15.4-BASKET-PLAN-004",
+      "description": "Unresolved exclude planning keeps optimization ready while preserving unresolved items.",
+      "phase": 15.4,
+      "status": "passed"
+    },
+    {
+      "id": "P15.4-BASKET-PLAN-005",
+      "description": "Unresolved block planning disables optimization readiness.",
+      "phase": 15.4,
+      "status": "passed"
+    },
+    {
+      "id": "P15.4-BASKET-PLAN-006",
+      "description": "Requested quantity and simple volume/count markers are preserved in ready items.",
+      "phase": 15.4,
+      "status": "passed"
+    },
+    {
+      "id": "P15.4-BASKET-PLAN-007",
+      "description": "Ambiguous carried-candidate behavior respects the configured top-N policy deterministically.",
+      "phase": 15.4,
+      "status": "passed"
+    },
+    {
+      "id": "P15.4-BASKET-PLAN-008",
+      "description": "Basket planner execution does not mutate canonical products, mappings, or enrichment cache.",
+      "phase": 15.4,
+      "status": "passed"
+    },
+    {
+      "id": "P16.0-PRICE-LOOKUP-001",
+      "description": "Canonical price lookup returns bounded latest price records and deterministic best-price selection.",
+      "phase": 16,
+      "status": "passed"
+    },
+    {
+      "id": "P16.0-PRICE-LOOKUP-002",
+      "description": "Canonical products with no mapped current price records return explicit missing status.",
+      "phase": 16,
+      "status": "passed"
+    },
+    {
+      "id": "P16.0-PRICE-LOOKUP-003",
+      "description": "Canonical products with only old snapshots return explicit stale status.",
+      "phase": 16,
+      "status": "passed"
+    },
+    {
+      "id": "P16.0-PRICE-LOOKUP-004",
+      "description": "Chain and store filters apply deterministically on derived identifiers from existing snapshot truth.",
+      "phase": 16,
+      "status": "passed"
+    },
+    {
+      "id": "P16.0-PRICE-LOOKUP-005",
+      "description": "Promo-aware latest-price lookup picks the lowest valid current effective price.",
+      "phase": 16,
+      "status": "passed"
+    },
+    {
+      "id": "P16.0-PRICE-LOOKUP-006",
+      "description": "The price lookup handler validates bounded request errors safely.",
+      "phase": 16,
+      "status": "passed"
+    },
+    {
+      "id": "P16.0-PRICE-LOOKUP-007",
+      "description": "Basket-plan price lookup collects ready items and carried ambiguous candidates.",
+      "phase": 16,
+      "status": "passed"
+    },
+    {
+      "id": "P16.0-PRICE-LOOKUP-008",
+      "description": "Price lookup does not mutate basket plans, canonical products, mappings, or raw price snapshots.",
+      "phase": 16,
+      "status": "passed"
+    },
+    {
+      "id": "P16.1-BASKET-OPTIMIZER-001",
+      "description": "Complete single-store baskets win over incomplete cheaper baskets when the missing-item penalty applies.",
+      "phase": 16.1,
+      "status": "passed"
+    },
+    {
+      "id": "P16.1-BASKET-OPTIMIZER-002",
+      "description": "Actual totals exclude penalty while score totals include it for ranking.",
+      "phase": 16.1,
+      "status": "passed"
+    },
+    {
+      "id": "P16.1-BASKET-OPTIMIZER-003",
+      "description": "Missing and stale-excluded prices are explicit in item warnings.",
+      "phase": 16.1,
+      "status": "passed"
+    },
+    {
+      "id": "P16.1-BASKET-OPTIMIZER-004",
+      "description": "Requested quantity multiplies selected line totals.",
+      "phase": 16.1,
+      "status": "passed"
+    },
+    {
+      "id": "P16.1-BASKET-OPTIMIZER-005",
+      "description": "Planner-blocked basket plans prevent optimization.",
+      "phase": 16.1,
+      "status": "passed"
+    },
+    {
+      "id": "P16.1-BASKET-OPTIMIZER-006",
+      "description": "Ambiguous cheapest-candidate policy auto-selects and warns.",
+      "phase": 16.1,
+      "status": "passed"
+    },
+    {
+      "id": "P16.1-BASKET-OPTIMIZER-007",
+      "description": "Ambiguous require-confirmation policy blocks optimization.",
+      "phase": 16.1,
+      "status": "passed"
+    },
+    {
+      "id": "P16.1-BASKET-OPTIMIZER-008",
+      "description": "Optimizer output currency is EUR.",
+      "phase": 16.1,
+      "status": "passed"
+    },
+    {
+      "id": "P16.1-BASKET-OPTIMIZER-009",
+      "description": "Optimizer execution does not mutate basket plans or price lookups.",
+      "phase": 16.1,
+      "status": "passed"
+    },
+    {
+      "id": "P16.1-BASKET-OPTIMIZER-010",
+      "description": "Basket optimize endpoint validates bad optimizer input.",
+      "phase": 16.1,
+      "status": "passed"
+    },
+    {
+      "id": "P16.1-BASKET-OPTIMIZER-011",
+      "description": "Deterministic tie-breaking uses chain id after score, coverage, and actual-total ties.",
+      "phase": 16.1,
+      "status": "passed"
+    },
+    {
+      "id": "P16.1-BASKET-OPTIMIZER-012",
+      "description": "Stale-only candidate chains still produce explicit stale warnings and penalty scoring.",
+      "phase": 16.1,
+      "status": "passed"
+    },
+    {
+      "id": "P16.2-MULTI-STORE-001",
+      "description": "Two-store splits can beat single-store and be recommended.",
+      "phase": 16.2,
+      "status": "passed"
+    },
+    {
+      "id": "P16.2-MULTI-STORE-002",
+      "description": "Tiny savings below threshold do not recommend multi-store.",
+      "phase": 16.2,
+      "status": "passed"
+    },
+    {
+      "id": "P16.2-MULTI-STORE-003",
+      "description": "Worse-coverage multi-store options do not beat single-store recommendation.",
+      "phase": 16.2,
+      "status": "passed"
+    },
+    {
+      "id": "P16.2-MULTI-STORE-004",
+      "description": "Missing-item penalty affects score_total but not actual_total.",
+      "phase": 16.2,
+      "status": "passed"
+    },
+    {
+      "id": "P16.2-MULTI-STORE-005",
+      "description": "max_stores equals 2 bounds evaluated combinations.",
+      "phase": 16.2,
+      "status": "passed"
+    },
+    {
+      "id": "P16.2-MULTI-STORE-006",
+      "description": "Deterministic multi-store tie-breaking uses store id order.",
+      "phase": 16.2,
+      "status": "passed"
+    },
+    {
+      "id": "P16.2-MULTI-STORE-007",
+      "description": "Ambiguous cheapest-candidate policy works across store combinations.",
+      "phase": 16.2,
+      "status": "passed"
+    },
+    {
+      "id": "P16.2-MULTI-STORE-008",
+      "description": "Stale prices are excluded by default in multi-store options.",
+      "phase": 16.2,
+      "status": "passed"
+    },
+    {
+      "id": "P16.2-MULTI-STORE-009",
+      "description": "Basket optimize endpoint remains single-store by default.",
+      "phase": 16.2,
+      "status": "passed"
+    },
+    {
+      "id": "P16.2-MULTI-STORE-010",
+      "description": "Basket optimize endpoint returns combined multi-store result when requested.",
+      "phase": 16.2,
+      "status": "passed"
+    },
+    {
+      "id": "P16.2-MULTI-STORE-011",
+      "description": "Multi-store output currency remains EUR.",
+      "phase": 16.2,
+      "status": "passed"
+    },
+    {
+      "id": "P16.2-MULTI-STORE-012",
+      "description": "Multi-store optimizer does not mutate basket plan or price lookup inputs.",
+      "phase": 16.2,
+      "status": "passed"
+    },
+    {
+      "id": "P16.3-BASKET-EXPLAIN-001",
+      "description": "Single-store explanation headline names the recommended chain.",
+      "phase": 16.3,
+      "status": "passed"
+    },
+    {
+      "id": "P16.3-BASKET-EXPLAIN-002",
+      "description": "Multi-store explanation headline names both chains.",
+      "phase": 16.3,
+      "status": "passed"
+    },
+    {
+      "id": "P16.3-BASKET-EXPLAIN-003",
+      "description": "Savings text appears when multi-store saves money.",
+      "phase": 16.3,
+      "status": "passed"
+    },
+    {
+      "id": "P16.3-BASKET-EXPLAIN-004",
+      "description": "Missing item notes are generated from optimizer warnings.",
+      "phase": 16.3,
+      "status": "passed"
+    },
+    {
+      "id": "P16.3-BASKET-EXPLAIN-005",
+      "description": "Ambiguous auto-selection notes are generated.",
+      "phase": 16.3,
+      "status": "passed"
+    },
+    {
+      "id": "P16.3-BASKET-EXPLAIN-006",
+      "description": "Limitations include travel not included for multi-store explanations.",
+      "phase": 16.3,
+      "status": "passed"
+    },
+    {
+      "id": "P16.3-BASKET-EXPLAIN-007",
+      "description": "include_explanation true adds explanation to endpoint results.",
+      "phase": 16.3,
+      "status": "passed"
+    },
+    {
+      "id": "P16.3-BASKET-EXPLAIN-008",
+      "description": "Omitted include_explanation preserves the old endpoint response shape.",
+      "phase": 16.3,
+      "status": "passed"
+    },
+    {
+      "id": "P16.3-BASKET-EXPLAIN-009",
+      "description": "Explanation currency remains EUR.",
+      "phase": 16.3,
+      "status": "passed"
+    },
+    {
+      "id": "P16.3-BASKET-EXPLAIN-010",
+      "description": "Explanation builder does not mutate optimizer results.",
+      "phase": 16.3,
+      "status": "passed"
+    },
+    {
+      "id": "PM0-MEAL-001",
+      "description": "The shared flat backbone exposes meal foundation collections for ingredient hierarchy, units, conversions, ingredient rules, and bridge mappings.",
+      "phase": "M0",
+      "status": "passed"
+    },
+    {
+      "id": "PM0-MEAL-002",
+      "description": "Ingredient family, category, and ingredient records can be written and queried deterministically with localized names and runtime-safe field validation.",
+      "phase": "M0",
+      "status": "passed"
+    },
+    {
+      "id": "PM0-MEAL-003",
+      "description": "Seeded generic unit conversions and ingredient-specific piece rules convert recipe quantities into edible quantities deterministically.",
+      "phase": "M0",
+      "status": "passed"
+    },
+    {
+      "id": "PM0-MEAL-004",
+      "description": "Edible quantities convert into conservative purchasable quantities using ingredient yield rules and explicit purchase units.",
+      "phase": "M0",
+      "status": "passed"
+    },
+    {
+      "id": "PM0-MEAL-005",
+      "description": "Product-to-ingredient mapping resolution prefers stronger mapping types and exposes normalized ingredient price candidates from mapped canonical products.",
+      "phase": "M0",
+      "status": "passed"
+    },
+    {
+      "id": "PM0-MEAL-006",
+      "description": "Ingredient cost projection follows the explicit fallback ladder from exact local mapped price to other-store mapped price to category average to ingredient estimate.",
+      "phase": "M0",
+      "status": "passed"
+    },
+    {
+      "id": "PDB0-ARCH-001",
+      "description": "Postgres transition architecture document exists with explicit Postgres, Firestore, and Firebase Functions ownership boundaries.",
+      "phase": "DB0",
+      "status": "passed"
+    },
+    {
+      "id": "PDB0-ARCH-002",
+      "description": "Dedupe-first ingest contract is documented for USDA, Open Food Facts, retailer products, ingredients, recipes, and components.",
+      "phase": "DB0",
+      "status": "passed"
+    },
+    {
+      "id": "PDB0-ARCH-003",
+      "description": "Enrichment contract keeps LLM use cache-first, net-new/entity-level, provenance-tagged, and out of runtime core flows.",
+      "phase": "DB0",
+      "status": "passed"
+    },
+    {
+      "id": "PDB0-ARCH-004",
+      "description": "BG/EN localization contract is documented for user-facing and searchable entities.",
+      "phase": "DB0",
+      "status": "passed"
+    },
+    {
+      "id": "PDB0-ARCH-005",
+      "description": "Migration plan keeps DB0 design-only and defers dependencies, migrations, and data movement to DB1+.",
+      "phase": "DB0",
+      "status": "passed"
+    },
+    {
+      "id": "PDB1-POSTGRES-001",
+      "description": "Postgres config parsing supports URL and discrete env vars with safe no-config behavior.",
+      "phase": "DB1",
+      "status": "passed"
+    },
+    {
+      "id": "PDB1-POSTGRES-002",
+      "description": "Health checks skip cleanly when Postgres is not configured.",
+      "phase": "DB1",
+      "status": "passed"
+    },
+    {
+      "id": "PDB1-POSTGRES-003",
+      "description": "Migration files are applied in deterministic order and tracked idempotently with checksums.",
+      "phase": "DB1",
+      "status": "passed"
+    },
+    {
+      "id": "PDB1-POSTGRES-004",
+      "description": "DB1 import metadata migration creates source_datasets, source_files, and import_batches.",
+      "phase": "DB1",
+      "status": "passed"
+    },
+    {
+      "id": "PDB1-POSTGRES-005",
+      "description": "Import metadata repository normalizes dataset, file, and batch records before source-specific imports exist.",
+      "phase": "DB1",
+      "status": "passed"
+    },
+    {
+      "id": "PDB1-POSTGRES-006",
+      "description": "Existing runtime store selection remains independent from Postgres configuration.",
+      "phase": "DB1",
+      "status": "passed"
+    },
+    {
+      "id": "PDB1-POSTGRES-007",
+      "description": "Optional real Postgres metadata insert/read flow runs when local Postgres is configured.",
+      "phase": "DB1",
+      "status": "passed"
+    }
+  ]
+}

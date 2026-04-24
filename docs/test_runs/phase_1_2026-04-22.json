@@ -1,0 +1,18 @@
+{
+  "phase": "phase_1",
+  "timestamp": "2026-04-22T00:00:00Z",
+  "commands": [
+    "npm test",
+    "npm run verify",
+    "npm run validate:docs"
+  ],
+  "results": [
+    "npm test: PASS - Phase 1 tests: 9 passed, 0 failed, 9 total",
+    "npm run verify: PASS - Basic verify passed.",
+    "npm run validate:docs: PASS - JSON docs parse successfully."
+  ],
+  "notes": [
+    "Initial attempt to use the Node built-in test harness failed in the sandbox with spawn EPERM, so the automated suite was converted to a direct Node runner without reducing coverage.",
+    "The sample Bulgarian TSV fixture under data_samples/kolkostruva_sample.tsv is used in the passing acceptance suite."
+  ]
+}

@@ -1,0 +1,332 @@
+{
+  "@@locale": "en",
+  "appTitle": "Pricer",
+  "navSearch": "Search",
+  "navLists": "Lists",
+  "navWatchlist": "Watchlist",
+  "homeTagline": "Find the cheapest basket fast, then rerun it tomorrow just as easily.",
+  "homeSearchCardTitle": "What do you want to buy?",
+  "homeSearchCardSubtitle": "Search in Bulgarian and compare today's cheapest result.",
+  "searchFieldLabel": "Bulgarian grocery query",
+  "searchFieldHint": "прясно мляко 1л",
+  "searchButton": "Find best price",
+  "recentSearchesTitle": "Recent searches",
+  "recentSearchesSubtitle": "Rerun your usual staples in one tap.",
+  "recentSearchesEmptyTitle": "No recent searches yet",
+  "recentSearchesEmptyMessage": "Run one quick search and it will appear here for tomorrow.",
+  "recentSearchesSampleAction": "Try a sample",
+  "recentListsTitle": "Recent lists",
+  "recentListsSubtitle": "Jump back into saved baskets and rerun them fast.",
+  "recentListsEmptyTitle": "No saved lists yet",
+  "recentListsEmptyMessage": "Save a result as a list to make repeat shopping almost instant.",
+  "rerunButton": "Rerun",
+  "quickInsightLabel": "Daily insight",
+  "todayLabel": "Today",
+  "watchlistDropsReady": "{count} watchlist drops are ready to recheck.",
+  "@watchlistDropsReady": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "rerunListInsight": "Rerun {listName} to refresh today's total.",
+  "@rerunListInsight": {
+    "placeholders": {
+      "listName": {
+        "type": "String"
+      }
+    }
+  },
+  "rerunSearchInsight": "Today's fastest win: rerun \"{query}\".",
+  "@rerunSearchInsight": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "searchStapleInsight": "Search one staple and see the cheapest store in seconds.",
+  "watchlistDropsCaption": "Open your watchlist to see which tracked prices are now at or below target.",
+  "watchlistReadyCaption": "{count} tracked products are ready for a quick daily price check.",
+  "@watchlistReadyCaption": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "recentRerunCaption": "Recent searches and lists are kept close so you can rerun them with one thumb.",
+  "loadResultsError": "We could not load results right now. Please try again.",
+  "firestoreNotConfiguredStatus": "Firebase is not configured yet. Lists and watchlists are running in memory.",
+  "firestoreConnectedStatus": "Firestore is connected for anonymous lists and watchlists.",
+  "firestoreBootstrapFailedStatus": "Firebase bootstrap failed. Lists and watchlists are running in memory.",
+  "resultsNoMatchesTitle": "No matches yet",
+  "resultsNoMatchesMessage": "Try a more specific product, brand, or size to surface the cheapest result.",
+  "tryAgainButton": "Try again",
+  "resultsSummaryTitle": "Cheapest basket today",
+  "resultsSummarySubtitle": "Savings stay front and center on every result.",
+  "noStoreMatchYet": "No store match yet",
+  "youSaveLabel": "You save",
+  "badgeLabel": "Badge",
+  "cheapestTodayBadge": "Cheapest today",
+  "savingsVsAverage": "You save {amount} versus recent averages",
+  "@savingsVsAverage": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "cheapestTodayForQuery": "Cheapest today for your current query",
+  "saveResultTitle": "Save this result",
+  "saveResultSubtitle": "Keep this basket handy and rerun it later in one tap.",
+  "saveAsListButton": "Save as list",
+  "saveToShoppingListTitle": "Save to shopping list",
+  "listNameLabel": "List name",
+  "cancelButton": "Cancel",
+  "saveButton": "Save",
+  "savedToListSnackBar": "{name} saved to {listName}",
+  "@savedToListSnackBar": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "listName": {
+        "type": "String"
+      }
+    }
+  },
+  "defaultSavedResultListName": "Saved result",
+  "resultSavedSnackBar": "Result saved to {listName}",
+  "@resultSavedSnackBar": {
+    "placeholders": {
+      "listName": {
+        "type": "String"
+      }
+    }
+  },
+  "addedToWatchlistSnackBar": "{name} added to watchlist",
+  "@addedToWatchlistSnackBar": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "shareCopiedSnackBar": "Share text copied to clipboard",
+  "shareNoMatchText": "Pricer: no match yet for \"{query}\".",
+  "@shareNoMatchText": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "shareResultText": "Pricer: I save {amount} on \"{query}\" and the cheapest store today is {store}.",
+  "@shareResultText": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "query": {
+        "type": "String"
+      },
+      "store": {
+        "type": "String"
+      }
+    }
+  },
+  "watchButton": "Watch",
+  "addToListButton": "Add to list",
+  "detailsButton": "Details",
+  "storeLabel": "Store",
+  "matchLabel": "Match",
+  "saveLabel": "Save",
+  "vsAverageShort": "vs avg {amount}",
+  "@vsAverageShort": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "productHistoryLoadError": "We could not load product history right now.",
+  "bestStoreToday": "Best store today: {store}",
+  "@bestStoreToday": {
+    "placeholders": {
+      "store": {
+        "type": "String"
+      }
+    }
+  },
+  "priceHistoryTitle": "Price history",
+  "priceHistorySubtitle": "Current vs recent trend",
+  "noHistoryYet": "No history yet",
+  "recentPricePointsTitle": "Recent price points",
+  "recentPricePointsSubtitle": "Use these to judge whether today is a good moment to buy.",
+  "noRecordedHistoryTitle": "No recorded history",
+  "noRecordedHistoryMessage": "This product needs more daily snapshots before trend lines become useful.",
+  "priceRangeLabel": "Min {minPrice}  Max {maxPrice}",
+  "@priceRangeLabel": {
+    "placeholders": {
+      "minPrice": {
+        "type": "String"
+      },
+      "maxPrice": {
+        "type": "String"
+      }
+    }
+  },
+  "trackPriceDropsTitle": "Track price drops",
+  "trackPriceDropsSubtitle": "Watch this item now and revisit when the price moves.",
+  "watchItemButton": "Watch item",
+  "quickListName": "Quick list",
+  "shoppingListsTitle": "Shopping lists",
+  "createShoppingListTitle": "Create shopping list",
+  "createButton": "Create",
+  "shoppingListsLoadError": "We could not load your saved shopping lists.",
+  "savedBasketsTitle": "Saved baskets",
+  "savedBasketsSubtitle": "Keep repeat shopping central and easy to rerun.",
+  "newListButton": "New list",
+  "noShoppingListsTitle": "No shopping lists yet",
+  "noShoppingListsMessage": "Save a result or create a list here to make repeat buying much faster.",
+  "updatedItemsSubtitle": "Updated {date} • {count} items",
+  "@updatedItemsSubtitle": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "openButton": "Open",
+  "addItemTitle": "Add item",
+  "bulgarianQueryLabel": "Bulgarian query",
+  "addButton": "Add",
+  "shoppingListLoadError": "We could not load this list.",
+  "itemsReadyToCompare": "{count} items ready to compare",
+  "@itemsReadyToCompare": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "noStoreWinnerYet": "No store winner yet",
+  "bestOneThumbRerun": "Best one-thumb rerun for today",
+  "updatedPricesLabel": "Updated prices",
+  "availableNowLabel": "Available now",
+  "runComparisonHint": "Run comparison to see the cheapest total and quickest repeat option.",
+  "addGroceriesFirstTitle": "Add some groceries first",
+  "addGroceriesFirstMessage": "Once this list has a few items, you can compare the cheapest current total in one tap.",
+  "qtyLabel": "Qty {count}",
+  "@qtyLabel": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "refreshPricesTitle": "Refresh today's prices",
+  "bestCurrentTotalTitle": "Best current total",
+  "compareListSubtitle": "Compare this list to surface the cheapest current basket.",
+  "cheapestStoreTotalSubtitle": "Cheapest store {store} • Total {total}",
+  "@cheapestStoreTotalSubtitle": {
+    "placeholders": {
+      "store": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "runComparisonButton": "Run comparison",
+  "watchlistTitle": "Watchlist",
+  "watchlistLoadError": "We could not load your watchlist.",
+  "dropsSummaryTitle": "Drops summary",
+  "dropsSummarySubtitle": "This banner keeps watchlist urgency visible.",
+  "noTrackedItemsYet": "No tracked items yet",
+  "watchlistDropsStatus": "{drops} of {count} tracked items are at or below target.",
+  "@watchlistDropsStatus": {
+    "placeholders": {
+      "drops": {
+        "type": "int"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "watchlistEmptyTitle": "Tracked products will appear here",
+  "watchlistEmptyMessage": "Add a product from search results to build a habit-forming watchlist.",
+  "currentPriceLabel": "Current {price}",
+  "@currentPriceLabel": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "somethingWentWrongTitle": "Something went wrong",
+  "retryButton": "Retry",
+  "belowRecentAverage": "Below recent average",
+  "higherThanRecentAverage": "Higher than recent average",
+  "aroundUsualPrice": "Around usual price",
+  "notAvailableShort": "-",
+  "premiumHomeTitle": "Premium unlocks smarter savings",
+  "premiumHomeSubtitle": "Turn on multi-store basket optimization, target-price alerts, and an ad-free app shell.",
+  "premiumActiveHomeTitle": "Premium is active",
+  "premiumActiveHomeSubtitle": "Multi-store optimization and alerts are ready for this device.",
+  "viewPremiumButton": "View premium",
+  "managePlanButton": "Manage plan",
+  "paywallTitle": "Premium",
+  "paywallHeroTitle": "Save more with premium",
+  "paywallHeroSubtitle": "Unlock multi-store basket optimization, watchlist alerts, and an ad-free experience.",
+  "paywallPremiumActive": "Your premium entitlement is active on this device.",
+  "paywallFeatureLabel": "Includes",
+  "paywallFeatureOptimizer": "Multi-store basket optimizer",
+  "paywallFeatureAlerts": "Target-price watchlist alerts",
+  "paywallFeatureNoAds": "Ad-free experience",
+  "subscriptionStatusTitle": "Subscription status",
+  "subscriptionPremiumStatus": "Premium is active",
+  "subscriptionFreeStatus": "Free tier",
+  "watchlistLimitValue": "Watchlist limit: {count}",
+  "@watchlistLimitValue": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "optimizerLimitValue": "Optimizer item limit: {count}",
+  "@optimizerLimitValue": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "billingNotConfiguredTitle": "Billing is not configured yet",
+  "billingNotConfiguredMessage": "RevenueCat keys are still missing for this build, so the paywall is running in preview mode.",
+  "noSubscriptionPackagesTitle": "No subscription packages available",
+  "noSubscriptionPackagesMessage": "RevenueCat is connected, but there are no offerings published for this app yet.",
+  "purchaseButton": "Purchase",
+  "restoreButton": "Restore",
+  "restorePurchasesTitle": "Already subscribed?",
+  "restorePurchasesSubtitle": "Restore purchases on this device if you upgraded elsewhere.",
+  "premiumPurchaseSuccess": "Premium purchase completed.",
+  "premiumStillPendingMessage": "The purchase finished, but premium is not active yet. Try refreshing in a moment.",
+  "premiumPurchaseFailed": "We could not complete the purchase.",
+  "restorePurchasesSuccess": "Premium restored on this device.",
+  "restorePurchasesNoActive": "No active premium subscription was found to restore.",
+  "restorePurchasesFailed": "We could not restore purchases right now.",
+  "multiStorePremiumTitle": "Compare across stores",
+  "multiStorePremiumMessage": "Premium unlocks the multi-store basket optimizer on top of today’s matches.",
+  "unlockPremiumButton": "Unlock premium",
+  "watchlistPremiumTitle": "Premium alerts are off",
+  "watchlistPremiumMessage": "Upgrade to turn target-price alerts and smarter watchlist nudges back on."
+}

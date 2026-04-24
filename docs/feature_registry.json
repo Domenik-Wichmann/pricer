@@ -1,0 +1,114 @@
+{
+  "features": [
+    {
+      "id": "P0-FOUNDATION",
+      "phase": 0,
+      "status": "completed"
+    },
+    {
+      "id": "P1-DAILY-IMPORT",
+      "phase": 1,
+      "status": "completed"
+    },
+    {
+      "id": "P1.5-MULTILINGUAL",
+      "phase": 1.5,
+      "status": "completed"
+    },
+    {
+      "id": "P2-MATCHING",
+      "phase": 2,
+      "status": "completed"
+    },
+    {
+      "id": "P3-CORE-FLOW",
+      "phase": 3,
+      "status": "completed"
+    },
+    {
+      "id": "P3.5-AGGREGATION",
+      "phase": 3.5,
+      "status": "completed"
+    },
+    {
+      "id": "P4-QUERY-ENGINE-AND-SYNC",
+      "phase": 4,
+      "status": "completed"
+    },
+    {
+      "id": "P4-WATCHLISTS",
+      "phase": 4,
+      "status": "ready_to_start"
+    },
+    {
+      "id": "P5-FLUTTER-APP",
+      "phase": 5,
+      "status": "implemented_verified_flutter_tests_pending_native_runtime"
+    },
+    {
+      "id": "P5.5-UI-AND-GROWTH",
+      "phase": 5.5,
+      "status": "implemented_verified_flutter_tests_pending_native_runtime"
+    },
+    {
+      "id": "P5.6-LOCALIZATION",
+      "phase": 5.6,
+      "status": "implemented_verified_flutter_tests_pending_native_runtime"
+    },
+    {
+      "id": "P6-PRODUCTION-PIPELINE",
+      "phase": 6,
+      "status": "implemented_verified_pending_live_credentials_and_deployment"
+    },
+    {
+      "id": "P7-DEMAND-INTELLIGENCE",
+      "phase": 7,
+      "status": "implemented_verified_pending_live_credentials_and_deployment"
+    },
+    {
+      "id": "P8-BEST-BASKET",
+      "phase": 8,
+      "status": "implemented_verified_pending_live_credentials_and_deployment"
+    },
+    {
+      "id": "P9-WATCHLIST-INTELLIGENCE",
+      "phase": 9,
+      "status": "implemented_verified_pending_live_credentials_and_deployment"
+    },
+    {
+      "id": "P10-MONETIZATION",
+      "phase": 10,
+      "status": "implemented_verified_pending_live_revenuecat_admob_runtime"
+    },
+    {
+      "id": "P11-DEPLOYMENT",
+      "phase": 11,
+      "status": "audited_documented_persistence_upgraded_still_blocked_on_infra_and_runtime_gaps"
+    },
+    {
+      "id": "P12-SEARCH-QUALITY",
+      "phase": 12,
+      "status": "implemented_verified"
+    },
+    {
+      "id": "P16.0-PRICE-LOOKUP",
+      "phase": 16.0,
+      "status": "implemented_verified"
+    },
+    {
+      "id": "P16.1-SINGLE-STORE-BASKET-OPTIMIZER",
+      "phase": 16.1,
+      "status": "implemented_verified"
+    },
+    {
+      "id": "P16.2-MULTI-STORE-BASKET-OPTIMIZER",
+      "phase": 16.2,
+      "status": "implemented_verified"
+    },
+    {
+      "id": "P16.3-BASKET-EXPLANATION",
+      "phase": 16.3,
+      "status": "implemented_verified"
+    }
+  ]
+}
