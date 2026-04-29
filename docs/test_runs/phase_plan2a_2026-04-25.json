@@ -1,0 +1,47 @@
+{
+  "phase": "PLAN2A",
+  "date": "2026-04-25",
+  "status": "passed",
+  "summary": "Implemented the PLAN2A Postgres-side meal-plan requirements adapter with deterministic aggregation from stored meal plans into canonical ingredient demand, mirrored builder modules, CLI, tests, docs, and handoff artifacts. The slice stays sidecar-only and does not call price lookup or basket optimization.",
+  "commands": [
+    {
+      "command": "node -e \"require('./functions/src'); require('./app/functions/src'); console.log('load ok')\"",
+      "status": "passed",
+      "notes": "Both mirrored backend export surfaces loaded successfully after wiring PLAN2A builder exports."
+    },
+    {
+      "command": "npm run test:plan2a",
+      "status": "passed",
+      "notes": "Focused PLAN2A tests passed for deterministic requirement aggregation, grams coverage status handling, source-id preservation, unit conversion, idempotent rebuilds, and no-optimizer/no-Firestore boundaries."
+    },
+    {
+      "command": "npm test",
+      "status": "passed",
+      "notes": "Full repository test suite passed with PLAN2A included in the repo-level runner."
+    },
+    {
+      "command": "npm run validate:docs",
+      "status": "passed",
+      "notes": "Documentation validation passed after PLAN2A repo-map, schema-map, data-model, registry, changelog, artifact, and handoff updates."
+    }
+  ],
+  "safety": {
+    "postgres_sidecar_only": true,
+    "firestore_writes": false,
+    "llm_calls": false,
+    "basket_optimizer_calls": false,
+    "store_selection_changes": false,
+    "sponsored_logic": false,
+    "runtime_behavior_changes": false,
+    "product_search_shopping_basket_mutation": false
+  },
+  "artifacts": [
+    "db/migrations/023_plan2a_meal_plan_requirements.sql",
+    "functions/src/db/planner/meal_plan_requirements_builder.js",
+    "app/functions/src/db/planner/meal_plan_requirements_builder.js",
+    "scripts/plan2a_build_meal_plan_requirements.js",
+    "tests/plan2a_meal_plan_requirements.test.js",
+    "docs/PLAN2_MEAL_PLAN_REQUIREMENTS.md",
+    "handoff/phase_plan2a/"
+  ]
+}

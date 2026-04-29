@@ -1,0 +1,33 @@
+# Files Changed
+
+- `functions/src/phase18/gap_detection.js`
+- `app/functions/src/phase18/gap_detection.js`
+- `functions/src/phase15/service.js`
+- `app/functions/src/phase15/service.js`
+- `functions/src/phase15/shopping_list.js`
+- `app/functions/src/phase15/shopping_list.js`
+- `functions/src/phase15/basket_planner.js`
+- `app/functions/src/phase15/basket_planner.js`
+- `functions/src/phase16/basket_optimizer.js`
+- `app/functions/src/phase16/basket_optimizer.js`
+- `functions/src/phase17/saved_lists.js`
+- `app/functions/src/phase17/saved_lists.js`
+- `functions/index.js`
+- `functions/src/index.js`
+- `app/functions/src/index.js`
+- `tests/phase_20_2_chain_gap.test.js`
+- `tests/run_all.js`
+- `package.json`
+- `docs/DATA_MODEL.md`
+- `docs/SCHEMA_MAP.md`
+- `docs/REPO_MAP.md`
+- `docs/TEST_REGISTRY.md`
+- `docs/test_registry.json`
+- `docs/test_runs/phase_20_2_2026-04-25.json`
+- `docs/decision_log.md`
+- `CHANGELOG.md`
+- `handoff/phase_20_2/summary.md`
+- `handoff/phase_20_2/files_changed.md`
+- `handoff/phase_20_2/verification_report.md`
+- `handoff/phase_20_2/operator_actions.md`
+- `handoff/phase_20_2/next_phase_readiness.md`

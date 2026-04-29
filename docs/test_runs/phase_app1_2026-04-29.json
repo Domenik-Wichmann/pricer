@@ -1,0 +1,49 @@
+{
+  "phase": "APP1",
+  "date": "2026-04-29",
+  "status": "passed",
+  "summary": "Implemented the APP1 backend API layer for meal-plan generation, meal-plan shopping runs, run detail, and optimized basket detail by wiring thin HTTP handlers over the existing PLAN1 and PLAN2D sidecar flows. The slice adds no new planner or optimizer logic and keeps shopping-run execution behind explicit endpoint invocation.",
+  "commands": [
+    {
+      "command": "node -e \"require('./functions/src'); require('./app/functions/src'); require('./functions/index.js'); console.log('app1 load ok')\"",
+      "status": "passed",
+      "notes": "Backend export surfaces and the HTTP entry point loaded successfully after APP1 route wiring."
+    },
+    {
+      "command": "npm run test:app1",
+      "status": "passed",
+      "notes": "Focused APP1 tests passed for meal-plan generation, plan detail, shopping-run invocation, shopping-run detail, optimized basket detail, bounded missing-id errors, and source-level checks that APP1 reuses PLAN1 and PLAN2D without direct Firestore or optimizer logic."
+    },
+    {
+      "command": "npm test",
+      "status": "passed",
+      "notes": "The full repository test suite passed with APP1 included in the shared test runner."
+    },
+    {
+      "command": "npm run validate:docs",
+      "status": "passed",
+      "notes": "Documentation validation passed after APP1 updates to planning docs, repo map, test registry, changelog, run artifact, and handoff files."
+    }
+  ],
+  "safety": {
+    "backend_api_only": true,
+    "new_planner_logic": false,
+    "new_optimizer_logic": false,
+    "sponsored_logic": false,
+    "firestore_writes": false,
+    "runtime_behavior_changes_outside_explicit_invocation": false,
+    "llm_calls": false,
+    "ui_changes": false
+  },
+  "artifacts": [
+    "functions/src/api/meal_planning_api.js",
+    "app/functions/src/api/meal_planning_api.js",
+    "functions/index.js",
+    "functions/src/index.js",
+    "app/functions/src/index.js",
+    "tests/app1_meal_planning_api.test.js",
+    "docs/PLAN1_MEAL_PLANNER.md",
+    "docs/PLAN2_ORCHESTRATION.md",
+    "handoff/phase_app1/"
+  ]
+}

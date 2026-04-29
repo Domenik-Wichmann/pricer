@@ -1,0 +1,42 @@
+{
+  "phase": "Phase 2H",
+  "date": "2026-04-28",
+  "summary": "Reviewed location coordinate publication layer",
+  "commands": [
+    {
+      "command": "npm run test:phase6_location_review",
+      "status": "passed",
+      "result": "14 passed, 0 failed, 14 total"
+    },
+    {
+      "command": "node -e \"require('./functions'); require('./functions/src'); require('./app/functions/src'); console.log('phase2h load ok')\"",
+      "status": "passed",
+      "result": "phase2h load ok"
+    },
+    {
+      "command": "npm run test:phase6_geocoding",
+      "status": "passed",
+      "result": "8 passed, 0 failed, 8 total"
+    },
+    {
+      "command": "npm run test:phase6_location_availability",
+      "status": "passed",
+      "result": "9 passed, 0 failed, 9 total"
+    },
+    {
+      "command": "npm run validate:docs",
+      "status": "passed",
+      "result": "JSON docs parse successfully"
+    },
+    {
+      "command": "Get-FileHash functions/src/phase6/location_review.js,app/functions/src/phase6/location_review.js,functions/src/index.js,app/functions/src/index.js,functions/src/phase1/store.js,app/functions/src/phase1/store.js | Select-Object Path,Hash",
+      "status": "passed",
+      "result": "Mirrored backend files match by hash across functions/src and app/functions/src"
+    }
+  ],
+  "notes": [
+    "Publication reads only approved location_review_candidates with valid approved coordinates.",
+    "reviewed_location_coordinates is additive and does not feed consumer nearest availability yet.",
+    "Raw retailer location, retailer geocode, manual geocode, and saved location rows remain unchanged."
+  ]
+}

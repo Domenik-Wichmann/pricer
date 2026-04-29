@@ -1,0 +1,53 @@
+{
+  "phase": "17.4",
+  "name": "Market / Category Trends",
+  "date": "2026-04-24",
+  "commands": [
+    {
+      "command": "node tests/phase_17_4_market_trends.test.js",
+      "status": "passed",
+      "summary": "8 passed, 0 failed, 8 total"
+    },
+    {
+      "command": "node tests/phase_17_3_deal_detection.test.js",
+      "status": "passed",
+      "summary": "9 passed, 0 failed, 9 total"
+    },
+    {
+      "command": "node tests/phase_17_2_watchlist_tracker.test.js",
+      "status": "passed",
+      "summary": "10 passed, 0 failed, 10 total"
+    },
+    {
+      "command": "node tests/phase_17_1_persistent_lists.test.js",
+      "status": "passed",
+      "summary": "10 passed, 0 failed, 10 total"
+    },
+    {
+      "command": "node tests/phase_17_saved_shopping_lists.test.js",
+      "status": "passed",
+      "summary": "9 passed, 0 failed, 9 total"
+    },
+    {
+      "command": "npm run validate:docs",
+      "status": "passed",
+      "summary": "JSON docs parse successfully"
+    },
+    {
+      "command": "node -e \"require('./app/functions/src/index.js'); require('./functions/src/index.js'); require('./functions/index.js'); console.log('runtime exports and firebase entry loaded')\"",
+      "status": "passed",
+      "summary": "runtime exports and firebase entry loaded"
+    },
+    {
+      "command": "npm test",
+      "status": "passed",
+      "summary": "Full Node test suite passed"
+    }
+  ],
+  "notes": [
+    "Market trend summaries group by category, brand, and base product using canonical enrichment.",
+    "Trend classification covers up, down, flat, and insufficient_data.",
+    "Deal density uses the Phase 17.3 good-deal classifier.",
+    "The helper and API handlers are read-only over canonical, enrichment, and price data."
+  ]
+}

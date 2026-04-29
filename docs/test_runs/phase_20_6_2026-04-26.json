@@ -1,0 +1,64 @@
+{
+  "phase": "20.6_internal_insights_dashboard_stub",
+  "date": "2026-04-26",
+  "status": "passed",
+  "commands": [
+    {
+      "command": "node tests/phase_20_6_internal_insights_dashboard.test.js",
+      "cwd": "c:/dev/Pricer",
+      "status": "passed",
+      "summary": "8 passed, 0 failed."
+    },
+    {
+      "command": "node tests/phase_20_5_internal_access_guard.test.js",
+      "cwd": "c:/dev/Pricer",
+      "status": "passed",
+      "summary": "9 passed, 0 failed."
+    },
+    {
+      "command": "node tests/phase_20_4_merchant_insight_api.test.js",
+      "cwd": "c:/dev/Pricer",
+      "status": "passed",
+      "summary": "9 passed, 0 failed."
+    },
+    {
+      "command": "node -c functions/src/phase18/internal_dashboard.js; node -c app/functions/src/phase18/internal_dashboard.js; node -c functions/index.js",
+      "cwd": "c:/dev/Pricer",
+      "status": "passed"
+    },
+    {
+      "command": "node -e \"require('./functions/src'); require('./app/functions/src'); console.log('exports ok')\"",
+      "cwd": "c:/dev/Pricer",
+      "status": "passed",
+      "summary": "exports ok"
+    },
+    {
+      "command": "npm run test:phase20_6",
+      "cwd": "c:/dev/Pricer",
+      "status": "passed",
+      "summary": "8 passed, 0 failed."
+    },
+    {
+      "command": "npm run validate:docs",
+      "cwd": "c:/dev/Pricer",
+      "status": "passed",
+      "summary": "JSON docs parse successfully."
+    }
+  ],
+  "coverage": [
+    "dashboard shell renders HTML",
+    "dashboard references all insight endpoints",
+    "dashboard sends token and role headers",
+    "dashboard embeds no token value",
+    "dashboard keeps token browser-local and configurable",
+    "dashboard section targets exist",
+    "dashboard shell route is unguarded while data endpoints remain guarded",
+    "dashboard handler returns no-store HTML",
+    "dashboard avoids merchant billing copy"
+  ],
+  "notes": [
+    "No analytics logic changed.",
+    "No persistence added.",
+    "No billing or merchant-facing scope added."
+  ]
+}

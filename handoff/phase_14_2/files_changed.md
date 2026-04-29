@@ -1,0 +1,21 @@
+# Files Changed
+
+- `app/functions/src/phase6/ingest.js`
+- `app/functions/src/phase6/disambiguation.js`
+- `app/functions/src/index.js`
+- `functions/src/phase6/ingest.js`
+- `functions/src/phase6/disambiguation.js`
+- `functions/src/index.js`
+- `tests/phase_6_production_pipeline.test.js`
+- `docs/CURRENT_STATE.md`
+- `docs/DATA_MODEL.md`
+- `docs/DECISION_LOG.md`
+- `docs/decision_log.md`
+- `docs/TEST_REGISTRY.md`
+- `docs/current_state.json`
+- `docs/test_registry.json`
+- `CHANGELOG.md`
+- `handoff/phase_14_2/files_changed.md`
+- `handoff/phase_14_2/verification_report.md`
+- `handoff/phase_14_2/operator_actions.md`
+- `handoff/phase_14_2/next_phase_readiness.md`

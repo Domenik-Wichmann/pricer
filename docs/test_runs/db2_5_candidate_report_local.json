@@ -1,0 +1,3630 @@
+{
+  "generated_at": "2026-04-24T12:47:41.115Z",
+  "filters": {
+    "limit": 50,
+    "min_confidence": 0.75,
+    "candidate_key": null,
+    "core_food": null
+  },
+  "total_candidates": 5000,
+  "distinct_candidate_key_count": 1814,
+  "summary_by_source_data_type": [
+    {
+      "key": "sr_legacy_food",
+      "count": 5000
+    }
+  ],
+  "summary_by_review_status": [
+    {
+      "key": "needs_review",
+      "count": 5000
+    }
+  ],
+  "candidate_key_collision_report": [
+    {
+      "candidate_key": "candies__generic",
+      "candidate_count": 134,
+      "distinct_hard_boundary_count": 1,
+      "example_fdc_ids": [
+        167546,
+        167562,
+        167563,
+        167564,
+        167565
+      ],
+      "example_descriptions": [
+        "Candies, honey-combed, with peanut butter",
+        "Candies, ALMOND JOY Candy Bar",
+        "Candies, TWIZZLERS CHERRY BITES",
+        "Candies, NESTLE, BIT-O'-HONEY Candy Chews",
+        "Candies, NESTLE, BUTTERFINGER Bar"
+      ]
+    },
+    {
+      "candidate_key": "babyfood__generic",
+      "candidate_count": 133,
+      "distinct_hard_boundary_count": 1,
+      "example_fdc_ids": [
+        167690,
+        167720,
+        167726,
+        167728,
+        167731
+      ],
+      "example_descriptions": [
+        "Babyfood, apple yogurt dessert, strained",
+        "Babyfood, meat, beef with vegetables, toddler",
+        "Babyfood, mixed fruit yogurt, strained",
+        "Babyfood, rice and apples, dry",
+        "Babyfood, cereal, rice with pears and apple, dry, instant fortified"
+      ]
+    },
+    {
+      "candidate_key": "snacks__generic",
+      "candidate_count": 70,
+      "distinct_hard_boundary_count": 1,
+      "example_fdc_ids": [
+        167536,
+        167537,
+        167538,
+        167539,
+        167540
+      ],
+      "example_descriptions": [
+        "Snacks, beef jerky, chopped and formed",
+        "Snacks, corn-based, extruded, chips, plain",
+        "Snacks, corn-based, extruded, chips, barbecue-flavor",
+        "Snacks, corn-based, extruded, cones, plain",
+        "Snacks, fruit leather, pieces"
+      ]
+    },
+    {
+      "candidate_key": "infant_formula__generic",
+      "candidate_count": 69,
+      "distinct_hard_boundary_count": 1,
+      "example_fdc_ids": [
+        168972,
+        168974,
+        169785,
+        169786,
+        169787
+      ],
+      "example_descriptions": [
+        "Infant formula, GERBER, GOOD START 2 SOY, with iron, powder",
+        "Infant formula, MEAD JOHNSON, ENFAMIL, Premature, 20 calories ready-to-feed Low iron",
+        "Infant formula, GERBER, GOOD START, PROTECT PLUS, powder",
+        "Infant Formula, GERBER GOOD START 2, GENTLE PLUS, powder",
+        "Infant formula, GERBER, GOOD START 2, PROTECT PLUS, powder"
+      ]
+    },
+    {
+      "candidate_key": "oil__generic",
+      "candidate_count": 62,
+      "distinct_hard_boundary_count": 1,
+      "example_fdc_ids": [
+        167611,
+        167625,
+        167641,
+        167702,
+        167737
+      ],
+      "example_descriptions": [
+        "Oil, bearded seal (Oogruk) (Alaska Native)",
+        "Oil, whale, bowhead (Alaska Native)",
+        "Oil, spotted seal (Alaska Native)",
+        "Oil, flaxseed, cold pressed",
+        "Oil, corn, peanut, and olive"
+      ]
+    },
+    {
+      "candidate_key": "soup__preserve_canned",
+      "candidate_count": 59,
+      "distinct_hard_boundary_count": 1,
+      "example_fdc_ids": [
+        171141,
+        171142,
+        171143,
+        171144,
+        171145
+      ],
+      "example_descriptions": [
+        "Soup, black bean, canned, condensed",
+        "Soup, bean with pork, canned, condensed",
+        "Soup, bean with frankfurters, canned, condensed",
+        "Soup, bean with ham, canned, chunky, ready-to-serve",
+        "Soup, chicken, canned, chunky, ready-to-serve"
+      ]
+    },
+    {
+      "candidate_key": "fast_foods__generic",
+      "candidate_count": 51,
+      "distinct_hard_boundary_count": 1,
+      "example_fdc_ids": [
+        170291,
+        170293,
+        170294,
+        170295,
+        170298
+      ],
+      "example_descriptions": [
+        "Fast foods, nachos, with cheese",
+        "Fast foods, cheeseburger, double, regular patty and bun, with condiments",
+        "Fast foods, cheeseburger; single, large patty; plain",
+        "Fast foods, chicken fillet sandwich, plain with pickles",
+        "Fast foods, submarine sandwich, roast beef on white bread with lettuce and tomato"
+      ]
+    },
+    {
+      "candidate_key": "cheese__generic",
+      "candidate_count": 45,
+      "distinct_hard_boundary_count": 1,
+      "example_fdc_ids": [
+        167705,
+        167735,
+        168098,
+        168121,
+        168124
+      ],
+      "example_descriptions": [
+        "Cheese, parmesan, low sodium",
+        "Cheese, mozzarella, low sodium",
+        "Cheese, monterey, low fat",
+        "Cheese, pasteurized process, cheddar or American, low sodium",
+        "Cheese, swiss, low sodium"
+      ]
+    },
+    {
+      "candidate_key": "restaurant__generic",
+      "candidate_count": 45,
+      "distinct_hard_boundary_count": 1,
+      "example_fdc_ids": [
+        167658,
+        167659,
+        167660,
+        167661,
+        167662
+      ],
+      "example_descriptions": [
+        "Restaurant, Mexican, soft taco with ground beef, cheese and lettuce",
+        "Restaurant, Latino, chicken and rice, entree, prepared",
+        "Restaurant, Latino, empanadas, beef, prepared",
+        "Restaurant, Latino, pupusas con frijoles (pupusas, bean)",
+        "Restaurant, Latino, pupusas con queso (pupusas, cheese)"
+      ]
+    },
+    {
+      "candidate_key": "beef__state_raw_fat_lean_and_fat",
+      "candidate_count": 41,
+      "distinct_hard_boundary_count": 1,
+      "example_fdc_ids": [
+        169430,
+        169431,
+        170809,
+        170810,
+        171206
+      ],
+      "example_descriptions": [
+        "Beef, carcass, separable lean and fat, choice, raw",
+        "Beef, carcass, separable lean and fat, select, raw",
+        "Beef, chuck for stew, separable lean and fat, select, raw",
+        "Beef, chuck for stew, separable lean and fat, choice, raw",
+        "Beef, chuck for stew, separable lean and fat, all grades, raw"
+      ]
+    },
+    {
+      "candidate_key": "beverages__generic",
+      "candidate_count": 40,
+      "distinct_hard_boundary_count": 1,
+      "example_fdc_ids": [
+        167681,
+        167707,
+        167711,
+        167727,
+        168122
+      ],
+      "example_descriptions": [
+        "Beverages, fruit-flavored drink, dry powdered mix, low calorie, with aspartame",
+        "Beverages, fruit-flavored drink, powder, with high vitamin C with other added vitamins, low calorie",
+        "Beverages, Chocolate-flavored drink, whey and milk based",
+        "Beverages, ABBOTT, ENSURE PLUS, ready-to-drink",
+        "Beverages, coffee, instant, with whitener, reduced calorie"
+      ]
+    },
+    {
+      "candidate_key": "beef__state_raw_fat_lean_only_bone_boneless",
+      "candidate_count": 34,
+      "distinct_hard_boundary_count": 1,
+      "example_fdc_ids": [
+        168653,
+        168656,
+        168657,
+        168658,
+        168742
+      ],
+      "example_descriptions": [
+        "Beef, chuck, under blade center steak, boneless, Denver Cut, separable lean only, trimmed to 0\" fat, select, raw",
+        "Beef, brisket, flat half, boneless separable lean only, trimmed to 0\" fat, all grades, raw",
+        "Beef, brisket, flat half, boneless, separable lean only, trimmed to 0\" fat, choice, raw",
+        "Beef, brisket, flat half, boneless, separable lean only, trimmed to 0\" fat, select, raw",
+        "Beef, chuck eye roast, boneless, America's Beef Roast, separable lean only, trimmed to 0\" fat, select, raw"
+      ]
+    },
+    {
+      "candidate_key": "puddings__generic",
+      "candidate_count": 33,
+      "distinct_hard_boundary_count": 1,
+      "example_fdc_ids": [
+        167740,
+        167741,
+        168143,
+        168146,
+        168778
+      ],
+      "example_descriptions": [
+        "Puddings, chocolate flavor, low calorie, regular, dry mix",
+        "Puddings, all flavors except chocolate, low calorie, regular, dry mix",
+        "Puddings, chocolate flavor, low calorie, instant, dry mix",
+        "Puddings, all flavors except chocolate, low calorie, instant, dry mix",
+        "Puddings, chocolate, ready-to-eat"
+      ]
+    },
+    {
+      "candidate_key": "salad_dressing__generic",
+      "candidate_count": 33,
+      "distinct_hard_boundary_count": 1,
+      "example_fdc_ids": [
+        167692,
+        167693,
+        167704,
+        168093,
+        168096
+      ],
+      "example_descriptions": [
+        "Salad dressing, blue or roquefort cheese dressing, light",
+        "Salad dressing, french dressing, reduced calorie",
+        "Salad dressing, bacon and tomato",
+        "Salad dressing, peppercorn dressing, commercial, regular",
+        "Salad dressing, italian dressing, reduced calorie"
+      ]
+    },
+    {
+      "candidate_key": "beef__state_raw_fat_lean_and_fat_bone_boneless",
+      "candidate_count": 32,
+      "distinct_hard_boundary_count": 1,
+      "example_fdc_ids": [
+        168660,
+        168661,
+        168662,
+        168714,
+        168743
+      ],
+      "example_descriptions": [
+        "Beef, chuck eye roast, boneless, America's Beef Roast, separable lean and fat, trimmed to 0\" fat, all grades, raw",
+        "Beef, chuck eye roast, boneless, America's Beef Roast, separable lean and fat, trimmed to 0\" fat, choice, raw",
+        "Beef, chuck eye roast, boneless, America's Beef Roast, separable lean and fat, trimmed to 0\" fat, select, raw",
+        "Beef, brisket, flat half, boneless, separable lean and fat, trimmed to 0\" fat, all grades, raw",
+        "Beef, brisket, flat half, boneless, separable lean and fat, trimmed to 0\" fat, choice, raw"
+      ]
+    },
+    {
+      "candidate_key": "spices__generic",
+      "candidate_count": 32,
+      "distinct_hard_boundary_count": 1,
+      "example_fdc_ids": [
+        170917,
+        170918,
+        170919,
+        170920,
+        170922
+      ],
+      "example_descriptions": [
+        "Spices, bay leaf",
+        "Spices, caraway seed",
+        "Spices, cardamom",
+        "Spices, celery seed",
+        "Spices, coriander seed"
+      ]
+    },
+    {
+      "candidate_key": "beef__state_cooked_cook_broiled_fat_lean_and_fat",
+      "candidate_count": 30,
+      "distinct_hard_boundary_count": 1,
+      "example_fdc_ids": [
+        168633,
+        168676,
+        168681,
+        168683,
+        168686
+      ],
+      "example_descriptions": [
+        "Beef, top sirloin, steak, separable lean and fat, trimmed to 0\" fat, select, cooked, broiled",
+        "Beef, rib, whole (ribs 6-12), separable lean and fat, trimmed to 1/8\" fat, choice, cooked, broiled",
+        "Beef, rib, large end (ribs 6-9), separable lean and fat, trimmed to 1/8\" fat, all grades, cooked, broiled",
+        "Beef, rib, large end (ribs 6-9), separable lean and fat, trimmed to 1/8\" fat, select, cooked, broiled",
+        "Beef, rib, large end (ribs 6-9), separable lean and fat, trimmed to 1/8\" fat, prime, cooked, broiled"
+      ]
+    },
+    {
+      "candidate_key": "chicken__state_raw",
+      "candidate_count": 26,
+      "distinct_hard_boundary_count": 1,
+      "example_fdc_ids": [
+        171047,
+        171052,
+        171057,
+        171060,
+        171062
+      ],
+      "example_descriptions": [
+        "Chicken, broilers or fryers, meat and skin and giblets and neck, raw",
+        "Chicken, broilers or fryers, meat only, raw",
+        "Chicken, broilers or fryers, giblets, raw",
+        "Chicken, liver, all classes, raw",
+        "Chicken, broilers or fryers, light meat, meat and skin, raw"
+      ]
+    },
+    {
+      "candidate_key": "sauce__generic",
+      "candidate_count": 25,
+      "distinct_hard_boundary_count": 1,
+      "example_fdc_ids": [
+        171167,
+        171186,
+        171187,
+        171188,
+        171191
+      ],
+      "example_descriptions": [
+        "Sauce, teriyaki, ready-to-serve",
+        "Sauce, hot chile, sriracha",
+        "Sauce, hot chile, sriracha, CHA! BY TEXAS PETE",
+        "Sauce, hot chile, sriracha, TUONG OT SRIRACHA",
+        "Sauce, cheese, ready-to-serve"
+      ]
+    },
+    {
+      "candidate_key": "beef__state_raw",
+      "candidate_count": 24,
+      "distinct_hard_boundary_count": 1,
+      "example_fdc_ids": [
+        168605,
+        168608,
+        168622,
+        168625,
+        168628
+      ],
+      "example_descriptions": [
+        "Beef, retail cuts, separable fat, raw",
+        "Beef, grass-fed, ground, raw",
+        "Beef, variety meats and by-products, brain, raw",
+        "Beef, variety meats and by-products, heart, raw",
+        "Beef, variety meats and by-products, lungs, raw"
+      ]
+    },
+    {
+      "candidate_key": "pork__state_raw",
+      "candidate_count": 24,
+      "distinct_hard_boundary_count": 1,
+      "example_fdc_ids": [
+        167811,
+        167812,
+        167813,
+        167859,
+        167861
+      ],
+      "example_descriptions": [
+        "Pork, fresh, backfat, raw",
+        "Pork, fresh, belly, raw",
+        "Pork, fresh, separable fat, raw",
+        "Pork, fresh, variety meats and by-products, feet, raw",
+        "Pork, fresh, variety meats and by-products, leaf fat, raw"
+      ]
+    },
+    {
+      "candidate_key": "beef__state_cooked_cook_braised_fat_lean_and_fat",
+      "candidate_count": 23,
+      "distinct_hard_boundary_count": 1,
+      "example_fdc_ids": [
+        168613,
+        168665,
+        168667,
+        168669,
+        168671
+      ],
+      "example_descriptions": [
+        "Beef, rib, shortribs, separable lean and fat, choice, cooked, braised",
+        "Beef, brisket, whole, separable lean and fat, trimmed to 1/8\" fat, all grades, cooked, braised",
+        "Beef, chuck, arm pot roast, separable lean and fat, trimmed to 1/8\" fat, all grades, cooked, braised",
+        "Beef, chuck, arm pot roast, separable lean and fat, trimmed to 1/8\" fat, choice, cooked, braised",
+        "Beef, chuck, blade roast, separable lean and fat, trimmed to 1/8\" fat, choice, cooked, braised"
+      ]
+    },
+    {
+      "candidate_key": "cereals_ready_to_eat__generic",
+      "candidate_count": 23,
+      "distinct_hard_boundary_count": 1,
+      "example_fdc_ids": [
+        167715,
+        167725,
+        169039,
+        169075,
+        169076
+      ],
+      "example_descriptions": [
+        "Cereals ready-to-eat, POST, Shredded Wheat n' Bran, spoon-size",
+        "Cereals ready-to-eat, OAT BRAN FLAKES, HEALTH VALLEY",
+        "Cereals ready-to-eat, frosted oat cereal with marshmallows",
+        "Cereals ready-to-eat, ALPEN",
+        "Cereals ready-to-eat, FAMILIA"
+      ]
+    },
+    {
+      "candidate_key": "chicken__state_cooked",
+      "candidate_count": 23,
+      "distinct_hard_boundary_count": 1,
+      "example_fdc_ids": [
+        171051,
+        171056,
+        171059,
+        171061,
+        171117
+      ],
+      "example_descriptions": [
+        "Chicken, broilers or fryers, meat and skin, cooked, stewed",
+        "Chicken, broilers or fryers, skin only, cooked, stewed",
+        "Chicken, heart, all classes, cooked, simmered",
+        "Chicken, liver, all classes, cooked, simmered",
+        "Chicken, ground, crumbles, cooked, pan-browned"
+      ]
+    },
+    {
+      "candidate_key": "mcdonald_s__generic",
+      "candidate_count": 23,
+      "distinct_hard_boundary_count": 1,
+      "example_fdc_ids": [
+        170319,
+        170320,
+        170321,
+        170717,
+        170719
+      ],
+      "example_descriptions": [
+        "McDONALD'S, FILET-O-FISH",
+        "McDONALD'S, Cheeseburger",
+        "McDONALD'S, QUARTER POUNDER",
+        "McDONALD'S, Hamburger",
+        "McDONALD'S, QUARTER POUNDER with Cheese"
+      ]
+    },
+    {
+      "candidate_key": "soup__generic",
+      "candidate_count": 23,
+      "distinct_hard_boundary_count": 1,
+      "example_fdc_ids": [
+        168027,
+        171165,
+        171166,
+        171177,
+        171179
+      ],
+      "example_descriptions": [
+        "Soup, fish, homemade (Alaska Native)",
+        "Soup, onion, dry, mix",
+        "Soup, cream of vegetable, dry, powder",
+        "Soup, ramen noodle, any flavor, dry",
+        "Soup, SWANSON, beef broth, lower sodium"
+      ]
+    },
+    {
+      "candidate_key": "wheat_flour__form_flour_grain_form_flour",
+      "candidate_count": 22,
+      "distinct_hard_boundary_count": 1,
+      "example_fdc_ids": [
+        168893,
+        168894,
+        168895,
+        168896,
+        168936
+      ],
+      "example_descriptions": [
+        "Wheat flour, whole-grain (Includes foods for USDA's Food Distribution Program)",
+        "Wheat flour, white, all-purpose, enriched, bleached",
+        "Wheat flour, white, all-purpose, self-rising, enriched",
+        "Wheat flour, white, bread, enriched",
+        "Wheat flour, white, all-purpose, enriched, unbleached"
+      ]
+    },
+    {
+      "candidate_key": "babyfood__form_juice",
+      "candidate_count": 21,
+      "distinct_hard_boundary_count": 1,
+      "example_fdc_ids": [
+        167718,
+        167729,
+        168090,
+        168091,
+        169042
+      ],
+      "example_descriptions": [
+        "Babyfood, juice, pear",
+        "Babyfood, juice, apple - cherry",
+        "Babyfood, banana juice with low fat yogurt",
+        "Babyfood, mixed fruit juice with low fat yogurt",
+        "Babyfood, juice, apple-sweet potato"
+      ]
+    },
+    {
+      "candidate_key": "beef__state_raw_fat_lean_and_fat_cut_round",
+      "candidate_count": 21,
+      "distinct_hard_boundary_count": 1,
+      "example_fdc_ids": [
+        168646,
+        168647,
+        168694,
+        168697,
+        168700
+      ],
+      "example_descriptions": [
+        "Beef, round, tip round, roast, separable lean and fat, trimmed to 0\" fat, choice, raw",
+        "Beef, round, tip round, roast, separable lean and fat, trimmed to 0\" fat, select, raw",
+        "Beef, round, full cut, separable lean and fat, trimmed to 1/8\" fat, choice, raw",
+        "Beef, round, bottom round, steak, separable lean and fat, trimmed to 1/8\" fat, choice, raw",
+        "Beef, round, bottom round, steak, separable lean and fat, trimmed to 1/8\" fat, select, raw"
+      ]
+    },
+    {
+      "candidate_key": "fish__state_cooked",
+      "candidate_count": 20,
+      "distinct_hard_boundary_count": 1,
+      "example_fdc_ids": [
+        171956,
+        171963,
+        171990,
+        171991,
+        171992
+      ],
+      "example_descriptions": [
+        "Fish, cod, Atlantic, cooked, dry heat",
+        "Fish, grouper, mixed species, cooked, dry heat",
+        "Fish, cod, Pacific, cooked, dry heat (may contain additives to retain moisture)",
+        "Fish, cusk, cooked, dry heat",
+        "Fish, mahimahi, cooked, dry heat"
+      ]
+    },
+    {
+      "candidate_key": "fish__state_raw",
+      "candidate_count": 20,
+      "distinct_hard_boundary_count": 1,
+      "example_fdc_ids": [
+        167639,
+        167648,
+        168033,
+        168045,
+        168046
+      ],
+      "example_descriptions": [
+        "Fish, salmon, coho (silver), raw (Alaska Native)",
+        "Fish, sheefish, raw (Alaska Native)",
+        "Fish, whitefish, mixed species, raw (Alaska Native)",
+        "Fish, salmon, sockeye (red), raw (Alaska Native)",
+        "Fish, Salmon, Chum, raw (Alaska Native)"
+      ]
+    },
+    {
+      "candidate_key": "fish__generic",
+      "candidate_count": 19,
+      "distinct_hard_boundary_count": 1,
+      "example_fdc_ids": [
+        167616,
+        167626,
+        167643,
+        167646,
+        168021
+      ],
+      "example_descriptions": [
+        "Fish, salmon, king, chinook, liver (Alaska Native)",
+        "Fish, whitefish, broad, liver (Alaska Native)",
+        "Fish, whitefish, eggs (Alaska Native)",
+        "Fish, salmon, red, (sockeye), kippered (Alaska Native)",
+        "Fish, pike, northern, liver (Alaska Native)"
+      ]
+    },
+    {
+      "candidate_key": "beef__state_cooked_cook_roasted_fat_lean_and_fat",
+      "candidate_count": 18,
+      "distinct_hard_boundary_count": 1,
+      "example_fdc_ids": [
+        168677,
+        168679,
+        168682,
+        168684,
+        168687
+      ],
+      "example_descriptions": [
+        "Beef, rib, whole (ribs 6-12), separable lean and fat, trimmed to 1/8\" fat, choice, cooked, roasted",
+        "Beef, rib, whole (ribs 6-12), separable lean and fat, trimmed to 1/8\" fat, prime, cooked, roasted",
+        "Beef, rib, large end (ribs 6-9), separable lean and fat, trimmed to 1/8\" fat, all grades, cooked, roasted",
+        "Beef, rib, large end (ribs 6-9), separable lean and fat, trimmed to 1/8\" fat, select, cooked, roasted",
+        "Beef, rib, large end (ribs 6-9), separable lean and fat, trimmed to 1/8\" fat, prime, cooked, roasted"
+      ]
+    },
+    {
+      "candidate_key": "beverages__form_juice",
+      "candidate_count": 18,
+      "distinct_hard_boundary_count": 1,
+      "example_fdc_ids": [
+        168123,
+        169044,
+        171878,
+        171895,
+        171896
+      ],
+      "example_descriptions": [
+        "Beverages, cranberry-apple juice drink, low calorie, with vitamin C added",
+        "Beverages, Orange juice drink",
+        "Beverages, Lemonade fruit juice drink light, fortified with vitamin E and C",
+        "Beverages, OCEAN SPRAY, Cranberry-Apple Juice Drink, bottled",
+        "Beverages, OCEAN SPRAY, Diet Cranberry Juice"
+      ]
+    },
+    {
+      "candidate_key": "syrups__generic",
+      "candidate_count": 17,
+      "distinct_hard_boundary_count": 1,
+      "example_fdc_ids": [
+        167584,
+        168088,
+        168834,
+        168835,
+        168836
+      ],
+      "example_descriptions": [
+        "Syrups, table blends, pancake, with butter",
+        "Syrups, grenadine",
+        "Syrups, chocolate, HERSHEY'S Genuine Chocolate Flavored Lite Syrup",
+        "Syrups, chocolate, fudge-type",
+        "Syrups, corn, dark"
+      ]
+    },
+    {
+      "candidate_key": "yogurt__milk_fat_nonfat_skim_fat_nonfat_skim",
+      "candidate_count": 17,
+      "distinct_hard_boundary_count": 1,
+      "example_fdc_ids": [
+        169898,
+        170887,
+        170894,
+        170901,
+        170902
+      ],
+      "example_descriptions": [
+        "Yogurt, fruit variety, nonfat",
+        "Yogurt, plain, skim milk",
+        "Yogurt, Greek, plain, nonfat (Includes foods for USDA's Food Distribution Program)",
+        "Yogurt, Greek, strawberry, nonfat",
+        "Yogurt, Greek, vanilla, nonfat"
+      ]
+    },
+    {
+      "candidate_key": "babyfood__form_sauce",
+      "candidate_count": 16,
+      "distinct_hard_boundary_count": 1,
+      "example_fdc_ids": [
+        168125,
+        170947,
+        170948,
+        170949,
+        170950
+      ],
+      "example_descriptions": [
+        "Babyfood, dinner, macaroni, beef and tomato sauce, toddler",
+        "Babyfood, fruit, applesauce and apricots, strained",
+        "Babyfood, fruit, applesauce and apricots, junior",
+        "Babyfood, fruit, applesauce and cherries, strained",
+        "Babyfood, fruit, applesauce and cherries, junior"
+      ]
+    },
+    {
+      "candidate_key": "cereals__generic",
+      "candidate_count": 16,
+      "distinct_hard_boundary_count": 1,
+      "example_fdc_ids": [
+        171660,
+        171663,
+        171665,
+        171667,
+        171674
+      ],
+      "example_descriptions": [
+        "Cereals, CREAM OF WHEAT, instant, dry",
+        "Cereals, QUAKER, Instant Oatmeal, apples and cinnamon, dry",
+        "Cereals, WHEATENA, dry",
+        "Cereals, whole wheat hot natural cereal, dry",
+        "Cereals, MALT-O-MEAL, chocolate, dry"
+      ]
+    },
+    {
+      "candidate_key": "ice_creams__generic",
+      "candidate_count": 16,
+      "distinct_hard_boundary_count": 1,
+      "example_fdc_ids": [
+        167572,
+        167573,
+        167575,
+        167576,
+        167585
+      ],
+      "example_descriptions": [
+        "Ice creams, vanilla, light",
+        "Ice creams, vanilla, rich",
+        "Ice creams, vanilla",
+        "Ice creams, vanilla, light, soft-serve",
+        "Ice creams, chocolate, light"
+      ]
+    },
+    {
+      "candidate_key": "nuts__state_dried_preserve_dried",
+      "candidate_count": 16,
+      "distinct_hard_boundary_count": 1,
+      "example_fdc_ids": [
+        168585,
+        169408,
+        170161,
+        170165,
+        170167
+      ],
+      "example_descriptions": [
+        "Nuts, coconut meat, dried (desiccated), creamed",
+        "Nuts, chestnuts, japanese, dried",
+        "Nuts, beechnuts, dried",
+        "Nuts, chestnuts, chinese, dried",
+        "Nuts, chestnuts, european, dried, peeled"
+      ]
+    },
+    {
+      "candidate_key": "turkey__state_raw",
+      "candidate_count": 16,
+      "distinct_hard_boundary_count": 1,
+      "example_fdc_ids": [
+        171081,
+        171083,
+        171085,
+        171086,
+        171088
+      ],
+      "example_descriptions": [
+        "Turkey, whole, meat and skin, raw",
+        "Turkey, whole, giblets, raw",
+        "Turkey, gizzard, all classes, raw",
+        "Turkey, whole, neck, meat only, raw",
+        "Turkey, whole, light meat, meat and skin, raw"
+      ]
+    },
+    {
+      "candidate_key": "yogurt__generic",
+      "candidate_count": 16,
+      "distinct_hard_boundary_count": 1,
+      "example_fdc_ids": [
+        170864,
+        170886,
+        170888,
+        170889,
+        170891
+      ],
+      "example_descriptions": [
+        "Yogurt, Greek, 2% fat, apricot, CHOBANI",
+        "Yogurt, plain, low fat",
+        "Yogurt, vanilla, low fat.",
+        "Yogurt, fruit, low fat,9 g protein/8 oz",
+        "Yogurt, Greek, 2% fat,mixed berry blend, CHOBANI"
+      ]
+    },
+    {
+      "candidate_key": "alcoholic_beverage__generic",
+      "candidate_count": 15,
+      "distinct_hard_boundary_count": 1,
+      "example_fdc_ids": [
+        167723,
+        168746,
+        168747,
+        168748,
+        168749
+      ],
+      "example_descriptions": [
+        "Alcoholic beverage, rice (sake)",
+        "Alcoholic beverage, beer, regular, all",
+        "Alcoholic beverage, beer, regular, BUDWEISER",
+        "Alcoholic beverage, beer, light, BUDWEISER SELECT",
+        "Alcoholic beverage, beer, light"
+      ]
+    },
+    {
+      "candidate_key": "beef__state_cooked_cook_braised_fat_lean_and_fat_bone_boneless",
+      "candidate_count": 15,
+      "distinct_hard_boundary_count": 1,
+      "example_fdc_ids": [
+        170214,
+        170618,
+        170821,
+        170822,
+        170823
+      ],
+      "example_descriptions": [
+        "Beef, chuck, under blade pot roast, boneless, separable lean and fat, trimmed to 0\" fat, select, cooked, braised",
+        "Beef, chuck, under blade pot roast, boneless, separable lean and fat, trimmed to 0\" fat, choice, cooked, braised",
+        "Beef, chuck, mock tender steak, boneless, separable lean and fat, trimmed to 0\" fat, all grades, cooked, braised",
+        "Beef, chuck, mock tender steak, boneless, separable lean and fat, trimmed to 0\" fat, choice, cooked, braised",
+        "Beef, chuck, mock tender steak, boneless, separable lean and fat, trimmed to 0\" fat, select, cooked, braised"
+      ]
+    },
+    {
+      "candidate_key": "beef__state_cooked_cook_braised_fat_lean_only_bone_boneless",
+      "candidate_count": 15,
+      "distinct_hard_boundary_count": 1,
+      "example_fdc_ids": [
+        169444,
+        169567,
+        169568,
+        169569,
+        170216
+      ],
+      "example_descriptions": [
+        "Beef, chuck, under blade pot roast, boneless, separable lean only, trimmed to 0\" fat, all grades, cooked, braised",
+        "Beef, chuck, short ribs, boneless, separable lean only, trimmed to 0\" fat, choice, cooked, braised",
+        "Beef, chuck, short ribs, boneless, separable lean only, trimmed to 0\" fat, select, cooked, braised",
+        "Beef, chuck, short ribs, boneless, separable lean only, trimmed to 0\" fat, all grades, cooked, braised",
+        "Beef, chuck, under blade pot roast, boneless, separable lean only, trimmed to 0\" fat, choice, cooked, braised"
+      ]
+    },
+    {
+      "candidate_key": "beef__state_cooked_cook_broiled_fat_lean_only",
+      "candidate_count": 15,
+      "distinct_hard_boundary_count": 1,
+      "example_fdc_ids": [
+        168611,
+        168634,
+        168635,
+        168636,
+        168648
+      ],
+      "example_descriptions": [
+        "Beef, flank, steak, separable lean only, trimmed to 0\" fat, choice, cooked, broiled",
+        "Beef, top sirloin, steak, separable lean only, trimmed to 0\" fat, all grades, cooked, broiled",
+        "Beef, top sirloin, steak, separable lean only, trimmed to 0\" fat, choice, cooked, broiled",
+        "Beef, top sirloin, steak, separable lean only, trimmed to 0\" fat, select, cooked, broiled",
+        "Beef, rib, eye, small end (ribs 10- 12) separable lean only, trimmed to 0\" fat, select, cooked, broiled"
+      ]
+    },
+    {
+      "candidate_key": "beef__state_cooked_cook_roasted_fat_lean_and_fat_cut_round",
+      "candidate_count": 15,
+      "distinct_hard_boundary_count": 1,
+      "example_fdc_ids": [
+        168696,
+        168699,
+        168702,
+        168704,
+        168706
+      ],
+      "example_descriptions": [
+        "Beef, round, bottom round, roast, separable lean and fat, trimmed to 1/8\" fat, all grades, cooked, roasted",
+        "Beef, round, bottom round, roast, separable lean and fat, trimmed to 1/8\" fat, choice, cooked, roasted",
+        "Beef, round, eye of round, roast, separable lean and fat, trimmed to 1/8\" fat, choice, cooked, roasted",
+        "Beef, round, eye of round, roast, separable lean and fat, trimmed to 1/8\" fat, select, cooked, roasted",
+        "Beef, round, tip round, roast, separable lean and fat, trimmed to 1/8\" fat, select, cooked, roasted"
+      ]
+    },
+    {
+      "candidate_key": "burger_king__generic",
+      "candidate_count": 15,
+      "distinct_hard_boundary_count": 1,
+      "example_fdc_ids": [
+        170327,
+        170328,
+        170329,
+        170330,
+        170331
+      ],
+      "example_descriptions": [
+        "BURGER KING, french fries",
+        "BURGER KING, Hamburger",
+        "BURGER KING, Cheeseburger",
+        "BURGER KING, Premium Fish Sandwich",
+        "BURGER KING, Original Chicken Sandwich"
+      ]
+    },
+    {
+      "candidate_key": "nuts__cook_roasted_salt_salted",
+      "candidate_count": 15,
+      "distinct_hard_boundary_count": 1,
+      "example_fdc_ids": [
+        168596,
+        168598,
+        168599,
+        168600,
+        169419
+      ],
+      "example_descriptions": [
+        "Nuts, almonds, dry roasted, with salt added",
+        "Nuts, macadamia nuts, dry roasted, with salt added",
+        "Nuts, mixed nuts, dry roasted, with peanuts, with salt added",
+        "Nuts, mixed nuts, oil roasted, with peanuts, with salt added",
+        "Nuts, almonds, oil roasted, with salt added"
+      ]
+    },
+    {
+      "candidate_key": "gravy__generic",
+      "candidate_count": 14,
+      "distinct_hard_boundary_count": 1,
+      "example_fdc_ids": [
+        171169,
+        171171,
+        171172,
+        171173,
+        171565
+      ],
+      "example_descriptions": [
+        "Gravy, au jus, dry",
+        "Gravy, mushroom, dry, powder",
+        "Gravy, onion, dry, mix",
+        "Gravy, pork, dry, powder",
+        "Gravy, brown, dry"
+      ]
+    }
+  ],
+  "hard_boundary_signature_collision_report": [
+    {
+      "hard_boundary_signature": "generic",
+      "candidate_count": 1676,
+      "distinct_candidate_key_count": 340,
+      "example_core_foods": [
+        "acorn_stew_apache",
+        "agutuk",
+        "alcoholic_beverage",
+        "alcoholic_beverages",
+        "andrea_s"
+      ]
+    },
+    {
+      "hard_boundary_signature": "state:raw",
+      "candidate_count": 463,
+      "distinct_candidate_key_count": 233,
+      "example_core_foods": [
+        "abiyuch",
+        "acerola",
+        "agave",
+        "alfalfa_seeds",
+        "amaranth_leaves"
+      ]
+    },
+    {
+      "hard_boundary_signature": "state:cooked|cook:boiled|salt:salted|drained:drained",
+      "candidate_count": 91,
+      "distinct_candidate_key_count": 76,
+      "example_core_foods": [
+        "amaranth_leaves",
+        "arrowhead",
+        "artichokes",
+        "asparagus",
+        "balsam_pear_bitter_gourd"
+      ]
+    },
+    {
+      "hard_boundary_signature": "state:cooked|cook:boiled|salt:unsalted|drained:drained",
+      "candidate_count": 89,
+      "distinct_candidate_key_count": 76,
+      "example_core_foods": [
+        "amaranth_leaves",
+        "arrowhead",
+        "artichokes",
+        "balsam_pear_bitter_gourd",
+        "bamboo_shoots"
+      ]
+    },
+    {
+      "hard_boundary_signature": "preserve:frozen",
+      "candidate_count": 86,
+      "distinct_candidate_key_count": 68,
+      "example_core_foods": [
+        "artichokes",
+        "asparagus",
+        "banquet",
+        "beans_pinto_immature_seeds",
+        "beans_snap_green"
+      ]
+    },
+    {
+      "hard_boundary_signature": "preserve:canned",
+      "candidate_count": 131,
+      "distinct_candidate_key_count": 45,
+      "example_core_foods": [
+        "alcoholic_beverage",
+        "apricot_nectar",
+        "beef",
+        "beverages",
+        "boysenberries"
+      ]
+    },
+    {
+      "hard_boundary_signature": "state:dried|preserve:dried",
+      "candidate_count": 92,
+      "distinct_candidate_key_count": 40,
+      "example_core_foods": [
+        "agave",
+        "apple",
+        "beef",
+        "caribou",
+        "chives"
+      ]
+    },
+    {
+      "hard_boundary_signature": "state:cooked",
+      "candidate_count": 114,
+      "distinct_candidate_key_count": 35,
+      "example_core_foods": [
+        "agave",
+        "beans_chili_barbecue",
+        "beef",
+        "bratwurst",
+        "broccoli"
+      ]
+    },
+    {
+      "hard_boundary_signature": "state:cooked|cook:boiled|preserve:frozen|salt:salted|drained:drained",
+      "candidate_count": 35,
+      "distinct_candidate_key_count": 29,
+      "example_core_foods": [
+        "artichokes",
+        "asparagus",
+        "beans_pinto_immature_seeds",
+        "beans_snap_green",
+        "beans_snap_yellow"
+      ]
+    },
+    {
+      "hard_boundary_signature": "state:cooked|cook:boiled|preserve:frozen|salt:unsalted|drained:drained",
+      "candidate_count": 34,
+      "distinct_candidate_key_count": 28,
+      "example_core_foods": [
+        "artichokes",
+        "asparagus",
+        "beans_pinto_immature_seeds",
+        "beans_snap_green",
+        "beans_snap_yellow"
+      ]
+    },
+    {
+      "hard_boundary_signature": "preserve:canned|drained:solids_and_liquids",
+      "candidate_count": 47,
+      "distinct_candidate_key_count": 25,
+      "example_core_foods": [
+        "beans_shellie",
+        "beans_snap",
+        "beets",
+        "blackberries",
+        "cherries"
+      ]
+    },
+    {
+      "hard_boundary_signature": "form:flour|grain_form:flour",
+      "candidate_count": 64,
+      "distinct_candidate_key_count": 23,
+      "example_core_foods": [
+        "arrowroot_flour",
+        "barley_flour_or_meal",
+        "barley_malt_flour",
+        "buckwheat_flour",
+        "corn_flour"
+      ]
+    },
+    {
+      "hard_boundary_signature": "preserve:canned|drained:drained",
+      "candidate_count": 27,
+      "distinct_candidate_key_count": 21,
+      "example_core_foods": [
+        "apricots",
+        "asparagus",
+        "bamboo_shoots",
+        "beans_mung_mature_seeds",
+        "beets"
+      ]
+    },
+    {
+      "hard_boundary_signature": "form:juice",
+      "candidate_count": 70,
+      "distinct_candidate_key_count": 16,
+      "example_core_foods": [
+        "babyfood",
+        "beverages",
+        "cherry_juice",
+        "cranberry_juice_blend",
+        "cranberry_juice_cocktail"
+      ]
+    },
+    {
+      "hard_boundary_signature": "milk_fat:reduced_fat_2|fat:reduced_fat_2",
+      "candidate_count": 34,
+      "distinct_candidate_key_count": 15,
+      "example_core_foods": [
+        "cheese",
+        "cheese_spread",
+        "cookies",
+        "crackers",
+        "cream"
+      ]
+    },
+    {
+      "hard_boundary_signature": "grain_form:kernel",
+      "candidate_count": 27,
+      "distinct_candidate_key_count": 15,
+      "example_core_foods": [
+        "amaranth_grain",
+        "babyfood",
+        "bagels",
+        "bread",
+        "cereals_ready_to_eat"
+      ]
+    },
+    {
+      "hard_boundary_signature": "form:sauce",
+      "candidate_count": 40,
+      "distinct_candidate_key_count": 14,
+      "example_core_foods": [
+        "babyfood",
+        "carrabba_s_italian_grill",
+        "cheese_sauce",
+        "fast_foods",
+        "kraft_cheez_whiz_pasteurized_process_cheese_sauce"
+      ]
+    },
+    {
+      "hard_boundary_signature": "milk_fat:nonfat_skim|fat:nonfat_skim",
+      "candidate_count": 52,
+      "distinct_candidate_key_count": 12,
+      "example_core_foods": [
+        "cheese",
+        "cream",
+        "ice_creams",
+        "kraft_breakstone_s_free_fat_free_sour_cream",
+        "milk_nonfat_skim"
+      ]
+    },
+    {
+      "hard_boundary_signature": "cook:roasted",
+      "candidate_count": 23,
+      "distinct_candidate_key_count": 11,
+      "example_core_foods": [
+        "buckwheat_groats",
+        "cereals_ready_to_eat",
+        "chicken",
+        "fast_foods",
+        "nuts"
+      ]
+    },
+    {
+      "hard_boundary_signature": "milk_fat:whole_3_25|fat:whole_3_25",
+      "candidate_count": 38,
+      "distinct_candidate_key_count": 10,
+      "example_core_foods": [
+        "babyfood",
+        "beverages",
+        "cheese",
+        "egg_custards",
+        "flan"
+      ]
+    },
+    {
+      "hard_boundary_signature": "sweet:unsweetened",
+      "candidate_count": 27,
+      "distinct_candidate_key_count": 10,
+      "example_core_foods": [
+        "baking_chocolate",
+        "beverages",
+        "candies",
+        "cocoa",
+        "desserts"
+      ]
+    },
+    {
+      "hard_boundary_signature": "cook:baked",
+      "candidate_count": 18,
+      "distinct_candidate_key_count": 10,
+      "example_core_foods": [
+        "babyfood",
+        "cake",
+        "cheese_puffs_and_twists",
+        "desserts",
+        "pepperidge_farm"
+      ]
+    },
+    {
+      "hard_boundary_signature": "state:cooked|cook:boiled|salt:unsalted",
+      "candidate_count": 12,
+      "distinct_candidate_key_count": 10,
+      "example_core_foods": [
+        "lentils",
+        "lima_beans",
+        "lupins",
+        "mothbeans",
+        "mungo_beans"
+      ]
+    },
+    {
+      "hard_boundary_signature": "state:cooked|salt:unsalted",
+      "candidate_count": 12,
+      "distinct_candidate_key_count": 10,
+      "example_core_foods": [
+        "cauliflower",
+        "cereals",
+        "mountain_yam",
+        "nopales",
+        "sesbania_flower"
+      ]
+    },
+    {
+      "hard_boundary_signature": "preserve:canned|salt:salted|drained:solids_and_liquids",
+      "candidate_count": 11,
+      "distinct_candidate_key_count": 10,
+      "example_core_foods": [
+        "asparagus",
+        "beans_snap_green",
+        "beans_snap_yellow",
+        "beets",
+        "carrots"
+      ]
+    },
+    {
+      "hard_boundary_signature": "preserve:canned|salt:unsalted|drained:solids_and_liquids",
+      "candidate_count": 11,
+      "distinct_candidate_key_count": 10,
+      "example_core_foods": [
+        "asparagus",
+        "beans_snap_green",
+        "beans_snap_yellow",
+        "beets",
+        "carrots"
+      ]
+    },
+    {
+      "hard_boundary_signature": "state:cooked|grain_state:cooked",
+      "candidate_count": 21,
+      "distinct_candidate_key_count": 9,
+      "example_core_foods": [
+        "barley",
+        "cereals",
+        "noodles",
+        "pasta",
+        "pork_sausage_rice_links"
+      ]
+    },
+    {
+      "hard_boundary_signature": "cook:fried",
+      "candidate_count": 13,
+      "distinct_candidate_key_count": 9,
+      "example_core_foods": [
+        "cracker_barrel",
+        "denny_s",
+        "fast_foods",
+        "mushroom",
+        "on_the_border"
+      ]
+    },
+    {
+      "hard_boundary_signature": "state:cooked|salt:salted",
+      "candidate_count": 13,
+      "distinct_candidate_key_count": 9,
+      "example_core_foods": [
+        "cauliflower",
+        "cereals",
+        "mountain_yam",
+        "sesbania_flower",
+        "soybeans"
+      ]
+    },
+    {
+      "hard_boundary_signature": "salt:unsalted",
+      "candidate_count": 32,
+      "distinct_candidate_key_count": 8,
+      "example_core_foods": [
+        "butter",
+        "margarine",
+        "margarine_like",
+        "nuts",
+        "peanut_butter"
+      ]
+    },
+    {
+      "hard_boundary_signature": "form:juice|preserve:canned",
+      "candidate_count": 9,
+      "distinct_candidate_key_count": 8,
+      "example_core_foods": [
+        "babyfood",
+        "beverages",
+        "carrot_juice",
+        "lemon_juice_from_concentrate",
+        "prune_juice"
+      ]
+    },
+    {
+      "hard_boundary_signature": "preserve:frozen|sweet:unsweetened",
+      "candidate_count": 8,
+      "distinct_candidate_key_count": 8,
+      "example_core_foods": [
+        "apple",
+        "blackberries",
+        "boysenberries",
+        "cherries",
+        "nance"
+      ]
+    },
+    {
+      "hard_boundary_signature": "salt:salted",
+      "candidate_count": 20,
+      "distinct_candidate_key_count": 7,
+      "example_core_foods": [
+        "margarine",
+        "margarine_like",
+        "margarine_like_spread_with_yogurt",
+        "nuts",
+        "salad_dressing"
+      ]
+    },
+    {
+      "hard_boundary_signature": "cook:fried|breaded:breaded",
+      "candidate_count": 11,
+      "distinct_candidate_key_count": 7,
+      "example_core_foods": [
+        "chicken",
+        "denny_s",
+        "fast_foods",
+        "kfc",
+        "popeyes"
+      ]
+    },
+    {
+      "hard_boundary_signature": "grain_state:dry",
+      "candidate_count": 11,
+      "distinct_candidate_key_count": 7,
+      "example_core_foods": [
+        "babyfood",
+        "pancakes",
+        "pasta",
+        "puddings",
+        "rice_mix"
+      ]
+    },
+    {
+      "hard_boundary_signature": "preserve:canned|salt:unsalted|drained:drained",
+      "candidate_count": 9,
+      "distinct_candidate_key_count": 7,
+      "example_core_foods": [
+        "beans_snap_green",
+        "beans_snap_yellow",
+        "carrots",
+        "fish",
+        "peas"
+      ]
+    },
+    {
+      "hard_boundary_signature": "form:juice|state:raw",
+      "candidate_count": 8,
+      "distinct_candidate_key_count": 7,
+      "example_core_foods": [
+        "acerola_juice",
+        "grapefruit_juice",
+        "lemon_juice",
+        "lime_juice",
+        "orange_juice"
+      ]
+    },
+    {
+      "hard_boundary_signature": "milk_fat:lowfat_1|fat:lowfat_1",
+      "candidate_count": 16,
+      "distinct_candidate_key_count": 6,
+      "example_core_foods": [
+        "cheese",
+        "cream",
+        "kefir",
+        "milk_lowfat_1",
+        "yogurt"
+      ]
+    },
+    {
+      "hard_boundary_signature": "fat:fat_free",
+      "candidate_count": 10,
+      "distinct_candidate_key_count": 6,
+      "example_core_foods": [
+        "creamy_dressing",
+        "dressing",
+        "margarine_like",
+        "popcorn",
+        "salad_dressing"
+      ]
+    },
+    {
+      "hard_boundary_signature": "form:juice|preserve:canned|sweet:unsweetened",
+      "candidate_count": 9,
+      "distinct_candidate_key_count": 6,
+      "example_core_foods": [
+        "apple_juice",
+        "grape_juice",
+        "lime_juice",
+        "orange_grapefruit_juice",
+        "orange_juice"
+      ]
+    },
+    {
+      "hard_boundary_signature": "cook:boiled",
+      "candidate_count": 8,
+      "distinct_candidate_key_count": 6,
+      "example_core_foods": [
+        "brown_rice",
+        "chicken",
+        "nuts",
+        "plantains",
+        "prairie_turnips"
+      ]
+    },
+    {
+      "hard_boundary_signature": "form:sauce|preserve:frozen",
+      "candidate_count": 7,
+      "distinct_candidate_key_count": 6,
+      "example_core_foods": [
+        "lasagna_with_meat_and_sauce",
+        "lasagna_with_meat_sauce",
+        "potatoes",
+        "ravioli",
+        "spaghetti_with_meat_sauce"
+      ]
+    },
+    {
+      "hard_boundary_signature": "state:cooked|cook:roasted",
+      "candidate_count": 28,
+      "distinct_candidate_key_count": 5,
+      "example_core_foods": [
+        "chicken",
+        "duck",
+        "goose",
+        "mutton",
+        "turkey"
+      ]
+    },
+    {
+      "hard_boundary_signature": "form:sauce|preserve:canned",
+      "candidate_count": 12,
+      "distinct_candidate_key_count": 5,
+      "example_core_foods": [
+        "cranberry_sauce",
+        "pasta_with_sliced_franks_in_tomato_sauce",
+        "pasta_with_tomato_sauce",
+        "spaghetti",
+        "tomato_products"
+      ]
+    },
+    {
+      "hard_boundary_signature": "preserve:canned|salt:unsalted",
+      "candidate_count": 9,
+      "distinct_candidate_key_count": 5,
+      "example_core_foods": [
+        "corn",
+        "pumpkin",
+        "tomato_products",
+        "turnip_greens",
+        "vegetables"
+      ]
+    },
+    {
+      "hard_boundary_signature": "sweet:sweetened",
+      "candidate_count": 9,
+      "distinct_candidate_key_count": 5,
+      "example_core_foods": [
+        "beverages",
+        "cereals_ready_to_eat",
+        "margarine_like",
+        "pudding",
+        "water"
+      ]
+    },
+    {
+      "hard_boundary_signature": "state:dried|preserve:dried|sweet:sweetened",
+      "candidate_count": 7,
+      "distinct_candidate_key_count": 5,
+      "example_core_foods": [
+        "blueberries",
+        "cherries",
+        "cranberries",
+        "mango",
+        "nuts"
+      ]
+    },
+    {
+      "hard_boundary_signature": "cook:microwaved",
+      "candidate_count": 5,
+      "distinct_candidate_key_count": 5,
+      "example_core_foods": [
+        "bacon",
+        "beans_snap_green",
+        "burrito",
+        "cereals",
+        "mushroom"
+      ]
+    },
+    {
+      "hard_boundary_signature": "preserve:frozen|sweet:sweetened",
+      "candidate_count": 5,
+      "distinct_candidate_key_count": 5,
+      "example_core_foods": [
+        "apricots",
+        "peaches",
+        "pineapple",
+        "raspberries",
+        "strawberries"
+      ]
+    },
+    {
+      "hard_boundary_signature": "state:raw|fat:lean_only",
+      "candidate_count": 16,
+      "distinct_candidate_key_count": 4,
+      "example_core_foods": [
+        "beef",
+        "lamb",
+        "pork",
+        "veal"
+      ]
+    }
+  ],
+  "low_confidence_candidates": [
+    {
+      "candidate_id": "usda_cluster_candidate:170415:db2_5_usda_cluster_rules_v1",
+      "candidate_key": "onion_rings__cook_fried_preserve_frozen_breaded_breaded",
+      "core_food_name": "onion rings",
+      "core_food_normalized": "onion_rings",
+      "source_fdc_id": 170415,
+      "source_description": "Onion rings, breaded, par fried, frozen, prepared, heated in oven",
+      "source_data_type": "sr_legacy_food",
+      "hard_boundary_signature": "cook:fried|preserve:frozen|breaded:breaded",
+      "representative_score": 28,
+      "representative_score_json": {
+        "score": 28,
+        "reasons": [
+          "sr_legacy_food",
+          "macro_data_present",
+          "breaded_penalty",
+          "ambiguous_description_penalty"
+        ],
+        "confidence": "low",
+        "review_status": "needs_review",
+        "has_macro_data": true
+      },
+      "confidence": "low",
+      "review_status": "needs_review"
+    },
+    {
+      "candidate_id": "usda_cluster_candidate:168442:db2_5_usda_cluster_rules_v1",
+      "candidate_key": "potatoes__cook_fried_preserve_frozen_salt_salted",
+      "core_food_name": "potatoes",
+      "core_food_normalized": "potatoes",
+      "source_fdc_id": 168442,
+      "source_description": "Potatoes, french fried, all types, salt added in processing, frozen, unprepared",
+      "source_data_type": "sr_legacy_food",
+      "hard_boundary_signature": "cook:fried|preserve:frozen|salt:salted",
+      "representative_score": 32,
+      "representative_score_json": {
+        "score": 32,
+        "reasons": [
+          "sr_legacy_food",
+          "macro_data_present",
+          "added_salt_penalty",
+          "ambiguous_description_penalty"
+        ],
+        "confidence": "low",
+        "review_status": "needs_review",
+        "has_macro_data": true
+      },
+      "confidence": "low",
+      "review_status": "needs_review"
+    },
+    {
+      "candidate_id": "usda_cluster_candidate:168832:db2_5_usda_cluster_rules_v1",
+      "candidate_key": "pudding__sweet_sweetened",
+      "core_food_name": "pudding",
+      "core_food_normalized": "pudding",
+      "source_fdc_id": 168832,
+      "source_description": "Pudding, lemon, dry mix, regular, prepared with sugar, egg yolk and water",
+      "source_data_type": "sr_legacy_food",
+      "hard_boundary_signature": "sweet:sweetened",
+      "representative_score": 32,
+      "representative_score_json": {
+        "score": 32,
+        "reasons": [
+          "sr_legacy_food",
+          "macro_data_present",
+          "added_sugar_penalty",
+          "ambiguous_description_penalty"
+        ],
+        "confidence": "low",
+        "review_status": "needs_review",
+        "has_macro_data": true
+      },
+      "confidence": "low",
+      "review_status": "needs_review"
+    },
+    {
+      "candidate_id": "usda_cluster_candidate:168945:db2_5_usda_cluster_rules_v1",
+      "candidate_key": "potatoes__preserve_frozen_salt_salted",
+      "core_food_name": "potatoes",
+      "core_food_normalized": "potatoes",
+      "source_fdc_id": 168945,
+      "source_description": "Potatoes, yellow fleshed, hash brown, shredded, salt added in processing, frozen, unprepared",
+      "source_data_type": "sr_legacy_food",
+      "hard_boundary_signature": "preserve:frozen|salt:salted",
+      "representative_score": 32,
+      "representative_score_json": {
+        "score": 32,
+        "reasons": [
+          "sr_legacy_food",
+          "macro_data_present",
+          "added_salt_penalty",
+          "ambiguous_description_penalty"
+        ],
+        "confidence": "low",
+        "review_status": "needs_review",
+        "has_macro_data": true
+      },
+      "confidence": "low",
+      "review_status": "needs_review"
+    },
+    {
+      "candidate_id": "usda_cluster_candidate:169264:db2_5_usda_cluster_rules_v1",
+      "candidate_key": "potatoes__cook_fried_preserve_frozen_salt_salted",
+      "core_food_name": "potatoes",
+      "core_food_normalized": "potatoes",
+      "source_fdc_id": 169264,
+      "source_description": "Potatoes, french fried, all types, salt added in processing, frozen, home-prepared, oven heated",
+      "source_data_type": "sr_legacy_food",
+      "hard_boundary_signature": "cook:fried|preserve:frozen|salt:salted",
+      "representative_score": 32,
+      "representative_score_json": {
+        "score": 32,
+        "reasons": [
+          "sr_legacy_food",
+          "macro_data_present",
+          "added_salt_penalty",
+          "ambiguous_description_penalty"
+        ],
+        "confidence": "low",
+        "review_status": "needs_review",
+        "has_macro_data": true
+      },
+      "confidence": "low",
+      "review_status": "needs_review"
+    },
+    {
+      "candidate_id": "usda_cluster_candidate:169763:db2_5_usda_cluster_rules_v1",
+      "candidate_key": "potatoes__cook_roasted_preserve_frozen_salt_salted",
+      "core_food_name": "potatoes",
+      "core_food_normalized": "potatoes",
+      "source_fdc_id": 169763,
+      "source_description": "Potatoes, yellow fleshed, roasted, salt added in processing, frozen, unprepared",
+      "source_data_type": "sr_legacy_food",
+      "hard_boundary_signature": "cook:roasted|preserve:frozen|salt:salted",
+      "representative_score": 32,
+      "representative_score_json": {
+        "score": 32,
+        "reasons": [
+          "sr_legacy_food",
+          "macro_data_present",
+          "added_salt_penalty",
+          "ambiguous_description_penalty"
+        ],
+        "confidence": "low",
+        "review_status": "needs_review",
+        "has_macro_data": true
+      },
+      "confidence": "low",
+      "review_status": "needs_review"
+    },
+    {
+      "candidate_id": "usda_cluster_candidate:170117:db2_5_usda_cluster_rules_v1",
+      "candidate_key": "potatoes__cook_fried_preserve_frozen_salt_salted",
+      "core_food_name": "potatoes",
+      "core_food_normalized": "potatoes",
+      "source_fdc_id": 170117,
+      "source_description": "Potatoes, frozen, french fried, par fried, cottage-cut, prepared, heated in oven, with salt",
+      "source_data_type": "sr_legacy_food",
+      "hard_boundary_signature": "cook:fried|preserve:frozen|salt:salted",
+      "representative_score": 32,
+      "representative_score_json": {
+        "score": 32,
+        "reasons": [
+          "sr_legacy_food",
+          "macro_data_present",
+          "added_salt_penalty",
+          "ambiguous_description_penalty"
+        ],
+        "confidence": "low",
+        "review_status": "needs_review",
+        "has_macro_data": true
+      },
+      "confidence": "low",
+      "review_status": "needs_review"
+    },
+    {
+      "candidate_id": "usda_cluster_candidate:169838:db2_5_usda_cluster_rules_v1",
+      "candidate_key": "restaurant__cook_fried_breaded_breaded",
+      "core_food_name": "restaurant",
+      "core_food_normalized": "restaurant",
+      "source_fdc_id": 169838,
+      "source_description": "Restaurant, family style, shrimp, breaded and fried",
+      "source_data_type": "sr_legacy_food",
+      "hard_boundary_signature": "cook:fried|breaded:breaded",
+      "representative_score": 36,
+      "representative_score_json": {
+        "score": 36,
+        "reasons": [
+          "sr_legacy_food",
+          "macro_data_present",
+          "simple_description",
+          "breaded_penalty",
+          "ambiguous_description_penalty"
+        ],
+        "confidence": "low",
+        "review_status": "needs_review",
+        "has_macro_data": true
+      },
+      "confidence": "low",
+      "review_status": "needs_review"
+    },
+    {
+      "candidate_id": "usda_cluster_candidate:169846:db2_5_usda_cluster_rules_v1",
+      "candidate_key": "restaurant__cook_fried_breaded_breaded",
+      "core_food_name": "restaurant",
+      "core_food_normalized": "restaurant",
+      "source_fdc_id": 169846,
+      "source_description": "Restaurant, family style, fish fillet, battered or breaded, fried",
+      "source_data_type": "sr_legacy_food",
+      "hard_boundary_signature": "cook:fried|breaded:breaded",
+      "representative_score": 36,
+      "representative_score_json": {
+        "score": 36,
+        "reasons": [
+          "sr_legacy_food",
+          "macro_data_present",
+          "simple_description",
+          "breaded_penalty",
+          "ambiguous_description_penalty"
+        ],
+        "confidence": "low",
+        "review_status": "needs_review",
+        "has_macro_data": true
+      },
+      "confidence": "low",
+      "review_status": "needs_review"
+    },
+    {
+      "candidate_id": "usda_cluster_candidate:170356:db2_5_usda_cluster_rules_v1",
+      "candidate_key": "fast_foods__cook_fried_breaded_breaded_cut_breast",
+      "core_food_name": "fast foods",
+      "core_food_normalized": "fast_foods",
+      "source_fdc_id": 170356,
+      "source_description": "Fast Foods, Fried Chicken, Breast, meat only, skin and breading removed",
+      "source_data_type": "sr_legacy_food",
+      "hard_boundary_signature": "cook:fried|breaded:breaded|cut:breast",
+      "representative_score": 36,
+      "representative_score_json": {
+        "score": 36,
+        "reasons": [
+          "sr_legacy_food",
+          "macro_data_present",
+          "simple_description",
+          "breaded_penalty",
+          "ambiguous_description_penalty"
+        ],
+        "confidence": "low",
+        "review_status": "needs_review",
+        "has_macro_data": true
+      },
+      "confidence": "low",
+      "review_status": "needs_review"
+    },
+    {
+      "candidate_id": "usda_cluster_candidate:170357:db2_5_usda_cluster_rules_v1",
+      "candidate_key": "fast_foods__cook_fried_breaded_breaded_cut_drumstick",
+      "core_food_name": "fast foods",
+      "core_food_normalized": "fast_foods",
+      "source_fdc_id": 170357,
+      "source_description": "Fast Foods, Fried Chicken, Drumstick, meat only, skin and breading removed",
+      "source_data_type": "sr_legacy_food",
+      "hard_boundary_signature": "cook:fried|breaded:breaded|cut:drumstick",
+      "representative_score": 36,
+      "representative_score_json": {
+        "score": 36,
+        "reasons": [
+          "sr_legacy_food",
+          "macro_data_present",
+          "simple_description",
+          "breaded_penalty",
+          "ambiguous_description_penalty"
+        ],
+        "confidence": "low",
+        "review_status": "needs_review",
+        "has_macro_data": true
+      },
+      "confidence": "low",
+      "review_status": "needs_review"
+    },
+    {
+      "candidate_id": "usda_cluster_candidate:170358:db2_5_usda_cluster_rules_v1",
+      "candidate_key": "fast_foods__cook_fried_breaded_breaded_cut_thigh",
+      "core_food_name": "fast foods",
+      "core_food_normalized": "fast_foods",
+      "source_fdc_id": 170358,
+      "source_description": "Fast Foods, Fried Chicken, Thigh, meat only, skin and breading removed",
+      "source_data_type": "sr_legacy_food",
+      "hard_boundary_signature": "cook:fried|breaded:breaded|cut:thigh",
+      "representative_score": 36,
+      "representative_score_json": {
+        "score": 36,
+        "reasons": [
+          "sr_legacy_food",
+          "macro_data_present",
+          "simple_description",
+          "breaded_penalty",
+          "ambiguous_description_penalty"
+        ],
+        "confidence": "low",
+        "review_status": "needs_review",
+        "has_macro_data": true
+      },
+      "confidence": "low",
+      "review_status": "needs_review"
+    },
+    {
+      "candidate_id": "usda_cluster_candidate:170359:db2_5_usda_cluster_rules_v1",
+      "candidate_key": "fast_foods__cook_fried_breaded_breaded_cut_thigh",
+      "core_food_name": "fast foods",
+      "core_food_normalized": "fast_foods",
+      "source_fdc_id": 170359,
+      "source_description": "Fast Foods, Fried Chicken, Thigh, meat and skin and breading",
+      "source_data_type": "sr_legacy_food",
+      "hard_boundary_signature": "cook:fried|breaded:breaded|cut:thigh",
+      "representative_score": 36,
+      "representative_score_json": {
+        "score": 36,
+        "reasons": [
+          "sr_legacy_food",
+          "macro_data_present",
+          "simple_description",
+          "breaded_penalty",
+          "ambiguous_description_penalty"
+        ],
+        "confidence": "low",
+        "review_status": "needs_review",
+        "has_macro_data": true
+      },
+      "confidence": "low",
+      "review_status": "needs_review"
+    },
+    {
+      "candidate_id": "usda_cluster_candidate:170360:db2_5_usda_cluster_rules_v1",
+      "candidate_key": "fast_foods__cook_fried_breaded_breaded_cut_wing",
+      "core_food_name": "fast foods",
+      "core_food_normalized": "fast_foods",
+      "source_fdc_id": 170360,
+      "source_description": "Fast Foods, Fried Chicken, Wing, meat and skin and breading",
+      "source_data_type": "sr_legacy_food",
+      "hard_boundary_signature": "cook:fried|breaded:breaded|cut:wing",
+      "representative_score": 36,
+      "representative_score_json": {
+        "score": 36,
+        "reasons": [
+          "sr_legacy_food",
+          "macro_data_present",
+          "simple_description",
+          "breaded_penalty",
+          "ambiguous_description_penalty"
+        ],
+        "confidence": "low",
+        "review_status": "needs_review",
+        "has_macro_data": true
+      },
+      "confidence": "low",
+      "review_status": "needs_review"
+    },
+    {
+      "candidate_id": "usda_cluster_candidate:170414:db2_5_usda_cluster_rules_v1",
+      "candidate_key": "onion_rings__cook_fried_preserve_frozen_breaded_breaded",
+      "core_food_name": "onion rings",
+      "core_food_normalized": "onion_rings",
+      "source_fdc_id": 170414,
+      "source_description": "Onion rings, breaded, par fried, frozen, unprepared",
+      "source_data_type": "sr_legacy_food",
+      "hard_boundary_signature": "cook:fried|preserve:frozen|breaded:breaded",
+      "representative_score": 36,
+      "representative_score_json": {
+        "score": 36,
+        "reasons": [
+          "sr_legacy_food",
+          "macro_data_present",
+          "simple_description",
+          "breaded_penalty",
+          "ambiguous_description_penalty"
+        ],
+        "confidence": "low",
+        "review_status": "needs_review",
+        "has_macro_data": true
+      },
+      "confidence": "low",
+      "review_status": "needs_review"
+    },
+    {
+      "candidate_id": "usda_cluster_candidate:170697:db2_5_usda_cluster_rules_v1",
+      "candidate_key": "fast_foods__cook_fried_breaded_breaded",
+      "core_food_name": "fast foods",
+      "core_food_normalized": "fast_foods",
+      "source_fdc_id": 170697,
+      "source_description": "Fast foods, onion rings, breaded and fried",
+      "source_data_type": "sr_legacy_food",
+      "hard_boundary_signature": "cook:fried|breaded:breaded",
+      "representative_score": 36,
+      "representative_score_json": {
+        "score": 36,
+        "reasons": [
+          "sr_legacy_food",
+          "macro_data_present",
+          "simple_description",
+          "breaded_penalty",
+          "ambiguous_description_penalty"
+        ],
+        "confidence": "low",
+        "review_status": "needs_review",
+        "has_macro_data": true
+      },
+      "confidence": "low",
+      "review_status": "needs_review"
+    },
+    {
+      "candidate_id": "usda_cluster_candidate:170718:db2_5_usda_cluster_rules_v1",
+      "candidate_key": "fast_foods__cook_fried_bone_boneless_breaded_breaded",
+      "core_food_name": "fast foods",
+      "core_food_normalized": "fast_foods",
+      "source_fdc_id": 170718,
+      "source_description": "Fast foods, chicken, breaded and fried, boneless pieces, plain",
+      "source_data_type": "sr_legacy_food",
+      "hard_boundary_signature": "cook:fried|bone:boneless|breaded:breaded",
+      "representative_score": 36,
+      "representative_score_json": {
+        "score": 36,
+        "reasons": [
+          "sr_legacy_food",
+          "macro_data_present",
+          "simple_description",
+          "breaded_penalty",
+          "ambiguous_description_penalty"
+        ],
+        "confidence": "low",
+        "review_status": "needs_review",
+        "has_macro_data": true
+      },
+      "confidence": "low",
+      "review_status": "needs_review"
+    },
+    {
+      "candidate_id": "usda_cluster_candidate:170754:db2_5_usda_cluster_rules_v1",
+      "candidate_key": "fast_foods__cook_fried_breaded_breaded_cut_wing",
+      "core_food_name": "fast foods",
+      "core_food_normalized": "fast_foods",
+      "source_fdc_id": 170754,
+      "source_description": "Fast Foods, Fried Chicken, Wing, meat only, skin and breading removed",
+      "source_data_type": "sr_legacy_food",
+      "hard_boundary_signature": "cook:fried|breaded:breaded|cut:wing",
+      "representative_score": 36,
+      "representative_score_json": {
+        "score": 36,
+        "reasons": [
+          "sr_legacy_food",
+          "macro_data_present",
+          "simple_description",
+          "breaded_penalty",
+          "ambiguous_description_penalty"
+        ],
+        "confidence": "low",
+        "review_status": "needs_review",
+        "has_macro_data": true
+      },
+      "confidence": "low",
+      "review_status": "needs_review"
+    },
+    {
+      "candidate_id": "usda_cluster_candidate:170755:db2_5_usda_cluster_rules_v1",
+      "candidate_key": "fast_foods__cook_fried_breaded_breaded",
+      "core_food_name": "fast foods",
+      "core_food_normalized": "fast_foods",
+      "source_fdc_id": 170755,
+      "source_description": "Fast Foods, Fried Chicken, Skin and breading from all pieces",
+      "source_data_type": "sr_legacy_food",
+      "hard_boundary_signature": "cook:fried|breaded:breaded",
+      "representative_score": 36,
+      "representative_score_json": {
+        "score": 36,
+        "reasons": [
+          "sr_legacy_food",
+          "macro_data_present",
+          "simple_description",
+          "breaded_penalty",
+          "ambiguous_description_penalty"
+        ],
+        "confidence": "low",
+        "review_status": "needs_review",
+        "has_macro_data": true
+      },
+      "confidence": "low",
+      "review_status": "needs_review"
+    },
+    {
+      "candidate_id": "usda_cluster_candidate:170756:db2_5_usda_cluster_rules_v1",
+      "candidate_key": "fast_foods__cook_fried_breaded_breaded_cut_breast",
+      "core_food_name": "fast foods",
+      "core_food_normalized": "fast_foods",
+      "source_fdc_id": 170756,
+      "source_description": "Fast Foods, Fried Chicken, Breast, meat and skin and breading",
+      "source_data_type": "sr_legacy_food",
+      "hard_boundary_signature": "cook:fried|breaded:breaded|cut:breast",
+      "representative_score": 36,
+      "representative_score_json": {
+        "score": 36,
+        "reasons": [
+          "sr_legacy_food",
+          "macro_data_present",
+          "simple_description",
+          "breaded_penalty",
+          "ambiguous_description_penalty"
+        ],
+        "confidence": "low",
+        "review_status": "needs_review",
+        "has_macro_data": true
+      },
+      "confidence": "low",
+      "review_status": "needs_review"
+    },
+    {
+      "candidate_id": "usda_cluster_candidate:170757:db2_5_usda_cluster_rules_v1",
+      "candidate_key": "fast_foods__cook_fried_breaded_breaded_cut_drumstick",
+      "core_food_name": "fast foods",
+      "core_food_normalized": "fast_foods",
+      "source_fdc_id": 170757,
+      "source_description": "Fast Foods, Fried Chicken, Drumstick, meat and skin with breading",
+      "source_data_type": "sr_legacy_food",
+      "hard_boundary_signature": "cook:fried|breaded:breaded|cut:drumstick",
+      "representative_score": 36,
+      "representative_score_json": {
+        "score": 36,
+        "reasons": [
+          "sr_legacy_food",
+          "macro_data_present",
+          "simple_description",
+          "breaded_penalty",
+          "ambiguous_description_penalty"
+        ],
+        "confidence": "low",
+        "review_status": "needs_review",
+        "has_macro_data": true
+      },
+      "confidence": "low",
+      "review_status": "needs_review"
+    },
+    {
+      "candidate_id": "usda_cluster_candidate:172037:db2_5_usda_cluster_rules_v1",
+      "candidate_key": "fast_foods__cook_fried_breaded_breaded",
+      "core_food_name": "fast foods",
+      "core_food_normalized": "fast_foods",
+      "source_fdc_id": 172037,
+      "source_description": "Fast foods, shrimp, breaded and fried",
+      "source_data_type": "sr_legacy_food",
+      "hard_boundary_signature": "cook:fried|breaded:breaded",
+      "representative_score": 36,
+      "representative_score_json": {
+        "score": 36,
+        "reasons": [
+          "sr_legacy_food",
+          "macro_data_present",
+          "simple_description",
+          "breaded_penalty",
+          "ambiguous_description_penalty"
+        ],
+        "confidence": "low",
+        "review_status": "needs_review",
+        "has_macro_data": true
+      },
+      "confidence": "low",
+      "review_status": "needs_review"
+    },
+    {
+      "candidate_id": "usda_cluster_candidate:168398:db2_5_usda_cluster_rules_v1",
+      "candidate_key": "corn__preserve_frozen",
+      "core_food_name": "corn",
+      "core_food_normalized": "corn",
+      "source_fdc_id": 168398,
+      "source_description": "Corn, sweet, yellow, frozen, kernels cut off cob, unprepared (Includes foods for USDA's Food Distribution Program)",
+      "source_data_type": "sr_legacy_food",
+      "hard_boundary_signature": "preserve:frozen",
+      "representative_score": 40,
+      "representative_score_json": {
+        "score": 40,
+        "reasons": [
+          "sr_legacy_food",
+          "macro_data_present",
+          "ambiguous_description_penalty"
+        ],
+        "confidence": "low",
+        "review_status": "needs_review",
+        "has_macro_data": true
+      },
+      "confidence": "low",
+      "review_status": "needs_review"
+    },
+    {
+      "candidate_id": "usda_cluster_candidate:168400:db2_5_usda_cluster_rules_v1",
+      "candidate_key": "corn__preserve_frozen",
+      "core_food_name": "corn",
+      "core_food_normalized": "corn",
+      "source_fdc_id": 168400,
+      "source_description": "Corn, sweet, yellow, frozen, kernels on cob, unprepared",
+      "source_data_type": "sr_legacy_food",
+      "hard_boundary_signature": "preserve:frozen",
+      "representative_score": 40,
+      "representative_score_json": {
+        "score": 40,
+        "reasons": [
+          "sr_legacy_food",
+          "macro_data_present",
+          "ambiguous_description_penalty"
+        ],
+        "confidence": "low",
+        "review_status": "needs_review",
+        "has_macro_data": true
+      },
+      "confidence": "low",
+      "review_status": "needs_review"
+    },
+    {
+      "candidate_id": "usda_cluster_candidate:168469:db2_5_usda_cluster_rules_v1",
+      "candidate_key": "squash__preserve_frozen",
+      "core_food_name": "squash",
+      "core_food_normalized": "squash",
+      "source_fdc_id": 168469,
+      "source_description": "Squash, summer, zucchini, includes skin, frozen, unprepared",
+      "source_data_type": "sr_legacy_food",
+      "hard_boundary_signature": "preserve:frozen",
+      "representative_score": 40,
+      "representative_score_json": {
+        "score": 40,
+        "reasons": [
+          "sr_legacy_food",
+          "macro_data_present",
+          "ambiguous_description_penalty"
+        ],
+        "confidence": "low",
+        "review_status": "needs_review",
+        "has_macro_data": true
+      },
+      "confidence": "low",
+      "review_status": "needs_review"
+    },
+    {
+      "candidate_id": "usda_cluster_candidate:168544:db2_5_usda_cluster_rules_v1",
+      "candidate_key": "corn__preserve_frozen",
+      "core_food_name": "corn",
+      "core_food_normalized": "corn",
+      "source_fdc_id": 168544,
+      "source_description": "Corn, sweet, white, frozen, kernels cut off cob, unprepared",
+      "source_data_type": "sr_legacy_food",
+      "hard_boundary_signature": "preserve:frozen",
+      "representative_score": 40,
+      "representative_score_json": {
+        "score": 40,
+        "reasons": [
+          "sr_legacy_food",
+          "macro_data_present",
+          "ambiguous_description_penalty"
+        ],
+        "confidence": "low",
+        "review_status": "needs_review",
+        "has_macro_data": true
+      },
+      "confidence": "low",
+      "review_status": "needs_review"
+    },
+    {
+      "candidate_id": "usda_cluster_candidate:168547:db2_5_usda_cluster_rules_v1",
+      "candidate_key": "peppers__preserve_frozen",
+      "core_food_name": "peppers",
+      "core_food_normalized": "peppers",
+      "source_fdc_id": 168547,
+      "source_description": "Peppers, sweet, red, frozen, chopped, unprepared",
+      "source_data_type": "sr_legacy_food",
+      "hard_boundary_signature": "preserve:frozen",
+      "representative_score": 40,
+      "representative_score_json": {
+        "score": 40,
+        "reasons": [
+          "sr_legacy_food",
+          "macro_data_present",
+          "ambiguous_description_penalty"
+        ],
+        "confidence": "low",
+        "review_status": "needs_review",
+        "has_macro_data": true
+      },
+      "confidence": "low",
+      "review_status": "needs_review"
+    },
+    {
+      "candidate_id": "usda_cluster_candidate:168852:db2_5_usda_cluster_rules_v1",
+      "candidate_key": "frostings__generic",
+      "core_food_name": "frostings",
+      "core_food_normalized": "frostings",
+      "source_fdc_id": 168852,
+      "source_description": "Frostings, glaze, chocolate, prepared-from-recipe, with butter, NFSMI Recipe No. C-32",
+      "source_data_type": "sr_legacy_food",
+      "hard_boundary_signature": "generic",
+      "representative_score": 40,
+      "representative_score_json": {
+        "score": 40,
+        "reasons": [
+          "sr_legacy_food",
+          "macro_data_present",
+          "ambiguous_description_penalty"
+        ],
+        "confidence": "low",
+        "review_status": "needs_review",
+        "has_macro_data": true
+      },
+      "confidence": "low",
+      "review_status": "needs_review"
+    },
+    {
+      "candidate_id": "usda_cluster_candidate:168947:db2_5_usda_cluster_rules_v1",
+      "candidate_key": "potatoes__cook_fried_preserve_frozen",
+      "core_food_name": "potatoes",
+      "core_food_normalized": "potatoes",
+      "source_fdc_id": 168947,
+      "source_description": "Potatoes, french fried, steak cut, salt not added in processing, frozen, unprepared",
+      "source_data_type": "sr_legacy_food",
+      "hard_boundary_signature": "cook:fried|preserve:frozen",
+      "representative_score": 40,
+      "representative_score_json": {
+        "score": 40,
+        "reasons": [
+          "sr_legacy_food",
+          "macro_data_present",
+          "ambiguous_description_penalty"
+        ],
+        "confidence": "low",
+        "review_status": "needs_review",
+        "has_macro_data": true
+      },
+      "confidence": "low",
+      "review_status": "needs_review"
+    },
+    {
+      "candidate_id": "usda_cluster_candidate:169267:db2_5_usda_cluster_rules_v1",
+      "candidate_key": "potatoes__cook_fried_preserve_frozen",
+      "core_food_name": "potatoes",
+      "core_food_normalized": "potatoes",
+      "source_fdc_id": 169267,
+      "source_description": "Potatoes, frozen, french fried, par fried, extruded, unprepared",
+      "source_data_type": "sr_legacy_food",
+      "hard_boundary_signature": "cook:fried|preserve:frozen",
+      "representative_score": 40,
+      "representative_score_json": {
+        "score": 40,
+        "reasons": [
+          "sr_legacy_food",
+          "macro_data_present",
+          "ambiguous_description_penalty"
+        ],
+        "confidence": "low",
+        "review_status": "needs_review",
+        "has_macro_data": true
+      },
+      "confidence": "low",
+      "review_status": "needs_review"
+    },
+    {
+      "candidate_id": "usda_cluster_candidate:169268:db2_5_usda_cluster_rules_v1",
+      "candidate_key": "potatoes__cook_fried_preserve_frozen_salt_unsalted",
+      "core_food_name": "potatoes",
+      "core_food_normalized": "potatoes",
+      "source_fdc_id": 169268,
+      "source_description": "Potatoes, frozen, french fried, par fried, extruded, prepared, heated in oven, without salt",
+      "source_data_type": "sr_legacy_food",
+      "hard_boundary_signature": "cook:fried|preserve:frozen|salt:unsalted",
+      "representative_score": 40,
+      "representative_score_json": {
+        "score": 40,
+        "reasons": [
+          "sr_legacy_food",
+          "macro_data_present",
+          "ambiguous_description_penalty"
+        ],
+        "confidence": "low",
+        "review_status": "needs_review",
+        "has_macro_data": true
+      },
+      "confidence": "low",
+      "review_status": "needs_review"
+    },
+    {
+      "candidate_id": "usda_cluster_candidate:169324:db2_5_usda_cluster_rules_v1",
+      "candidate_key": "beans_snap_yellow__preserve_frozen",
+      "core_food_name": "beans snap yellow",
+      "core_food_normalized": "beans_snap_yellow",
+      "source_fdc_id": 169324,
+      "source_description": "Beans, snap, yellow, frozen, all styles, unprepared",
+      "source_data_type": "sr_legacy_food",
+      "hard_boundary_signature": "preserve:frozen",
+      "representative_score": 40,
+      "representative_score_json": {
+        "score": 40,
+        "reasons": [
+          "sr_legacy_food",
+          "macro_data_present",
+          "ambiguous_description_penalty"
+        ],
+        "confidence": "low",
+        "review_status": "needs_review",
+        "has_macro_data": true
+      },
+      "confidence": "low",
+      "review_status": "needs_review"
+    },
+    {
+      "candidate_id": "usda_cluster_candidate:169365:db2_5_usda_cluster_rules_v1",
+      "candidate_key": "corn__preserve_frozen",
+      "core_food_name": "corn",
+      "core_food_normalized": "corn",
+      "source_fdc_id": 169365,
+      "source_description": "Corn, sweet, white, frozen, kernels on cob, unprepared",
+      "source_data_type": "sr_legacy_food",
+      "hard_boundary_signature": "preserve:frozen",
+      "representative_score": 40,
+      "representative_score_json": {
+        "score": 40,
+        "reasons": [
+          "sr_legacy_food",
+          "macro_data_present",
+          "ambiguous_description_penalty"
+        ],
+        "confidence": "low",
+        "review_status": "needs_review",
+        "has_macro_data": true
+      },
+      "confidence": "low",
+      "review_status": "needs_review"
+    },
+    {
+      "candidate_id": "usda_cluster_candidate:169710:db2_5_usda_cluster_rules_v1",
+      "candidate_key": "white_rice__grain_form_kernel",
+      "core_food_name": "white rice",
+      "core_food_normalized": "white_rice",
+      "source_fdc_id": 169710,
+      "source_description": "Rice, white, long-grain, precooked or instant, enriched, prepared",
+      "source_data_type": "sr_legacy_food",
+      "hard_boundary_signature": "grain_form:kernel",
+      "representative_score": 40,
+      "representative_score_json": {
+        "score": 40,
+        "reasons": [
+          "sr_legacy_food",
+          "macro_data_present",
+          "ambiguous_description_penalty"
+        ],
+        "confidence": "low",
+        "review_status": "needs_review",
+        "has_macro_data": true
+      },
+      "confidence": "low",
+      "review_status": "needs_review"
+    },
+    {
+      "candidate_id": "usda_cluster_candidate:169784:db2_5_usda_cluster_rules_v1",
+      "candidate_key": "jimmy_dean__preserve_frozen",
+      "core_food_name": "jimmy dean",
+      "core_food_normalized": "jimmy_dean",
+      "source_fdc_id": 169784,
+      "source_description": "JIMMY DEAN, Sausage, Egg, and Cheese Breakfast Biscuit, frozen, unprepared",
+      "source_data_type": "sr_legacy_food",
+      "hard_boundary_signature": "preserve:frozen",
+      "representative_score": 40,
+      "representative_score_json": {
+        "score": 40,
+        "reasons": [
+          "sr_legacy_food",
+          "macro_data_present",
+          "ambiguous_description_penalty"
+        ],
+        "confidence": "low",
+        "review_status": "needs_review",
+        "has_macro_data": true
+      },
+      "confidence": "low",
+      "review_status": "needs_review"
+    },
+    {
+      "candidate_id": "usda_cluster_candidate:169962:db2_5_usda_cluster_rules_v1",
+      "candidate_key": "beans_snap_green__preserve_frozen",
+      "core_food_name": "beans snap green",
+      "core_food_normalized": "beans_snap_green",
+      "source_fdc_id": 169962,
+      "source_description": "Beans, snap, green, frozen, all styles, unprepared (Includes foods for USDA's Food Distribution Program)",
+      "source_data_type": "sr_legacy_food",
+      "hard_boundary_signature": "preserve:frozen",
+      "representative_score": 40,
+      "representative_score_json": {
+        "score": 40,
+        "reasons": [
+          "sr_legacy_food",
+          "macro_data_present",
+          "ambiguous_description_penalty"
+        ],
+        "confidence": "low",
+        "review_status": "needs_review",
+        "has_macro_data": true
+      },
+      "confidence": "low",
+      "review_status": "needs_review"
+    },
+    {
+      "candidate_id": "usda_cluster_candidate:170022:db2_5_usda_cluster_rules_v1",
+      "candidate_key": "peppers__preserve_frozen",
+      "core_food_name": "peppers",
+      "core_food_normalized": "peppers",
+      "source_fdc_id": 170022,
+      "source_description": "Peppers, sweet, green, frozen, chopped, unprepared",
+      "source_data_type": "sr_legacy_food",
+      "hard_boundary_signature": "preserve:frozen",
+      "representative_score": 40,
+      "representative_score_json": {
+        "score": 40,
+        "reasons": [
+          "sr_legacy_food",
+          "macro_data_present",
+          "ambiguous_description_penalty"
+        ],
+        "confidence": "low",
+        "review_status": "needs_review",
+        "has_macro_data": true
+      },
+      "confidence": "low",
+      "review_status": "needs_review"
+    },
+    {
+      "candidate_id": "usda_cluster_candidate:170031:db2_5_usda_cluster_rules_v1",
+      "candidate_key": "potatoes__cook_roasted_preserve_frozen_salt_salted",
+      "core_food_name": "potatoes",
+      "core_food_normalized": "potatoes",
+      "source_fdc_id": 170031,
+      "source_description": "Potatoes, roasted, salt added in processing, frozen, unprepared",
+      "source_data_type": "sr_legacy_food",
+      "hard_boundary_signature": "cook:roasted|preserve:frozen|salt:salted",
+      "representative_score": 40,
+      "representative_score_json": {
+        "score": 40,
+        "reasons": [
+          "sr_legacy_food",
+          "macro_data_present",
+          "simple_description",
+          "added_salt_penalty",
+          "ambiguous_description_penalty"
+        ],
+        "confidence": "low",
+        "review_status": "needs_review",
+        "has_macro_data": true
+      },
+      "confidence": "low",
+      "review_status": "needs_review"
+    },
+    {
+      "candidate_id": "usda_cluster_candidate:170044:db2_5_usda_cluster_rules_v1",
+      "candidate_key": "potatoes__cook_fried_preserve_frozen",
+      "core_food_name": "potatoes",
+      "core_food_normalized": "potatoes",
+      "source_fdc_id": 170044,
+      "source_description": "Potatoes, hash brown, frozen, plain, prepared, pan fried in canola oil",
+      "source_data_type": "sr_legacy_food",
+      "hard_boundary_signature": "cook:fried|preserve:frozen",
+      "representative_score": 40,
+      "representative_score_json": {
+        "score": 40,
+        "reasons": [
+          "sr_legacy_food",
+          "macro_data_present",
+          "ambiguous_description_penalty"
+        ],
+        "confidence": "low",
+        "review_status": "needs_review",
+        "has_macro_data": true
+      },
+      "confidence": "low",
+      "review_status": "needs_review"
+    },
+    {
+      "candidate_id": "usda_cluster_candidate:170292:db2_5_usda_cluster_rules_v1",
+      "candidate_key": "fast_foods__generic",
+      "core_food_name": "fast foods",
+      "core_food_normalized": "fast_foods",
+      "source_fdc_id": 170292,
+      "source_description": "Fast foods, nachos, with cheese, beans, ground beef, and tomatoes",
+      "source_data_type": "sr_legacy_food",
+      "hard_boundary_signature": "generic",
+      "representative_score": 40,
+      "representative_score_json": {
+        "score": 40,
+        "reasons": [
+          "sr_legacy_food",
+          "macro_data_present",
+          "ambiguous_description_penalty"
+        ],
+        "confidence": "low",
+        "review_status": "needs_review",
+        "has_macro_data": true
+      },
+      "confidence": "low",
+      "review_status": "needs_review"
+    },
+    {
+      "candidate_id": "usda_cluster_candidate:170752:db2_5_usda_cluster_rules_v1",
+      "candidate_key": "fast_foods__cook_grilled",
+      "core_food_name": "fast foods",
+      "core_food_normalized": "fast_foods",
+      "source_fdc_id": 170752,
+      "source_description": "Fast foods, grilled chicken, bacon and tomato club sandwich, with cheese, lettuce, and mayonnaise",
+      "source_data_type": "sr_legacy_food",
+      "hard_boundary_signature": "cook:grilled",
+      "representative_score": 40,
+      "representative_score_json": {
+        "score": 40,
+        "reasons": [
+          "sr_legacy_food",
+          "macro_data_present",
+          "ambiguous_description_penalty"
+        ],
+        "confidence": "low",
+        "review_status": "needs_review",
+        "has_macro_data": true
+      },
+      "confidence": "low",
+      "review_status": "needs_review"
+    },
+    {
+      "candidate_id": "usda_cluster_candidate:170753:db2_5_usda_cluster_rules_v1",
+      "candidate_key": "fast_foods__generic",
+      "core_food_name": "fast foods",
+      "core_food_normalized": "fast_foods",
+      "source_fdc_id": 170753,
+      "source_description": "Fast foods, crispy chicken, bacon, and tomato club sandwich, with cheese, lettuce, and mayonnaise",
+      "source_data_type": "sr_legacy_food",
+      "hard_boundary_signature": "generic",
+      "representative_score": 40,
+      "representative_score_json": {
+        "score": 40,
+        "reasons": [
+          "sr_legacy_food",
+          "macro_data_present",
+          "ambiguous_description_penalty"
+        ],
+        "confidence": "low",
+        "review_status": "needs_review",
+        "has_macro_data": true
+      },
+      "confidence": "low",
+      "review_status": "needs_review"
+    },
+    {
+      "candidate_id": "usda_cluster_candidate:171386:db2_5_usda_cluster_rules_v1",
+      "candidate_key": "infant_formula__generic",
+      "core_food_name": "infant formula",
+      "core_food_normalized": "infant_formula",
+      "source_fdc_id": 171386,
+      "source_description": "Infant formula, NESTLE, GOOD START SUPREME, with iron, DHA and ARA, prepared from liquid concentrate",
+      "source_data_type": "sr_legacy_food",
+      "hard_boundary_signature": "generic",
+      "representative_score": 40,
+      "representative_score_json": {
+        "score": 40,
+        "reasons": [
+          "sr_legacy_food",
+          "macro_data_present",
+          "ambiguous_description_penalty"
+        ],
+        "confidence": "low",
+        "review_status": "needs_review",
+        "has_macro_data": true
+      },
+      "confidence": "low",
+      "review_status": "needs_review"
+    },
+    {
+      "candidate_id": "usda_cluster_candidate:171662:db2_5_usda_cluster_rules_v1",
+      "candidate_key": "cereals__cook_microwaved",
+      "core_food_name": "cereals",
+      "core_food_normalized": "cereals",
+      "source_fdc_id": 171662,
+      "source_description": "Cereals, oats, instant, fortified, plain, prepared with water (boiling water added or microwaved)",
+      "source_data_type": "sr_legacy_food",
+      "hard_boundary_signature": "cook:microwaved",
+      "representative_score": 40,
+      "representative_score_json": {
+        "score": 40,
+        "reasons": [
+          "sr_legacy_food",
+          "macro_data_present",
+          "ambiguous_description_penalty"
+        ],
+        "confidence": "low",
+        "review_status": "needs_review",
+        "has_macro_data": true
+      },
+      "confidence": "low",
+      "review_status": "needs_review"
+    },
+    {
+      "candidate_id": "usda_cluster_candidate:170342:db2_5_usda_cluster_rules_v1",
+      "candidate_key": "kfc__cook_fried_breaded_breaded_cut_wing",
+      "core_food_name": "kfc",
+      "core_food_normalized": "kfc",
+      "source_fdc_id": 170342,
+      "source_description": "KFC, Fried Chicken, ORIGINAL RECIPE, Wing, meat only, skin and breading removed",
+      "source_data_type": "sr_legacy_food",
+      "hard_boundary_signature": "cook:fried|breaded:breaded|cut:wing",
+      "representative_score": 43,
+      "representative_score_json": {
+        "score": 43,
+        "reasons": [
+          "sr_legacy_food",
+          "macro_data_present",
+          "breaded_penalty"
+        ],
+        "confidence": "low",
+        "review_status": "needs_review",
+        "has_macro_data": true
+      },
+      "confidence": "low",
+      "review_status": "needs_review"
+    },
+    {
+      "candidate_id": "usda_cluster_candidate:170344:db2_5_usda_cluster_rules_v1",
+      "candidate_key": "kfc__cook_fried_breaded_breaded_cut_breast",
+      "core_food_name": "kfc",
+      "core_food_normalized": "kfc",
+      "source_fdc_id": 170344,
+      "source_description": "KFC, Fried Chicken, EXTRA CRISPY, Breast, meat only, skin and breading removed",
+      "source_data_type": "sr_legacy_food",
+      "hard_boundary_signature": "cook:fried|breaded:breaded|cut:breast",
+      "representative_score": 43,
+      "representative_score_json": {
+        "score": 43,
+        "reasons": [
+          "sr_legacy_food",
+          "macro_data_present",
+          "breaded_penalty"
+        ],
+        "confidence": "low",
+        "review_status": "needs_review",
+        "has_macro_data": true
+      },
+      "confidence": "low",
+      "review_status": "needs_review"
+    },
+    {
+      "candidate_id": "usda_cluster_candidate:170345:db2_5_usda_cluster_rules_v1",
+      "candidate_key": "kfc__cook_fried_breaded_breaded_cut_drumstick",
+      "core_food_name": "kfc",
+      "core_food_normalized": "kfc",
+      "source_fdc_id": 170345,
+      "source_description": "KFC, Fried Chicken, EXTRA CRISPY, Drumstick, meat only, skin and breading removed",
+      "source_data_type": "sr_legacy_food",
+      "hard_boundary_signature": "cook:fried|breaded:breaded|cut:drumstick",
+      "representative_score": 43,
+      "representative_score_json": {
+        "score": 43,
+        "reasons": [
+          "sr_legacy_food",
+          "macro_data_present",
+          "breaded_penalty"
+        ],
+        "confidence": "low",
+        "review_status": "needs_review",
+        "has_macro_data": true
+      },
+      "confidence": "low",
+      "review_status": "needs_review"
+    },
+    {
+      "candidate_id": "usda_cluster_candidate:170351:db2_5_usda_cluster_rules_v1",
+      "candidate_key": "popeyes__cook_fried_breaded_breaded_cut_thigh",
+      "core_food_name": "popeyes",
+      "core_food_normalized": "popeyes",
+      "source_fdc_id": 170351,
+      "source_description": "POPEYES, Fried Chicken, Mild, Thigh, meat only, skin and breading removed",
+      "source_data_type": "sr_legacy_food",
+      "hard_boundary_signature": "cook:fried|breaded:breaded|cut:thigh",
+      "representative_score": 43,
+      "representative_score_json": {
+        "score": 43,
+        "reasons": [
+          "sr_legacy_food",
+          "macro_data_present",
+          "breaded_penalty"
+        ],
+        "confidence": "low",
+        "review_status": "needs_review",
+        "has_macro_data": true
+      },
+      "confidence": "low",
+      "review_status": "needs_review"
+    },
+    {
+      "candidate_id": "usda_cluster_candidate:170352:db2_5_usda_cluster_rules_v1",
+      "candidate_key": "popeyes__cook_fried_breaded_breaded_cut_wing",
+      "core_food_name": "popeyes",
+      "core_food_normalized": "popeyes",
+      "source_fdc_id": 170352,
+      "source_description": "POPEYES, Fried Chicken, Mild, Wing, meat only, skin and breading removed",
+      "source_data_type": "sr_legacy_food",
+      "hard_boundary_signature": "cook:fried|breaded:breaded|cut:wing",
+      "representative_score": 43,
+      "representative_score_json": {
+        "score": 43,
+        "reasons": [
+          "sr_legacy_food",
+          "macro_data_present",
+          "breaded_penalty"
+        ],
+        "confidence": "low",
+        "review_status": "needs_review",
+        "has_macro_data": true
+      },
+      "confidence": "low",
+      "review_status": "needs_review"
+    },
+    {
+      "candidate_id": "usda_cluster_candidate:170739:db2_5_usda_cluster_rules_v1",
+      "candidate_key": "kfc__cook_fried_breaded_breaded_cut_breast",
+      "core_food_name": "kfc",
+      "core_food_normalized": "kfc",
+      "source_fdc_id": 170739,
+      "source_description": "KFC, Fried Chicken, ORIGINAL RECIPE, Breast, meat only, skin and breading removed",
+      "source_data_type": "sr_legacy_food",
+      "hard_boundary_signature": "cook:fried|breaded:breaded|cut:breast",
+      "representative_score": 43,
+      "representative_score_json": {
+        "score": 43,
+        "reasons": [
+          "sr_legacy_food",
+          "macro_data_present",
+          "breaded_penalty"
+        ],
+        "confidence": "low",
+        "review_status": "needs_review",
+        "has_macro_data": true
+      },
+      "confidence": "low",
+      "review_status": "needs_review"
+    }
+  ],
+  "candidates_missing_expected_parsed_qualifiers": [],
+  "representative_score_distribution": {
+    "min_score": 28,
+    "max_score": 73,
+    "average_score": 60.6656,
+    "buckets": {
+      "low_lt_55": 537,
+      "medium_55_to_74": 4463,
+      "high_gte_75": 0
+    }
+  },
+  "top_ambiguous_core_food_normalized_values": [
+    {
+      "core_food_normalized": "pork",
+      "core_food_name": "pork",
+      "candidate_count": 324,
+      "distinct_candidate_key_count": 93,
+      "low_confidence_count": 324,
+      "needs_review_count": 324,
+      "example_candidate_keys": [
+        "pork__bone_boneless",
+        "pork__cook_roasted",
+        "pork__cook_roasted_bone_boneless",
+        "pork__cook_roasted_fat_lean_and_fat_bone_bone_in",
+        "pork__cook_roasted_fat_lean_and_fat_bone_boneless"
+      ]
+    },
+    {
+      "core_food_normalized": "beef",
+      "core_food_name": "beef",
+      "candidate_count": 627,
+      "distinct_candidate_key_count": 80,
+      "low_confidence_count": 627,
+      "needs_review_count": 627,
+      "example_candidate_keys": [
+        "beef__generic",
+        "beef__preserve_canned",
+        "beef__state_cooked",
+        "beef__state_cooked_cook_baked",
+        "beef__state_cooked_cook_braised"
+      ]
+    },
+    {
+      "core_food_normalized": "potatoes",
+      "core_food_name": "potatoes",
+      "candidate_count": 83,
+      "distinct_candidate_key_count": 25,
+      "low_confidence_count": 83,
+      "needs_review_count": 83,
+      "example_candidate_keys": [
+        "potatoes__cook_baked",
+        "potatoes__cook_baked_salt_salted",
+        "potatoes__cook_baked_salt_unsalted",
+        "potatoes__cook_fried_preserve_frozen",
+        "potatoes__cook_fried_preserve_frozen_salt_salted"
+      ]
+    },
+    {
+      "core_food_normalized": "turkey",
+      "core_food_name": "turkey",
+      "candidate_count": 69,
+      "distinct_candidate_key_count": 22,
+      "low_confidence_count": 69,
+      "needs_review_count": 69,
+      "example_candidate_keys": [
+        "turkey__cook_roasted",
+        "turkey__cook_roasted_cut_drumstick",
+        "turkey__cook_roasted_cut_thigh",
+        "turkey__cook_roasted_cut_wing",
+        "turkey__generic"
+      ]
+    },
+    {
+      "core_food_normalized": "lamb",
+      "core_food_name": "lamb",
+      "candidate_count": 33,
+      "distinct_candidate_key_count": 22,
+      "low_confidence_count": 33,
+      "needs_review_count": 33,
+      "example_candidate_keys": [
+        "lamb__state_cooked_cook_braised_fat_lean_and_fat",
+        "lamb__state_cooked_cook_braised_fat_lean_and_fat_cut_shoulder",
+        "lamb__state_cooked_cook_braised_fat_lean_only",
+        "lamb__state_cooked_cook_braised_fat_lean_only_cut_shoulder",
+        "lamb__state_cooked_cook_broiled_fat_lean_and_fat_cut_loin"
+      ]
+    },
+    {
+      "core_food_normalized": "squash",
+      "core_food_name": "squash",
+      "candidate_count": 45,
+      "distinct_candidate_key_count": 19,
+      "low_confidence_count": 45,
+      "needs_review_count": 45,
+      "example_candidate_keys": [
+        "squash__cook_baked_salt_salted",
+        "squash__cook_baked_salt_unsalted",
+        "squash__preserve_canned",
+        "squash__preserve_canned_salt_unsalted_drained_drained",
+        "squash__preserve_frozen"
+      ]
+    },
+    {
+      "core_food_normalized": "corn",
+      "core_food_name": "corn",
+      "candidate_count": 37,
+      "distinct_candidate_key_count": 16,
+      "low_confidence_count": 37,
+      "needs_review_count": 37,
+      "example_candidate_keys": [
+        "corn__cook_boiled_preserve_frozen_salt_salted_drained_drained",
+        "corn__cook_boiled_preserve_frozen_salt_unsalted_drained_drained",
+        "corn__cook_microwaved_preserve_frozen",
+        "corn__generic",
+        "corn__preserve_canned_drained_drained"
+      ]
+    },
+    {
+      "core_food_normalized": "nuts",
+      "core_food_name": "nuts",
+      "candidate_count": 89,
+      "distinct_candidate_key_count": 15,
+      "low_confidence_count": 89,
+      "needs_review_count": 89,
+      "example_candidate_keys": [
+        "nuts__cook_boiled",
+        "nuts__cook_roasted",
+        "nuts__cook_roasted_salt_salted",
+        "nuts__cook_roasted_salt_unsalted",
+        "nuts__form_flour_grain_form_flour"
+      ]
+    },
+    {
+      "core_food_normalized": "snacks",
+      "core_food_name": "snacks",
+      "candidate_count": 105,
+      "distinct_candidate_key_count": 14,
+      "low_confidence_count": 105,
+      "needs_review_count": 105,
+      "example_candidate_keys": [
+        "snacks__cook_baked",
+        "snacks__fat_fat_free",
+        "snacks__form_flour_grain_form_flour",
+        "snacks__form_flour_grain_form_flour_salt_unsalted",
+        "snacks__generic"
+      ]
+    },
+    {
+      "core_food_normalized": "fast_foods",
+      "core_food_name": "fast foods",
+      "candidate_count": 74,
+      "distinct_candidate_key_count": 13,
+      "low_confidence_count": 74,
+      "needs_review_count": 74,
+      "example_candidate_keys": [
+        "fast_foods__cook_fried",
+        "fast_foods__cook_fried_bone_boneless_breaded_breaded",
+        "fast_foods__cook_fried_breaded_breaded",
+        "fast_foods__cook_fried_breaded_breaded_cut_breast",
+        "fast_foods__cook_fried_breaded_breaded_cut_drumstick"
+      ]
+    },
+    {
+      "core_food_normalized": "peas",
+      "core_food_name": "peas",
+      "candidate_count": 23,
+      "distinct_candidate_key_count": 13,
+      "low_confidence_count": 23,
+      "needs_review_count": 23,
+      "example_candidate_keys": [
+        "peas__cook_boiled_salt_unsalted_drained_drained",
+        "peas__preserve_canned_drained_drained",
+        "peas__preserve_canned_drained_solids_and_liquids",
+        "peas__preserve_canned_salt_salted_drained_solids_and_liquids",
+        "peas__preserve_canned_salt_unsalted_drained_drained"
+      ]
+    },
+    {
+      "core_food_normalized": "sweet_potato",
+      "core_food_name": "sweet potato",
+      "candidate_count": 13,
+      "distinct_candidate_key_count": 12,
+      "low_confidence_count": 13,
+      "needs_review_count": 13,
+      "example_candidate_keys": [
+        "sweet_potato__preserve_canned",
+        "sweet_potato__preserve_canned_drained_drained",
+        "sweet_potato__preserve_canned_drained_solids_and_liquids",
+        "sweet_potato__preserve_frozen",
+        "sweet_potato__state_cooked"
+      ]
+    },
+    {
+      "core_food_normalized": "beans_snap_green",
+      "core_food_name": "beans snap green",
+      "candidate_count": 12,
+      "distinct_candidate_key_count": 12,
+      "low_confidence_count": 12,
+      "needs_review_count": 12,
+      "example_candidate_keys": [
+        "beans_snap_green__cook_microwaved",
+        "beans_snap_green__cook_microwaved_preserve_frozen",
+        "beans_snap_green__preserve_canned_salt_salted_drained_drained",
+        "beans_snap_green__preserve_canned_salt_salted_drained_solids_and_liquids",
+        "beans_snap_green__preserve_canned_salt_unsalted_drained_drained"
+      ]
+    },
+    {
+      "core_food_normalized": "babyfood",
+      "core_food_name": "babyfood",
+      "candidate_count": 185,
+      "distinct_candidate_key_count": 11,
+      "low_confidence_count": 185,
+      "needs_review_count": 185,
+      "example_candidate_keys": [
+        "babyfood__cook_baked",
+        "babyfood__cook_baked_grain_form_kernel",
+        "babyfood__form_juice",
+        "babyfood__form_juice_preserve_canned",
+        "babyfood__form_sauce"
+      ]
+    },
+    {
+      "core_food_normalized": "chicken",
+      "core_food_name": "chicken",
+      "candidate_count": 91,
+      "distinct_candidate_key_count": 11,
+      "low_confidence_count": 91,
+      "needs_review_count": 91,
+      "example_candidate_keys": [
+        "chicken__cook_boiled",
+        "chicken__cook_fried_breaded_breaded",
+        "chicken__cook_roasted",
+        "chicken__form_flour_state_cooked_cook_fried_grain_form_flour_grain_state_cooked",
+        "chicken__generic"
+      ]
+    },
+    {
+      "core_food_normalized": "peppers",
+      "core_food_name": "peppers",
+      "candidate_count": 31,
+      "distinct_candidate_key_count": 11,
+      "low_confidence_count": 31,
+      "needs_review_count": 31,
+      "example_candidate_keys": [
+        "peppers__cook_boiled_preserve_frozen_salt_salted_drained_drained",
+        "peppers__cook_boiled_preserve_frozen_salt_unsalted_drained_drained",
+        "peppers__generic",
+        "peppers__preserve_canned",
+        "peppers__preserve_canned_drained_solids_and_liquids"
+      ]
+    },
+    {
+      "core_food_normalized": "fish",
+      "core_food_name": "fish",
+      "candidate_count": 72,
+      "distinct_candidate_key_count": 10,
+      "low_confidence_count": 72,
+      "needs_review_count": 72,
+      "example_candidate_keys": [
+        "fish__generic",
+        "fish__preserve_canned",
+        "fish__preserve_canned_salt_unsalted_drained_drained",
+        "fish__skin_with_skin",
+        "fish__state_cooked"
+      ]
+    },
+    {
+      "core_food_normalized": "seeds",
+      "core_food_name": "seeds",
+      "candidate_count": 48,
+      "distinct_candidate_key_count": 10,
+      "low_confidence_count": 48,
+      "needs_review_count": 48,
+      "example_candidate_keys": [
+        "seeds__cook_boiled",
+        "seeds__cook_roasted",
+        "seeds__cook_roasted_salt_salted",
+        "seeds__cook_roasted_salt_unsalted",
+        "seeds__form_flour_grain_form_flour"
+      ]
+    },
+    {
+      "core_food_normalized": "mollusks",
+      "core_food_name": "mollusks",
+      "candidate_count": 14,
+      "distinct_candidate_key_count": 10,
+      "low_confidence_count": 14,
+      "needs_review_count": 14,
+      "example_candidate_keys": [
+        "mollusks__preserve_canned",
+        "mollusks__preserve_canned_drained_drained",
+        "mollusks__preserve_canned_species_oyster",
+        "mollusks__state_cooked",
+        "mollusks__state_cooked_cook_fried"
+      ]
+    },
+    {
+      "core_food_normalized": "carrots",
+      "core_food_name": "carrots",
+      "candidate_count": 11,
+      "distinct_candidate_key_count": 10,
+      "low_confidence_count": 11,
+      "needs_review_count": 11,
+      "example_candidate_keys": [
+        "carrots__preserve_canned_salt_salted_drained_drained",
+        "carrots__preserve_canned_salt_salted_drained_solids_and_liquids",
+        "carrots__preserve_canned_salt_unsalted_drained_drained",
+        "carrots__preserve_canned_salt_unsalted_drained_solids_and_liquids",
+        "carrots__preserve_frozen"
+      ]
+    },
+    {
+      "core_food_normalized": "beans_snap_yellow",
+      "core_food_name": "beans snap yellow",
+      "candidate_count": 10,
+      "distinct_candidate_key_count": 10,
+      "low_confidence_count": 10,
+      "needs_review_count": 10,
+      "example_candidate_keys": [
+        "beans_snap_yellow__preserve_canned_salt_salted_drained_drained",
+        "beans_snap_yellow__preserve_canned_salt_salted_drained_solids_and_liquids",
+        "beans_snap_yellow__preserve_canned_salt_unsalted_drained_drained",
+        "beans_snap_yellow__preserve_canned_salt_unsalted_drained_solids_and_liquids",
+        "beans_snap_yellow__preserve_frozen"
+      ]
+    },
+    {
+      "core_food_normalized": "beverages",
+      "core_food_name": "beverages",
+      "candidate_count": 76,
+      "distinct_candidate_key_count": 9,
+      "low_confidence_count": 76,
+      "needs_review_count": 76,
+      "example_candidate_keys": [
+        "beverages__form_juice",
+        "beverages__form_juice_preserve_canned",
+        "beverages__form_juice_preserve_frozen",
+        "beverages__generic",
+        "beverages__milk_fat_whole_3_25_fat_whole_3_25"
+      ]
+    },
+    {
+      "core_food_normalized": "white_rice",
+      "core_food_name": "white rice",
+      "candidate_count": 23,
+      "distinct_candidate_key_count": 9,
+      "low_confidence_count": 23,
+      "needs_review_count": 23,
+      "example_candidate_keys": [
+        "white_rice__cook_boiled_grain_form_kernel",
+        "white_rice__generic",
+        "white_rice__grain_form_kernel",
+        "white_rice__state_cooked_cook_boiled_grain_form_kernel_grain_state_cooked",
+        "white_rice__state_cooked_grain_form_kernel_grain_state_cooked"
+      ]
+    },
+    {
+      "core_food_normalized": "chicken_breast",
+      "core_food_name": "chicken breast",
+      "candidate_count": 18,
+      "distinct_candidate_key_count": 9,
+      "low_confidence_count": 18,
+      "needs_review_count": 18,
+      "example_candidate_keys": [
+        "chicken_breast__cut_breast",
+        "chicken_breast__form_flour_state_cooked_cook_fried_grain_form_flour_grain_state_cooked_cut_breast",
+        "chicken_breast__state_cooked_cook_braised_skin_without_skin_bone_boneless_cut_breast",
+        "chicken_breast__state_cooked_cook_fried_cut_breast",
+        "chicken_breast__state_cooked_cook_grilled_skin_without_skin_bone_boneless_cut_breast"
+      ]
+    },
+    {
+      "core_food_normalized": "tomatoes",
+      "core_food_name": "tomatoes",
+      "candidate_count": 14,
+      "distinct_candidate_key_count": 9,
+      "low_confidence_count": 14,
+      "needs_review_count": 14,
+      "example_candidate_keys": [
+        "tomatoes__drained_drained",
+        "tomatoes__form_juice_preserve_canned",
+        "tomatoes__form_juice_preserve_canned_salt_unsalted",
+        "tomatoes__generic",
+        "tomatoes__preserve_canned"
+      ]
+    },
+    {
+      "core_food_normalized": "lima_beans",
+      "core_food_name": "lima beans",
+      "candidate_count": 12,
+      "distinct_candidate_key_count": 9,
+      "low_confidence_count": 12,
+      "needs_review_count": 12,
+      "example_candidate_keys": [
+        "lima_beans__preserve_canned_salt_salted_drained_solids_and_liquids",
+        "lima_beans__preserve_canned_salt_unsalted_drained_solids_and_liquids",
+        "lima_beans__preserve_frozen",
+        "lima_beans__state_cooked_cook_boiled_preserve_frozen_salt_salted_drained_drained",
+        "lima_beans__state_cooked_cook_boiled_preserve_frozen_salt_unsalted_drained_drained"
+      ]
+    },
+    {
+      "core_food_normalized": "asparagus",
+      "core_food_name": "asparagus",
+      "candidate_count": 9,
+      "distinct_candidate_key_count": 9,
+      "low_confidence_count": 9,
+      "needs_review_count": 9,
+      "example_candidate_keys": [
+        "asparagus__preserve_canned_drained_drained",
+        "asparagus__preserve_canned_salt_salted_drained_solids_and_liquids",
+        "asparagus__preserve_canned_salt_unsalted_drained_solids_and_liquids",
+        "asparagus__preserve_frozen",
+        "asparagus__state_cooked_cook_boiled_drained_drained"
+      ]
+    },
+    {
+      "core_food_normalized": "spinach",
+      "core_food_name": "spinach",
+      "candidate_count": 9,
+      "distinct_candidate_key_count": 9,
+      "low_confidence_count": 9,
+      "needs_review_count": 9,
+      "example_candidate_keys": [
+        "spinach__preserve_canned_salt_salted_drained_drained",
+        "spinach__preserve_canned_salt_salted_drained_solids_and_liquids",
+        "spinach__preserve_canned_salt_unsalted_drained_solids_and_liquids",
+        "spinach__preserve_frozen",
+        "spinach__state_cooked_cook_boiled_preserve_frozen_salt_salted_drained_drained"
+      ]
+    },
+    {
+      "core_food_normalized": "pasta",
+      "core_food_name": "pasta",
+      "candidate_count": 22,
+      "distinct_candidate_key_count": 8,
+      "low_confidence_count": 22,
+      "needs_review_count": 22,
+      "example_candidate_keys": [
+        "pasta__form_flour_state_cooked_grain_form_flour_grain_state_cooked",
+        "pasta__generic",
+        "pasta__grain_form_kernel",
+        "pasta__grain_form_kernel_grain_state_dry",
+        "pasta__grain_state_dry"
+      ]
+    },
+    {
+      "core_food_normalized": "onions",
+      "core_food_name": "onions",
+      "candidate_count": 16,
+      "distinct_candidate_key_count": 8,
+      "low_confidence_count": 16,
+      "needs_review_count": 16,
+      "example_candidate_keys": [
+        "onions__generic",
+        "onions__preserve_canned_drained_solids_and_liquids",
+        "onions__preserve_frozen",
+        "onions__state_cooked_cook_boiled_preserve_frozen_salt_salted_drained_drained",
+        "onions__state_cooked_cook_boiled_preserve_frozen_salt_unsalted_drained_drained"
+      ]
+    },
+    {
+      "core_food_normalized": "soybeans",
+      "core_food_name": "soybeans",
+      "candidate_count": 10,
+      "distinct_candidate_key_count": 8,
+      "low_confidence_count": 10,
+      "needs_review_count": 10,
+      "example_candidate_keys": [
+        "soybeans__cook_roasted",
+        "soybeans__state_cooked",
+        "soybeans__state_cooked_cook_boiled_salt_salted_drained_drained",
+        "soybeans__state_cooked_cook_boiled_salt_unsalted_drained_drained",
+        "soybeans__state_cooked_cook_fried"
+      ]
+    },
+    {
+      "core_food_normalized": "cauliflower",
+      "core_food_name": "cauliflower",
+      "candidate_count": 9,
+      "distinct_candidate_key_count": 8,
+      "low_confidence_count": 9,
+      "needs_review_count": 9,
+      "example_candidate_keys": [
+        "cauliflower__preserve_frozen",
+        "cauliflower__state_cooked_cook_boiled_preserve_frozen_salt_salted_drained_drained",
+        "cauliflower__state_cooked_cook_boiled_preserve_frozen_salt_unsalted_drained_drained",
+        "cauliflower__state_cooked_cook_boiled_salt_salted_drained_drained",
+        "cauliflower__state_cooked_cook_boiled_salt_unsalted_drained_drained"
+      ]
+    },
+    {
+      "core_food_normalized": "succotash",
+      "core_food_name": "succotash",
+      "candidate_count": 8,
+      "distinct_candidate_key_count": 8,
+      "low_confidence_count": 8,
+      "needs_review_count": 8,
+      "example_candidate_keys": [
+        "succotash__preserve_canned",
+        "succotash__preserve_canned_drained_solids_and_liquids",
+        "succotash__preserve_frozen",
+        "succotash__state_cooked_cook_boiled_preserve_frozen_salt_salted_drained_drained",
+        "succotash__state_cooked_cook_boiled_preserve_frozen_salt_unsalted_drained_drained"
+      ]
+    },
+    {
+      "core_food_normalized": "turnip_greens",
+      "core_food_name": "turnip greens",
+      "candidate_count": 8,
+      "distinct_candidate_key_count": 8,
+      "low_confidence_count": 8,
+      "needs_review_count": 8,
+      "example_candidate_keys": [
+        "turnip_greens__preserve_canned_drained_solids_and_liquids",
+        "turnip_greens__preserve_canned_salt_unsalted",
+        "turnip_greens__preserve_frozen",
+        "turnip_greens__state_cooked_cook_boiled_preserve_frozen_salt_salted_drained_drained",
+        "turnip_greens__state_cooked_cook_boiled_preserve_frozen_salt_unsalted_drained_drained"
+      ]
+    },
+    {
+      "core_food_normalized": "salad_dressing",
+      "core_food_name": "salad dressing",
+      "candidate_count": 51,
+      "distinct_candidate_key_count": 7,
+      "low_confidence_count": 51,
+      "needs_review_count": 51,
+      "example_candidate_keys": [
+        "salad_dressing__fat_fat_free",
+        "salad_dressing__generic",
+        "salad_dressing__milk_fat_nonfat_skim_fat_nonfat_skim",
+        "salad_dressing__milk_fat_reduced_fat_2_fat_reduced_fat_2",
+        "salad_dressing__milk_fat_reduced_fat_2_fat_reduced_fat_2_salt_unsalted"
+      ]
+    },
+    {
+      "core_food_normalized": "cereals",
+      "core_food_name": "cereals",
+      "candidate_count": 28,
+      "distinct_candidate_key_count": 7,
+      "low_confidence_count": 28,
+      "needs_review_count": 28,
+      "example_candidate_keys": [
+        "cereals__cook_microwaved",
+        "cereals__generic",
+        "cereals__state_cooked_grain_state_cooked",
+        "cereals__state_cooked_grain_state_cooked_salt_salted",
+        "cereals__state_cooked_grain_state_cooked_salt_unsalted"
+      ]
+    },
+    {
+      "core_food_normalized": "peaches",
+      "core_food_name": "peaches",
+      "candidate_count": 15,
+      "distinct_candidate_key_count": 7,
+      "low_confidence_count": 15,
+      "needs_review_count": 15,
+      "example_candidate_keys": [
+        "peaches__form_juice_preserve_canned_drained_solids_and_liquids",
+        "peaches__generic",
+        "peaches__preserve_canned_drained_drained",
+        "peaches__preserve_canned_drained_solids_and_liquids",
+        "peaches__preserve_frozen_sweet_sweetened"
+      ]
+    },
+    {
+      "core_food_normalized": "broccoli",
+      "core_food_name": "broccoli",
+      "candidate_count": 14,
+      "distinct_candidate_key_count": 7,
+      "low_confidence_count": 14,
+      "needs_review_count": 14,
+      "example_candidate_keys": [
+        "broccoli__preserve_frozen",
+        "broccoli__state_cooked",
+        "broccoli__state_cooked_cook_boiled_preserve_frozen_salt_salted_drained_drained",
+        "broccoli__state_cooked_cook_boiled_preserve_frozen_salt_unsalted_drained_drained",
+        "broccoli__state_cooked_cook_boiled_salt_salted_drained_drained"
+      ]
+    },
+    {
+      "core_food_normalized": "duck",
+      "core_food_name": "duck",
+      "candidate_count": 9,
+      "distinct_candidate_key_count": 7,
+      "low_confidence_count": 9,
+      "needs_review_count": 9,
+      "example_candidate_keys": [
+        "duck__generic",
+        "duck__state_cooked_cook_braised_skin_without_skin_bone_bone_in_cut_leg",
+        "duck__state_cooked_cook_broiled_skin_without_skin_bone_boneless_cut_breast",
+        "duck__state_cooked_cook_roasted",
+        "duck__state_cooked_cook_roasted_bone_bone_in_cut_leg"
+      ]
+    },
+    {
+      "core_food_normalized": "beets",
+      "core_food_name": "beets",
+      "candidate_count": 8,
+      "distinct_candidate_key_count": 7,
+      "low_confidence_count": 8,
+      "needs_review_count": 8,
+      "example_candidate_keys": [
+        "beets__preserve_canned_drained_drained",
+        "beets__preserve_canned_drained_solids_and_liquids",
+        "beets__preserve_canned_salt_salted_drained_solids_and_liquids",
+        "beets__preserve_canned_salt_unsalted_drained_solids_and_liquids",
+        "beets__state_cooked_cook_boiled_drained_drained"
+      ]
+    },
+    {
+      "core_food_normalized": "cheese",
+      "core_food_name": "cheese",
+      "candidate_count": 65,
+      "distinct_candidate_key_count": 6,
+      "low_confidence_count": 65,
+      "needs_review_count": 65,
+      "example_candidate_keys": [
+        "cheese__generic",
+        "cheese__milk_fat_lowfat_1_fat_lowfat_1",
+        "cheese__milk_fat_lowfat_1_fat_lowfat_1_salt_salted",
+        "cheese__milk_fat_nonfat_skim_fat_nonfat_skim",
+        "cheese__milk_fat_reduced_fat_2_fat_reduced_fat_2"
+      ]
+    },
+    {
+      "core_food_normalized": "yogurt",
+      "core_food_name": "yogurt",
+      "candidate_count": 42,
+      "distinct_candidate_key_count": 6,
+      "low_confidence_count": 42,
+      "needs_review_count": 42,
+      "example_candidate_keys": [
+        "yogurt__generic",
+        "yogurt__milk_fat_lowfat_1_fat_lowfat_1",
+        "yogurt__milk_fat_nonfat_skim_fat_nonfat_skim",
+        "yogurt__milk_fat_nonfat_skim_fat_nonfat_skim_sweet_sweetened",
+        "yogurt__milk_fat_whole_3_25_fat_whole_3_25"
+      ]
+    },
+    {
+      "core_food_normalized": "kfc",
+      "core_food_name": "kfc",
+      "candidate_count": 22,
+      "distinct_candidate_key_count": 6,
+      "low_confidence_count": 22,
+      "needs_review_count": 22,
+      "example_candidate_keys": [
+        "kfc__cook_fried_breaded_breaded",
+        "kfc__cook_fried_breaded_breaded_cut_breast",
+        "kfc__cook_fried_breaded_breaded_cut_drumstick",
+        "kfc__cook_fried_breaded_breaded_cut_thigh",
+        "kfc__cook_fried_breaded_breaded_cut_wing"
+      ]
+    },
+    {
+      "core_food_normalized": "margarine_like",
+      "core_food_name": "margarine-like",
+      "candidate_count": 14,
+      "distinct_candidate_key_count": 6,
+      "low_confidence_count": 14,
+      "needs_review_count": 14,
+      "example_candidate_keys": [
+        "margarine_like__fat_fat_free",
+        "margarine_like__generic",
+        "margarine_like__milk_fat_nonfat_skim_fat_nonfat_skim_salt_salted",
+        "margarine_like__salt_salted",
+        "margarine_like__salt_unsalted"
+      ]
+    },
+    {
+      "core_food_normalized": "popeyes",
+      "core_food_name": "popeyes",
+      "candidate_count": 13,
+      "distinct_candidate_key_count": 6,
+      "low_confidence_count": 13,
+      "needs_review_count": 13,
+      "example_candidate_keys": [
+        "popeyes__cook_fried_breaded_breaded",
+        "popeyes__cook_fried_breaded_breaded_cut_breast",
+        "popeyes__cook_fried_breaded_breaded_cut_drumstick",
+        "popeyes__cook_fried_breaded_breaded_cut_thigh",
+        "popeyes__cook_fried_breaded_breaded_cut_wing"
+      ]
+    },
+    {
+      "core_food_normalized": "mushroom",
+      "core_food_name": "mushroom",
+      "candidate_count": 11,
+      "distinct_candidate_key_count": 6,
+      "low_confidence_count": 11,
+      "needs_review_count": 11,
+      "example_candidate_keys": [
+        "mushroom__cook_fried",
+        "mushroom__cook_microwaved",
+        "mushroom__preserve_canned_drained_drained",
+        "mushroom__state_cooked_cook_boiled_salt_salted_drained_drained",
+        "mushroom__state_cooked_cook_boiled_salt_unsalted_drained_drained"
+      ]
+    },
+    {
+      "core_food_normalized": "plums",
+      "core_food_name": "plums",
+      "candidate_count": 11,
+      "distinct_candidate_key_count": 6,
+      "low_confidence_count": 11,
+      "needs_review_count": 11,
+      "example_candidate_keys": [
+        "plums__form_juice_preserve_canned_drained_solids_and_liquids",
+        "plums__generic",
+        "plums__preserve_canned_drained_drained",
+        "plums__preserve_canned_drained_solids_and_liquids",
+        "plums__state_dried_preserve_dried"
+      ]
+    },
+    {
+      "core_food_normalized": "chicken_thigh",
+      "core_food_name": "chicken thigh",
+      "candidate_count": 10,
+      "distinct_candidate_key_count": 6,
+      "low_confidence_count": 10,
+      "needs_review_count": 10,
+      "example_candidate_keys": [
+        "chicken_thigh__cut_thigh",
+        "chicken_thigh__preserve_frozen_breaded_breaded_cut_thigh",
+        "chicken_thigh__state_cooked_cook_fried_cut_thigh",
+        "chicken_thigh__state_cooked_cook_roasted_cut_thigh",
+        "chicken_thigh__state_cooked_cut_thigh"
+      ]
+    },
+    {
+      "core_food_normalized": "chicken_wing",
+      "core_food_name": "chicken wing",
+      "candidate_count": 10,
+      "distinct_candidate_key_count": 6,
+      "low_confidence_count": 10,
+      "needs_review_count": 10,
+      "example_candidate_keys": [
+        "chicken_wing__cut_wing",
+        "chicken_wing__preserve_frozen_cut_wing",
+        "chicken_wing__state_cooked_cook_fried_cut_wing",
+        "chicken_wing__state_cooked_cook_roasted_cut_wing",
+        "chicken_wing__state_cooked_cut_wing"
+      ]
+    },
+    {
+      "core_food_normalized": "apricots",
+      "core_food_name": "apricots",
+      "candidate_count": 8,
+      "distinct_candidate_key_count": 6,
+      "low_confidence_count": 8,
+      "needs_review_count": 8,
+      "example_candidate_keys": [
+        "apricots__generic",
+        "apricots__preserve_canned_drained_drained",
+        "apricots__preserve_canned_skin_with_skin_drained_solids_and_liquids",
+        "apricots__preserve_canned_skin_without_skin_drained_solids_and_liquids",
+        "apricots__preserve_frozen_sweet_sweetened"
+      ]
+    }
+  ],
+  "recommended_next_review_targets": [
+    {
+      "priority": "high",
+      "reason": "candidate_key_collisions",
+      "count": 50,
+      "examples": [
+        "candies__generic",
+        "babyfood__generic",
+        "snacks__generic",
+        "infant_formula__generic",
+        "oil__generic"
+      ]
+    },
+    {
+      "priority": "medium",
+      "reason": "ambiguous_core_foods",
+      "count": 50,
+      "examples": [
+        "pork",
+        "beef",
+        "potatoes",
+        "turkey",
+        "lamb"
+      ]
+    },
+    {
+      "priority": "medium",
+      "reason": "low_confidence_candidates",
+      "count": 50,
+      "examples": [
+        "usda_cluster_candidate:170415:db2_5_usda_cluster_rules_v1",
+        "usda_cluster_candidate:168442:db2_5_usda_cluster_rules_v1",
+        "usda_cluster_candidate:168832:db2_5_usda_cluster_rules_v1",
+        "usda_cluster_candidate:168945:db2_5_usda_cluster_rules_v1",
+        "usda_cluster_candidate:169264:db2_5_usda_cluster_rules_v1"
+      ]
+    },
+    {
+      "priority": "low",
+      "reason": "hard_boundary_signature_broad_groups",
+      "count": 50,
+      "examples": [
+        "generic",
+        "state:raw",
+        "state:cooked|cook:boiled|salt:salted|drained:drained",
+        "state:cooked|cook:boiled|salt:unsalted|drained:drained",
+        "preserve:frozen"
+      ]
+    }
+  ]
+}

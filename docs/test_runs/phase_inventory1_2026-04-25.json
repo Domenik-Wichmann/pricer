@@ -1,0 +1,47 @@
+{
+  "phase": "INVENTORY1",
+  "date": "2026-04-25",
+  "status": "passed",
+  "summary": "Implemented the INVENTORY1 Postgres-side user inventory foundation with deterministic inventory and inventory-item tables, mirrored repository modules, a seed CLI, focused tests, docs, and handoff artifacts. The slice stays sidecar-only and does not change planner, basket, or runtime shopping behavior.",
+  "commands": [
+    {
+      "command": "node -e \"require('./functions/src'); require('./app/functions/src'); console.log('load ok')\"",
+      "status": "passed",
+      "notes": "Both mirrored backend export surfaces loaded successfully after wiring INVENTORY1 repository exports."
+    },
+    {
+      "command": "npm run test:inventory1",
+      "status": "passed",
+      "notes": "Focused INVENTORY1 tests passed for idempotent inventory creation, ingredient/product fallback tracking, duplicate-item merging, quantity updates and reductions, expiry estimation, deterministic seed reruns, and no-planner/no-Firestore boundaries."
+    },
+    {
+      "command": "npm test",
+      "status": "passed",
+      "notes": "Full repository test suite passed with INVENTORY1 included in the repo-level runner."
+    },
+    {
+      "command": "npm run validate:docs",
+      "status": "passed",
+      "notes": "Documentation validation passed after INVENTORY1 repo-map, schema-map, data-model, registry, changelog, artifact, and handoff updates."
+    }
+  ],
+  "safety": {
+    "postgres_sidecar_only": true,
+    "receipt_scanning": false,
+    "ui_changes": false,
+    "firestore_writes": false,
+    "planner_changes": false,
+    "basket_optimizer_changes": false,
+    "llm_calls": false,
+    "runtime_behavior_changes": false
+  },
+  "artifacts": [
+    "db/migrations/024_inventory_user_inventory.sql",
+    "functions/src/db/users/user_inventory_repository.js",
+    "app/functions/src/db/users/user_inventory_repository.js",
+    "scripts/inventory1_seed_inventory.js",
+    "tests/inventory1_user_inventory.test.js",
+    "docs/INVENTORY1_USER_INVENTORY.md",
+    "handoff/phase_inventory1/"
+  ]
+}

@@ -25,3 +25,11 @@ The machine-readable registry lives in [docs/feature_registry.json](/c:/Users/do
 - `P16.1-SINGLE-STORE-BASKET-OPTIMIZER`: implemented_verified
 - `P16.2-MULTI-STORE-BASKET-OPTIMIZER`: implemented_verified
 - `P16.3-BASKET-EXPLANATION`: implemented_verified
+- `P16.4-CONVENIENCE-AWARE-SCORING`: implemented_verified
+- `P16.5-BASKET-QUALITY-METRICS`: implemented_verified
+- `P16.6-BASKET-ANALYTICS`: implemented_verified
+- `P16.7-BASKET-HEALTH`: implemented_verified
+- `P17-SAVED-SHOPPING-LISTS`: implemented_verified
+- `P17.1-PERSISTENT-LISTS-OWNERSHIP`: implemented_verified
+- `P17.2-WATCHLIST-TRACKER`: implemented_verified
+- `P17.3-SIMPLE-DEAL-DETECTION`: implemented_verified

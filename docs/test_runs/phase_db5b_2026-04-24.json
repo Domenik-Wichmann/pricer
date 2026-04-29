@@ -1,0 +1,46 @@
+{
+  "phase": "DB5B",
+  "date": "2026-04-24",
+  "status": "passed",
+  "summary": "Implemented bounded LLM-assisted recipe extraction into DB5A staging with strict JSON validation, deterministic ingredient matching, DB5B CLI support, docs, and handoff.",
+  "commands": [
+    {
+      "command": "npm run test:db5b",
+      "status": "passed",
+      "notes": "Focused DB5B extraction, validation, matching, idempotency, and safety-boundary tests passed with mocked LLM output only."
+    },
+    {
+      "command": "npm test",
+      "status": "passed",
+      "notes": "Full repository test suite passed with DB5B included in tests/run_all.js."
+    },
+    {
+      "command": "npm run validate:docs",
+      "status": "passed",
+      "notes": "Documentation validation passed after DB5B registry, test-run, and handoff updates."
+    }
+  ],
+  "safety": {
+    "postgres_sidecar_only": true,
+    "llm_output_staging_only": true,
+    "canonical_recipe_writes": false,
+    "ingredient_creation": false,
+    "firestore_writes": false,
+    "meal_planner_changes": false,
+    "runtime_publishing": false,
+    "product_search_shopping_basket_changes": false,
+    "live_llm_calls_in_tests": false
+  },
+  "artifacts": [
+    "db/migrations/016_db5b_recipe_ingest_llm_extraction_status.sql",
+    "functions/src/prompts/recipe_ingest/extract_recipe_v1.js",
+    "functions/src/db/recipes/recipe_extraction_schema.js",
+    "functions/src/db/recipes/recipe_llm_extraction.js",
+    "app/functions/src/prompts/recipe_ingest/extract_recipe_v1.js",
+    "app/functions/src/db/recipes/recipe_extraction_schema.js",
+    "app/functions/src/db/recipes/recipe_llm_extraction.js",
+    "scripts/db5b_extract_recipe_to_staging.js",
+    "tests/db5b_recipe_llm_extraction.test.js",
+    "handoff/phase_db5b/"
+  ]
+}

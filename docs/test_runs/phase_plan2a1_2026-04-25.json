@@ -1,0 +1,48 @@
+{
+  "phase": "PLAN2A.1",
+  "date": "2026-04-25",
+  "status": "passed",
+  "summary": "Implemented the PLAN2A.1 Postgres-side inventory-adjusted meal-plan requirement layer with deterministic net-requirement tables, mirrored builder modules, a reporting CLI, focused tests, docs, and handoff artifacts. The slice stays derived-only and does not mutate meal-plan requirements, inventory, or runtime shopping behavior.",
+  "commands": [
+    {
+      "command": "node -e \"require('./functions/src'); require('./app/functions/src'); console.log('load ok')\"",
+      "status": "passed",
+      "notes": "Both mirrored backend export surfaces loaded successfully after wiring PLAN2A.1 builder exports."
+    },
+    {
+      "command": "npm run test:plan2a1",
+      "status": "passed",
+      "notes": "Focused PLAN2A.1 tests passed for ingredient-id and ingredient-key fallback subtraction, full and partial coverage handling, net shopping quantity recomputation, idempotent rebuilds, and no-inventory-mutation boundaries."
+    },
+    {
+      "command": "npm test",
+      "status": "passed",
+      "notes": "Full repository test suite passed with PLAN2A.1 included in the repo-level runner."
+    },
+    {
+      "command": "npm run validate:docs",
+      "status": "passed",
+      "notes": "Documentation validation passed after PLAN2A.1 repo-map, schema-map, data-model, registry, changelog, artifact, and handoff updates."
+    }
+  ],
+  "safety": {
+    "postgres_sidecar_only": true,
+    "basket_optimizer_calls": false,
+    "store_selection": false,
+    "sponsored_logic": false,
+    "firestore_writes": false,
+    "runtime_behavior_changes": false,
+    "inventory_mutation": false,
+    "product_search_shopping_basket_mutation": false,
+    "llm_calls": false
+  },
+  "artifacts": [
+    "db/migrations/025_plan2a1_inventory_adjusted_requirements.sql",
+    "functions/src/db/planner/meal_plan_net_requirements_builder.js",
+    "app/functions/src/db/planner/meal_plan_net_requirements_builder.js",
+    "scripts/plan2a1_build_net_requirements.js",
+    "tests/plan2a1_inventory_adjusted_requirements.test.js",
+    "docs/PLAN2_MEAL_PLAN_REQUIREMENTS.md",
+    "handoff/phase_plan2a1/"
+  ]
+}

@@ -1,0 +1,87 @@
+{
+  "phase": "DB2.5",
+  "date": "2026-04-24",
+  "scope": "USDA deterministic food cluster candidate generation",
+  "commands": [
+    {
+      "command": "npm run test:db2_5",
+      "status": "passed",
+      "notes": "11 passed, 0 failed."
+    },
+    {
+      "command": "npm run test:db2_5_batch",
+      "status": "passed",
+      "notes": "6 passed, 0 failed."
+    },
+    {
+      "command": "npm run test:db2_5_reports",
+      "status": "passed",
+      "notes": "4 passed, 0 failed."
+    },
+    {
+      "command": "npm run test:db2_5_materialization",
+      "status": "passed",
+      "notes": "6 passed, 0 failed."
+    },
+    {
+      "command": "npm run test:db2_5_review",
+      "status": "passed",
+      "notes": "6 passed, 0 failed."
+    },
+    {
+      "command": "npm run test:db2_5_mappings",
+      "status": "passed",
+      "notes": "DB2.5 ingredient nutrition mapping suggestion tests passed."
+    },
+    {
+      "command": "npm run test:db1",
+      "status": "passed",
+      "notes": "6 passed, 0 failed; migration runner still accepts DB phase migrations."
+    },
+    {
+      "command": "node -e \"const app=require('./app/functions/src'); const fn=require('./functions/src'); console.log(Boolean(app.suggestIngredientNutritionMappings), Boolean(fn.reviewIngredientNutritionMapping), Boolean(app.DEFAULT_MAPPING_SUGGESTION_LIMIT));\"",
+      "status": "passed",
+      "notes": "Both backend export surfaces expose DB2.5F mapping suggestion and review helpers."
+    },
+    {
+      "command": "npm run validate:docs",
+      "status": "passed",
+      "notes": "JSON docs parse successfully."
+    },
+    {
+      "command": "npm test",
+      "status": "passed",
+      "notes": "Full repo suite passed, including DB2.5 and existing product/shopping/basket suites."
+    },
+    {
+      "command": "$env:DATABASE_URL='postgres://pricer:pricer_dev_password@localhost:5433/pricer_dev'; npm run db:migrate",
+      "status": "passed",
+      "notes": "Local Postgres migration applied 005_db2_5_usda_food_cluster_candidates.sql; 1 applied, 4 skipped, 5 total."
+    },
+    {
+      "command": "$env:DATABASE_URL='postgres://pricer:pricer_dev_password@localhost:5433/pricer_dev'; npm run db2_5:generate-usda-candidates -- --dry-run --limit=25 --batch-size=10",
+      "status": "passed",
+      "notes": "Dry run scanned 25 eligible rows, generated 25 candidates, upserted 0, errors 0."
+    },
+    {
+      "command": "$env:DATABASE_URL='postgres://pricer:pricer_dev_password@localhost:5433/pricer_dev'; npm run db2_5:report-usda-candidates -- --json --limit=5",
+      "status": "passed",
+      "notes": "Read-only JSON report returned successfully; total_candidates was 0 because the local candidate generation smoke test was dry-run only."
+    },
+    {
+      "command": "$env:DATABASE_URL='postgres://pricer:pricer_dev_password@localhost:5433/pricer_dev'; npm run db2_5:materialize-usda-clusters-preview -- --dry-run --json --limit=5",
+      "status": "passed",
+      "notes": "Dry-run JSON preview returned successfully with 5 scanned candidates, 5 proposed clusters, 5 proposed members, and zero upserts."
+    }
+  ],
+  "results": [
+    "DB2.5 introduced deterministic USDA food cluster candidate generation only.",
+    "DB2.5B added sidecar-only batch generation with macro-presence checks, dry-run support, and idempotent candidate upserts.",
+    "DB2.5C added read-only inspection reports over generated cluster candidates.",
+    "DB2.5D added reviewable materialization preview tables and deterministic proposed cluster/member generation.",
+    "DB2.5E added deterministic review workflow support with provenance and append-only history.",
+    "DB2.5F added deterministic ingredient nutrition mapping suggestions and review history from approved clusters to Pricer ingredients.",
+    "No raw USDA-to-ingredient direct mapping was added.",
+    "No Firestore publishing, LLM calls, branded clustering, app runtime publishing, or product/search/shopping/basket changes were added."
+  ]
+}

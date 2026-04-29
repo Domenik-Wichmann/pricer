@@ -1,0 +1,48 @@
+{
+  "phase": "Phase 2K",
+  "date": "2026-04-28",
+  "summary": "Reviewed-coordinate rollout diagnostics and default-switch criteria",
+  "commands": [
+    {
+      "command": "npm run test:phase6_location_review",
+      "status": "passed",
+      "result": "24 passed, 0 failed, 24 total"
+    },
+    {
+      "command": "npm run test:phase6_location_availability",
+      "status": "passed",
+      "result": "15 passed, 0 failed, 15 total"
+    },
+    {
+      "command": "npm run test:phase6_geocoding",
+      "status": "passed",
+      "result": "8 passed, 0 failed, 8 total"
+    },
+    {
+      "command": "node -e \"require('./functions'); require('./functions/src'); require('./app/functions/src'); console.log('phase2k load ok')\"",
+      "status": "passed",
+      "result": "phase2k load ok"
+    },
+    {
+      "command": "node -e \"const m=require('./app/functions/src'); if (!m.buildReviewedCoordinateRolloutDiagnostics || !m.handleReviewedCoordinateRolloutDiagnosticsRequest) process.exit(1); console.log('phase2k exports ok')\"",
+      "status": "passed",
+      "result": "phase2k exports ok"
+    },
+    {
+      "command": "Get-FileHash functions/src/phase6/location_review.js,app/functions/src/phase6/location_review.js,functions/src/index.js,app/functions/src/index.js -Algorithm SHA256 | Select-Object Path,Hash",
+      "status": "passed",
+      "result": "Mirrored backend files have matching hashes between functions/src and app/functions/src."
+    },
+    {
+      "command": "npm run validate:docs",
+      "status": "passed",
+      "result": "JSON docs parse successfully"
+    }
+  ],
+  "notes": [
+    "Rollout diagnostics compare provider_only and reviewed_first without changing the default.",
+    "The report includes changed-coordinate counts, provider-vs-reviewed distance deltas, high-reuse reviewed coverage, and reviewed confidence distribution.",
+    "The internal endpoint requires x-pricer-admin-id or x-pricer-operator-id.",
+    "Consumer nearest availability still defaults to provider_only."
+  ]
+}

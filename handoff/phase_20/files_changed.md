@@ -1,0 +1,28 @@
+# Files Changed
+
+- `functions/src/phase18/gap_detection.js`
+- `app/functions/src/phase18/gap_detection.js`
+- `functions/src/phase1/store.js`
+- `app/functions/src/phase1/store.js`
+- `functions/src/phase15/service.js`
+- `app/functions/src/phase15/service.js`
+- `functions/src/phase15/shopping_list.js`
+- `app/functions/src/phase15/shopping_list.js`
+- `functions/src/phase17/watchlist.js`
+- `app/functions/src/phase17/watchlist.js`
+- `functions/src/index.js`
+- `app/functions/src/index.js`
+- `functions/index.js`
+- `tests/phase_18_7_market_gap_detection.test.js`
+- `tests/run_all.js`
+- `package.json`
+- `docs/DATA_MODEL.md`
+- `docs/SCHEMA_MAP.md`
+- `docs/REPO_MAP.md`
+- `docs/TEST_REGISTRY.md`
+- `docs/test_registry.json`
+- `docs/test_runs/phase_20_2026-04-24.json`
+- `docs/decision_log.md`
+- `CHANGELOG.md`
+- `handoff/phase_20/README.md`
+- `handoff/phase_20/files_changed.md`

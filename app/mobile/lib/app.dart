@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:pricer_mobile/src/generated/l10n/app_localizations.dart';
 
+import 'core/navigation/app_routes.dart';
 import 'core/services/app_dependencies.dart';
 import 'core/ui/app_theme.dart';
 import 'features/lists/shopping_lists_screen.dart';
@@ -48,6 +49,10 @@ class PricerApp extends StatelessWidget {
 
         return const Locale('en');
       },
+      onGenerateRoute: (settings) => AppRoutes.onGenerateRoute(
+        settings: settings,
+        dependencies: dependencies,
+      ),
       home: RootShell(dependencies: dependencies),
     );
   }
@@ -73,8 +78,14 @@ class _RootShellState extends State<RootShell> {
     final l10n = AppLocalizations.of(context)!;
     final pages = [
       HomeScreen(dependencies: widget.dependencies),
-      ShoppingListsScreen(dependencies: widget.dependencies),
-      WatchlistScreen(dependencies: widget.dependencies),
+      ShoppingListsScreen(
+        dependencies: widget.dependencies,
+        active: _index == 1,
+      ),
+      WatchlistScreen(
+        dependencies: widget.dependencies,
+        active: _index == 2,
+      ),
     ];
 
     return Scaffold(

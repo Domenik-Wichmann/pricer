@@ -219,18 +219,18 @@ test('filtering by enrichment fields works through search handler', async () => 
   const response = await handleSearchCanonicalProductsRequest({
     store,
     body: {
-      query: 'lemon',
+      query: 'chocolate',
       filters: {
-        category_l2: 'beverages',
-        flavor: 'lemon',
-        attributes: 'sparkling',
+        category_l2: 'dairy',
+        flavor: 'chocolate',
+        attributes: 'low_fat',
       },
     },
   });
 
   assert.equal(response.status, 200);
   assert.equal(response.body.total, 1);
-  assert.equal(response.body.results[0].enrichment.base_product, 'water');
+  assert.equal(response.body.results[0].enrichment.base_product, 'milk');
 });
 
 test('facets return deterministic counts over filtered result set', async () => {

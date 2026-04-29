@@ -1,0 +1,39 @@
+{
+  "phase": "17.3",
+  "name": "simple_deal_detection",
+  "date": "2026-04-24",
+  "commands": [
+    "node tests/phase_17_3_deal_detection.test.js",
+    "node tests/phase_17_2_watchlist_tracker.test.js",
+    "node tests/phase_17_1_persistent_lists.test.js",
+    "node tests/phase_17_saved_shopping_lists.test.js",
+    "node tests/phase_16_7_basket_health.test.js",
+    "node tests/phase_16_6_basket_analytics.test.js",
+    "node tests/phase_16_5_basket_quality.test.js",
+    "node tests/phase_16_4_convenience_scoring.test.js",
+    "node tests/phase_16_3_basket_explanation.test.js",
+    "node tests/phase_16_2_multi_store_optimizer.test.js",
+    "node tests/phase_16_1_basket_optimizer.test.js",
+    "node tests/phase_16_0_price_lookup.test.js",
+    "npm run validate:docs",
+    "node -e \"require('./app/functions/src/index.js'); require('./functions/src/index.js'); require('./functions/index.js'); console.log('runtime exports and firebase entry loaded')\"",
+    "npm test"
+  ],
+  "results": {
+    "phase_17_3_simple_deal_detection": "passed: 9 passed, 0 failed, 9 total",
+    "phase_17_2_watchlist_tracker": "passed: 10 passed, 0 failed, 10 total",
+    "phase_17_1_persistent_lists": "passed: 10 passed, 0 failed, 10 total",
+    "phase_17_saved_shopping_lists": "passed: 9 passed, 0 failed, 9 total",
+    "phase_16_7_basket_health": "passed: 10 passed, 0 failed, 10 total",
+    "phase_16_6_basket_analytics": "passed: 8 passed, 0 failed, 8 total",
+    "phase_16_5_basket_quality": "passed: 12 passed, 0 failed, 12 total",
+    "phase_16_4_convenience_scoring": "passed: 11 passed, 0 failed, 11 total",
+    "phase_16_3_basket_explanation": "passed: 10 passed, 0 failed, 10 total",
+    "phase_16_2_multi_store_optimizer": "passed: 12 passed, 0 failed, 12 total",
+    "phase_16_1_basket_optimizer": "passed: 13 passed, 0 failed, 13 total",
+    "phase_16_0_price_lookup": "passed: 8 passed, 0 failed, 8 total",
+    "validate_docs": "passed: JSON docs parse successfully",
+    "runtime_exports_load": "passed: runtime exports and firebase entry loaded",
+    "full_node_test_suite": "passed"
+  }
+}

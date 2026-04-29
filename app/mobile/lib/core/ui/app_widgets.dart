@@ -9,7 +9,7 @@ class AppScreen extends StatelessWidget {
   const AppScreen({
     super.key,
     required this.child,
-    this.padding = const EdgeInsets.all(AppSpacing.lg),
+    this.padding = const EdgeInsets.all(AppSpacing.md),
   });
 
   final Widget child;
@@ -42,6 +42,7 @@ class AppSectionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       color: backgroundColor,
+      clipBehavior: Clip.antiAlias,
       child: Padding(
         padding: padding,
         child: child,
@@ -74,13 +75,18 @@ class AppSectionHeader extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: Theme.of(context).textTheme.titleLarge,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                    ),
               ),
               if (subtitle != null) ...[
                 const SizedBox(height: AppSpacing.xs),
                 Text(
                   subtitle!,
-                  style: Theme.of(context).textTheme.bodyMedium,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                 ),
               ],
             ],
@@ -128,8 +134,10 @@ class MetricBadge extends StatelessWidget {
               const SizedBox(width: AppSpacing.xs),
             ],
             Text(
-              '$label $value',
-              style: Theme.of(context).textTheme.labelLarge,
+              value.trim().isEmpty ? label : '$label $value',
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
             ),
           ],
         ),
@@ -203,7 +211,10 @@ class EmptyStateCard extends StatelessWidget {
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: AppSpacing.xs),
-          Text(message),
+          Text(
+            message,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
           if (actionLabel != null && onAction != null) ...[
             const SizedBox(height: AppSpacing.md),
             OutlinedButton(
@@ -241,7 +252,10 @@ class ErrorStateCard extends StatelessWidget {
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: AppSpacing.xs),
-          Text(message),
+          Text(
+            message,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
           const SizedBox(height: AppSpacing.md),
           OutlinedButton(
             onPressed: onRetry,

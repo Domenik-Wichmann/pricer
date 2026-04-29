@@ -2,20 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:pricer_mobile/src/generated/l10n/app_localizations.dart';
 
 import '../../core/models/app_models.dart';
+import '../../core/navigation/app_routes.dart';
 import '../../core/services/app_dependencies.dart';
 import '../../core/ui/app_spacing.dart';
 import '../../core/ui/app_widgets.dart';
-import '../../core/utils/formatters.dart';
+import 'shopping_lists_screen.dart';
 
 class ShoppingListDetailScreen extends StatefulWidget {
   const ShoppingListDetailScreen({
     super.key,
     required this.dependencies,
-    required this.shoppingList,
+    required this.listId,
+    this.initialName,
   });
 
   final AppDependencies dependencies;
-  final ShoppingListModel shoppingList;
+  final String listId;
+  final String? initialName;
 
   @override
   State<ShoppingListDetailScreen> createState() =>
@@ -23,234 +26,214 @@ class ShoppingListDetailScreen extends StatefulWidget {
 }
 
 class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen> {
-  ListComparisonResult? _comparison;
-  bool _comparing = false;
+  late final TextEditingController _nameController;
+  late final TextEditingController _itemsController;
+  bool _loading = true;
+  bool _saving = false;
+  String? _error;
+  SavedListDetail? _list;
 
-  Future<void> _addItem() async {
-    final l10n = AppLocalizations.of(context)!;
-    final controller = TextEditingController();
-    final queryText = await showDialog<String>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text(l10n.addItemTitle),
-          content: TextField(
-            key: const Key('add-list-item-input'),
-            controller: controller,
-            decoration: InputDecoration(
-              labelText: l10n.bulgarianQueryLabel,
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text(l10n.cancelButton),
-            ),
-            FilledButton(
-              key: const Key('add-list-item-submit'),
-              onPressed: () =>
-                  Navigator.of(context).pop(controller.text.trim()),
-              child: Text(l10n.addButton),
-            ),
-          ],
-        );
-      },
-    );
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.initialName ?? '');
+    _itemsController = TextEditingController();
+    _load();
+  }
 
-    if (queryText == null || queryText.isEmpty) {
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _itemsController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _load() async {
+    if (widget.listId.isEmpty) {
+      setState(() {
+        _loading = false;
+        _error = 'No saved list was selected.';
+      });
       return;
     }
 
-    await widget.dependencies.shoppingListsRepository.addItem(
-      listId: widget.shoppingList.id,
-      queryText: queryText,
-    );
-  }
-
-  Future<void> _compare(List<ShoppingListEntry> items) async {
     setState(() {
-      _comparing = true;
+      _loading = true;
+      _error = null;
     });
 
-    final results = <QueryResultItem>[];
-    double total = 0;
-    final stores = <String, int>{};
-
     try {
-      for (final item in items) {
-        final response =
-            await widget.dependencies.apiClient.query(item.queryText);
-        if (response.items.isEmpty) {
-          continue;
-        }
-
-        final best = response.items.first;
-        results.add(best);
-        total += best.currentPrice * item.quantity;
-        stores.update(best.storeNameRaw, (value) => value + 1,
-            ifAbsent: () => 1);
-      }
-
-      final sortedStores = stores.entries.toList()
-        ..sort((left, right) => right.value.compareTo(left.value));
-
+      final list = await widget.dependencies.apiClient.getSavedList(
+        ownerId: widget.dependencies.anonymousUserId,
+        ownerType: 'anonymous',
+        listId: widget.listId,
+      );
       if (!mounted) {
         return;
       }
-
       setState(() {
-        _comparison = ListComparisonResult(
-          items: results,
-          totalCost: total,
-          cheapestStore: sortedStores.isEmpty ? null : sortedStores.first.key,
-        );
+        _list = list;
+        _nameController.text = list.name;
+        _itemsController.text = list.items.join('\n');
+        _loading = false;
       });
-    } finally {
-      if (mounted) {
-        setState(() {
-          _comparing = false;
-        });
+    } catch (_) {
+      if (!mounted) {
+        return;
       }
+      setState(() {
+        _loading = false;
+        _error = 'Could not load this saved list.';
+      });
     }
+  }
+
+  Future<void> _save() async {
+    final name = _nameController.text.trim();
+    final items = parseSavedListInput(_itemsController.text);
+    if (name.isEmpty || items.isEmpty || _saving) {
+      return;
+    }
+
+    setState(() {
+      _saving = true;
+    });
+    try {
+      final saved = await widget.dependencies.apiClient.updateSavedList(
+        ownerId: widget.dependencies.anonymousUserId,
+        ownerType: 'anonymous',
+        listId: widget.listId,
+        name: name,
+        items: items,
+      );
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _list = saved;
+        _nameController.text = saved.name;
+        _itemsController.text = saved.items.join('\n');
+        _saving = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Saved list updated.')),
+      );
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _saving = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not save saved list.')),
+      );
+    }
+  }
+
+  void _optimize() {
+    final items = parseSavedListInput(_itemsController.text);
+    if (items.isEmpty) {
+      return;
+    }
+    Navigator.of(context).pushNamed(
+      AppRoutes.optimize,
+      arguments: {'items': items},
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
+    final title = _list?.name ?? widget.initialName ?? 'Saved list';
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.shoppingList.name),
-        actions: [
-          IconButton(
-            onPressed: _addItem,
-            icon: const Icon(Icons.add),
-          ),
-        ],
+        title: Text(title),
       ),
-      body: StreamBuilder<List<ShoppingListEntry>>(
-        stream: widget.dependencies.shoppingListsRepository
-            .watchItems(widget.shoppingList.id),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return AppScreen(
-              child: ListView(
-                children: const [
-                  SkeletonCard(height: 96),
-                  SizedBox(height: AppSpacing.md),
-                  SkeletonCard(height: 84),
-                ],
-              ),
-            );
-          }
-
-          if (snapshot.hasError) {
-            return AppScreen(
-              child: ErrorStateCard(
-                message: l10n.shoppingListLoadError,
-                onRetry: () {},
-              ),
-            );
-          }
-
-          final items = snapshot.data ?? const <ShoppingListEntry>[];
-          return Column(
-            children: [
-              Expanded(
-                child: AppScreen(
-                  child: ListView(
-                    children: [
-                      AppSectionCard(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            AppSectionHeader(
-                              title: widget.shoppingList.name,
-                              subtitle: l10n.itemsReadyToCompare(items.length),
-                            ),
-                            const SizedBox(height: AppSpacing.md),
-                            if (_comparison != null)
-                              Column(
-                                children: [
-                                  ListTile(
-                                    contentPadding: EdgeInsets.zero,
-                                    title: Text(_comparison!.cheapestStore ??
-                                        l10n.noStoreWinnerYet),
-                                    subtitle: Text(l10n.bestOneThumbRerun),
-                                    trailing: Text(formatPrice(
-                                        context, _comparison!.totalCost)),
-                                  ),
-                                  const SizedBox(height: AppSpacing.xs),
-                                  MetricBadge(
-                                    key: const Key('list-rerun-shortcut'),
-                                    label: l10n.updatedPricesLabel,
-                                    value: l10n.availableNowLabel,
-                                    color: const Color(0xFFCDEBDD),
-                                    icon: Icons.refresh,
-                                  ),
-                                ],
-                              )
-                            else
-                              Text(l10n.runComparisonHint),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.lg),
-                      if (items.isEmpty)
-                        EmptyStateCard(
-                          title: l10n.addGroceriesFirstTitle,
-                          message: l10n.addGroceriesFirstMessage,
-                        )
-                      else
-                        for (final item in items) ...[
-                          AppSectionCard(
-                            child: ListTile(
-                              contentPadding: EdgeInsets.zero,
-                              title: Text(item.queryText),
-                              subtitle: Text(l10n.qtyLabel(item.quantity)),
-                              trailing: IconButton(
-                                onPressed: () {
-                                  widget.dependencies.shoppingListsRepository
-                                      .removeItem(
-                                    listId: widget.shoppingList.id,
-                                    itemId: item.id,
-                                  );
-                                },
-                                icon: const Icon(Icons.delete_outline),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: AppSpacing.md),
-                        ],
-                    ],
-                  ),
-                ),
-              ),
-              BottomSummaryBar(
-                title: _comparison == null
-                    ? l10n.refreshPricesTitle
-                    : l10n.bestCurrentTotalTitle,
-                subtitle: _comparison == null
-                    ? l10n.compareListSubtitle
-                    : l10n.cheapestStoreTotalSubtitle(
-                        _comparison!.cheapestStore ?? l10n.noStoreWinnerYet,
-                        formatPrice(context, _comparison!.totalCost),
-                      ),
-                actionLabel: l10n.runComparisonButton,
-                actionKey: const Key('compare-list-button'),
-                onAction:
-                    items.isEmpty || _comparing ? () {} : () => _compare(items),
-                trailing: _comparing
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : null,
-              ),
-            ],
-          );
-        },
+      body: AppScreen(
+        child: ListView(
+          key: const Key('saved-list-detail-screen'),
+          children: [
+            ..._buildBody(),
+          ],
+        ),
       ),
     );
+  }
+
+  List<Widget> _buildBody() {
+    final l10n = AppLocalizations.of(context)!;
+
+    if (_loading) {
+      return const [
+        SkeletonCard(key: Key('saved-list-detail-loading-state'), height: 120),
+      ];
+    }
+
+    final error = _error;
+    if (error != null) {
+      return [
+        ErrorStateCard(
+          key: const Key('saved-list-detail-error-state'),
+          message: error,
+          onRetry: _load,
+        ),
+      ];
+    }
+
+    return [
+      AppSectionCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const AppSectionHeader(
+              title: 'Edit saved list',
+              subtitle: 'Update items, save changes, or optimize this list.',
+            ),
+            const SizedBox(height: AppSpacing.md),
+            TextField(
+              key: const Key('saved-list-name-input'),
+              controller: _nameController,
+              decoration: InputDecoration(labelText: l10n.listNameLabel),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            TextField(
+              key: const Key('saved-list-items-input'),
+              controller: _itemsController,
+              minLines: 6,
+              maxLines: 12,
+              decoration: const InputDecoration(
+                labelText: 'Items',
+                hintText: 'milk\neggs\nbread',
+              ),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            Wrap(
+              spacing: AppSpacing.sm,
+              runSpacing: AppSpacing.sm,
+              children: [
+                FilledButton.icon(
+                  key: const Key('save-saved-list-button'),
+                  onPressed: _saving ? null : _save,
+                  icon: _saving
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.save_outlined),
+                  label: Text(l10n.saveButton),
+                ),
+                OutlinedButton.icon(
+                  key: const Key('optimize-saved-list-button'),
+                  onPressed: _optimize,
+                  icon: const Icon(Icons.auto_awesome),
+                  label: const Text('Optimize this list'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    ];
   }
 }

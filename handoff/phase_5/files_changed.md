@@ -1,0 +1,45 @@
+# Files Changed
+
+## Created
+- `app/mobile/analysis_options.yaml`
+- `app/mobile/lib/app.dart`
+- `app/mobile/lib/core/models/app_models.dart`
+- `app/mobile/lib/core/services/api_client.dart`
+- `app/mobile/lib/core/services/app_dependencies.dart`
+- `app/mobile/lib/core/services/firestore_repositories.dart`
+- `app/mobile/lib/core/services/local_identity_service.dart`
+- `app/mobile/lib/core/services/voice_input_service.dart`
+- `app/mobile/lib/core/utils/formatters.dart`
+- `app/mobile/lib/features/lists/shopping_list_detail_screen.dart`
+- `app/mobile/lib/features/lists/shopping_lists_screen.dart`
+- `app/mobile/lib/features/product/product_detail_screen.dart`
+- `app/mobile/lib/features/results/results_screen.dart`
+- `app/mobile/lib/features/search/home_screen.dart`
+- `app/mobile/lib/features/watchlist/watchlist_screen.dart`
+- `app/mobile/lib/firebase_options.dart`
+- `app/mobile/lib/main.dart`
+- `app/mobile/pubspec.yaml`
+- `app/mobile/test/widget_smoke_test.dart`
+- `docs/implementation/PHASE_5_FLUTTER_APP.md`
+- `docs/test_runs/phase_5_2026-04-22.json`
+- `handoff/phase_5/env_and_secrets.md`
+- `handoff/phase_5/files_changed.md`
+- `handoff/phase_5/next_phase_readiness.md`
+- `handoff/phase_5/operator_actions.md`
+- `handoff/phase_5/verification_report.md`
+- `tests/phase_5_flutter_app.test.js`
+
+## Updated
+- `CHANGELOG.md`
+- `app/mobile/README.md`
+- `docs/CURRENT_STATE.md`
+- `docs/DATA_MODEL.md`
+- `docs/DECISION_LOG.md`
+- `docs/FEATURE_REGISTRY.md`
+- `docs/TEST_REGISTRY.md`
+- `docs/current_state.json`
+- `docs/decision_log.md`
+- `docs/feature_registry.json`
+- `docs/test_registry.json`
+- `package.json`
+- `tests/run_all.js`

@@ -1,0 +1,30 @@
+{
+  "phase": "Phase 2F location confidence and admin review",
+  "date": "2026-04-28",
+  "commands": [
+    {
+      "command": "npm run test:phase6_location_review",
+      "status": "passed",
+      "summary": "4 passed, 0 failed"
+    },
+    {
+      "command": "npm run test:phase6_geocoding",
+      "status": "passed",
+      "summary": "8 passed, 0 failed"
+    },
+    {
+      "command": "npm run test:phase6_location_availability",
+      "status": "passed",
+      "summary": "9 passed, 0 failed"
+    },
+    {
+      "command": "node -e \"require('./functions'); require('./functions/src'); require('./app/functions/src'); console.log('phase2f load ok')\"",
+      "status": "passed",
+      "summary": "Firebase entrypoint and mirrored backend exports loaded"
+    }
+  ],
+  "notes": [
+    "Phase 2F adds no maps UI, live provider calls, or LLM calls.",
+    "Approved coordinates are stored additively on review candidates and do not mutate source geocode or location records."
+  ]
+}

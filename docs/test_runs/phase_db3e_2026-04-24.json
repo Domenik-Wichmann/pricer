@@ -1,0 +1,37 @@
+{
+  "phase": "DB3E",
+  "date": "2026-04-24",
+  "status": "passed",
+  "migration": "db/migrations/017_db3e_ingredient_product_equivalence.sql",
+  "migration_note": "DB3E uses migration 017 because 016 is already occupied by DB5B in this repository history.",
+  "commands": [
+    {
+      "command": "npm run test:db3e",
+      "status": "passed",
+      "summary": "DB3E ingredient product equivalence tests passed."
+    },
+    {
+      "command": "npm test",
+      "status": "passed",
+      "summary": "Full Node test suite passed after making existing Phase 18.7 gap-signal persistence non-blocking for save failures."
+    },
+    {
+      "command": "npm run validate:docs",
+      "status": "passed",
+      "summary": "JSON docs parse successfully."
+    }
+  ],
+  "safety": {
+    "no_llm": true,
+    "no_firestore": true,
+    "no_recipe_changes": true,
+    "no_ingredient_auto_creation": true,
+    "no_sponsored_logic": true,
+    "no_runtime_behavior_changes_for_db3e": true
+  },
+  "notes": [
+    "DB3E product ids are stored as strings because a Postgres product ingestion table is future work.",
+    "Generated ingredient-product mappings stay in suggested review status and do not auto-approve.",
+    "Existing approved and rejected ingredient-product mappings are preserved on regeneration."
+  ]
+}

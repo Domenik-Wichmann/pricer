@@ -11,6 +11,7 @@ const {
   openSnapshotEntryStreamByName,
   parseSnapshotEntryMetadata,
 } = require('./kolkostruva_client');
+const { buildRetailerLocationsFromState } = require('./store_locations');
 
 const NORMALIZED_SOURCE_HEADERS = Object.freeze({
   localityCode: normalizeHeaderLookup(SOURCE_HEADERS.localityCode),
@@ -586,6 +587,10 @@ async function finalizeIngestState({
   state.raw_price_snapshots = sortByKey([...ingestState.snapshotIndex.values()], 'snapshot_id');
   state.source_products = sortByKey([...ingestState.productIndex.values()], 'source_product_id');
   state.source_product_enrichment = sortByKey([...ingestState.enrichmentIndex.values()], 'source_product_id');
+  state.retailer_locations = buildRetailerLocationsFromState({
+    state,
+    extractedAt: ingestedAt,
+  });
   const canonicalization = buildCanonicalizationState({
     sourceProducts: state.source_products,
     enrichmentIndex: ingestState.enrichmentIndex,

@@ -1,3 +1,26 @@
+# Phase 16.4 Locality / Convenience-Aware Basket Scoring
+
+## Implemented surface
+- helper: `applyBasketConvenienceScoring(...)`
+- endpoint option: `optimizer_options.include_convenience_scoring = true`
+- request support: `user_context` and `convenience_options`
+- explanation integration when both `include_explanation` and `include_convenience_scoring` are true
+
+## Implemented contract summary
+- preserves `actual_total` as pure product price
+- adds convenience-only fields: `convenience_penalty`, `estimated_travel_cost`, `effective_total`, `convenience_score`, `penalty_breakdown`
+- preserves original recommendation and adds before/after convenience recommendation fields
+- keeps convenience scoring optional and does not change old response shape when omitted
+- does not model real distance/time yet; explanation adds `distance_not_modeled`
+
+## Remaining for true travel/distance-aware optimization
+- store geocoding and user distance calculation
+- fuel, transit, walking, delivery, or pickup costs
+- locality-aware store availability
+- time cost and route planning
+
+---
+
 Implement Phase 16.4: Locality / Convenience-Aware Basket Scoring.
 
 GOAL:

@@ -1,0 +1,28 @@
+# Files Changed
+
+- `functions/src/phase15/diet_attribute_normalization.js`
+- `app/functions/src/phase15/diet_attribute_normalization.js`
+- `functions/src/phase15/enrichment.js`
+- `app/functions/src/phase15/enrichment.js`
+- `functions/src/phase1/store.js`
+- `app/functions/src/phase1/store.js`
+- `functions/src/index.js`
+- `app/functions/src/index.js`
+- `tests/phase_15_hyper_rich_enrichment.test.js`
+- `tests/phase_15_1_enrichment_readers.test.js`
+- `tests/phase_15_2_product_api.test.js`
+- `tests/phase_15_6_diet_attribute_normalization.test.js`
+- `package.json`
+- `tests/run_all.js`
+- `docs/DIET_ATTRIBUTE_NORMALIZATION.md`
+- `docs/implementation/PHASE_15_6_DIET_ATTRIBUTE_NORMALIZATION.md`
+- `docs/REPO_MAP.md`
+- `docs/SCHEMA_MAP.md`
+- `docs/DATA_MODEL.md`
+- `docs/PHASE_15_HYPER_RICH_ENRICHMENT_LAYER.md`
+- `docs/implementation/PHASE_15_HYPER_RICH_ENRICHMENT_LAYER.md`
+- `docs/TEST_REGISTRY.md`
+- `docs/test_registry.json`
+- `docs/test_runs/phase_15_diet_attribute_normalization_2026-04-26.json`
+- `docs/decision_log.md`
+- `CHANGELOG.md`

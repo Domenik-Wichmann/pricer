@@ -1,0 +1,43 @@
+{
+  "phase": "Phase 2J",
+  "date": "2026-04-28",
+  "summary": "Opt-in reviewed-coordinate nearest availability",
+  "commands": [
+    {
+      "command": "npm run test:phase6_location_availability",
+      "status": "passed",
+      "result": "15 passed, 0 failed, 15 total"
+    },
+    {
+      "command": "npm run test:phase6_location_review",
+      "status": "passed",
+      "result": "20 passed, 0 failed, 20 total"
+    },
+    {
+      "command": "npm run test:phase6_geocoding",
+      "status": "passed",
+      "result": "8 passed, 0 failed, 8 total"
+    },
+    {
+      "command": "node -e \"require('./functions'); require('./functions/src'); require('./app/functions/src'); console.log('phase2j load ok')\"",
+      "status": "passed",
+      "result": "phase2j load ok"
+    },
+    {
+      "command": "Get-FileHash functions/src/phase6/location_availability.js,app/functions/src/phase6/location_availability.js,functions/src/index.js,app/functions/src/index.js -Algorithm SHA256 | Select-Object Path,Hash",
+      "status": "passed",
+      "result": "Mirrored backend files have matching hashes between functions/src and app/functions/src."
+    },
+    {
+      "command": "npm run validate:docs",
+      "status": "passed",
+      "result": "JSON docs parse successfully"
+    }
+  ],
+  "notes": [
+    "Nearest availability defaults to provider_only.",
+    "reviewed_first is opt-in and uses active reviewed coordinates before matched provider geocodes.",
+    "Superseded reviewed coordinates are ignored.",
+    "Normal product search, maps UI, live geocoding, and LLM usage remain unchanged."
+  ]
+}

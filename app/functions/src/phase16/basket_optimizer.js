@@ -8,6 +8,19 @@ const {
 const {
   buildBasketOptimizationExplanation,
 } = require('./basket_explanation');
+const {
+  applyBasketConvenienceScoring,
+} = require('./basket_convenience');
+const {
+  buildBasketQualityMetrics,
+  buildGlobalBasketMetricsSummary,
+} = require('./basket_quality');
+const {
+  persistBasketAnalyticsRecord,
+} = require('./basket_analytics');
+const {
+  annotateOptimizerResultWithDeals,
+} = require('../phase17/deals');
 
 const DEFAULT_OPTIMIZER_OPTIONS = Object.freeze({
   strategy: 'single_store',
@@ -18,6 +31,9 @@ const DEFAULT_OPTIMIZER_OPTIONS = Object.freeze({
   max_stores: 2,
   minimum_savings: 0.5,
   include_explanation: false,
+  include_convenience_scoring: false,
+  include_metrics: false,
+  persist_metrics: false,
 });
 const ALLOWED_OPTIMIZER_STRATEGIES = Object.freeze(['single_store', 'multi_store']);
 const ALLOWED_STALE_POLICIES = Object.freeze(['exclude']);
@@ -29,6 +45,7 @@ const ALLOWED_OPTIMIZER_AMBIGUOUS_POLICIES = Object.freeze([
 async function handleOptimizeBasketSingleStoreRequest({
   store,
   body = {},
+  req,
 }) {
   if (!body || typeof body !== 'object' || Array.isArray(body)) {
     return {
@@ -50,7 +67,13 @@ async function handleOptimizeBasketSingleStoreRequest({
       items: body.items,
       layer_mode: body.layer_mode,
       planner_options: body.planner_options,
+      locality_code: body.locality_code,
+      chain_id: body.chain_id,
+      chain_name: body.chain_name,
+      store_id: body.store_id,
+      store_name: body.store_name,
     },
+    req,
   });
   if (basketPlanResponse.status !== 200) {
     return basketPlanResponse;
@@ -66,7 +89,7 @@ async function handleOptimizeBasketSingleStoreRequest({
     priceLookup: priceResult.price_lookup,
     options: options.value,
   });
-  const optimizerResult = options.value.strategy === 'multi_store'
+  const rawOptimizerResult = options.value.strategy === 'multi_store'
     ? optimizeBasketMultiStore({
       basketPlan: priceResult.basket_plan,
       priceLookup: priceResult.price_lookup,
@@ -74,22 +97,54 @@ async function handleOptimizeBasketSingleStoreRequest({
       options: options.value,
     })
     : singleStoreResult;
+  const optimizerResult = annotateOptimizerResultWithDeals({
+    optimizerResult: rawOptimizerResult,
+    priceLookup: priceResult.price_lookup,
+  });
 
   const responseBody = {
     basket_plan: priceResult.basket_plan,
     price_lookup_summary: priceResult.price_lookup.summary,
     optimizer_result: optimizerResult,
   };
+  let convenienceResult = null;
+  if (options.value.include_convenience_scoring) {
+    convenienceResult = applyBasketConvenienceScoring({
+      optimizerResult,
+      userContext: body.user_context || {},
+      convenienceOptions: body.convenience_options || {},
+    });
+    responseBody.convenience = convenienceResult.convenience;
+  }
   if (options.value.include_explanation) {
     responseBody.explanation = buildBasketOptimizationExplanation({
       basketPlan: priceResult.basket_plan,
       priceLookup: priceResult.price_lookup,
       optimizerResult,
+      convenience: convenienceResult?.convenience || null,
       options: {
         locale: body.optimizer_options?.locale,
         currency: priceResult.price_lookup.currency,
       },
     });
+  }
+  if (options.value.include_metrics) {
+    responseBody.metrics = buildBasketQualityMetrics({
+      basketPlan: priceResult.basket_plan,
+      priceLookup: priceResult.price_lookup,
+      optimizerResult,
+      convenienceResult: convenienceResult?.convenience || null,
+    });
+    if (options.value.persist_metrics) {
+      try {
+        await persistBasketAnalyticsRecord({
+          store,
+          metrics: responseBody.metrics,
+        });
+      } catch (error) {
+        // Metrics persistence must never block the optimizer response.
+      }
+    }
   }
 
   return {
@@ -842,6 +897,9 @@ function normalizeOptimizerOptions(rawOptions) {
       max_stores: resolveMaxStores(options.max_stores),
       minimum_savings: resolveMinimumSavings(options.minimum_savings),
       include_explanation: options.include_explanation === true,
+      include_convenience_scoring: options.include_convenience_scoring === true,
+      include_metrics: options.include_metrics === true,
+      persist_metrics: options.persist_metrics === true,
     },
   };
 }
@@ -918,7 +976,10 @@ module.exports = {
   ALLOWED_OPTIMIZER_AMBIGUOUS_POLICIES,
   ALLOWED_STALE_POLICIES,
   DEFAULT_OPTIMIZER_OPTIONS,
+  applyBasketConvenienceScoring,
   buildBasketOptimizationExplanation,
+  buildBasketQualityMetrics,
+  buildGlobalBasketMetricsSummary,
   handleOptimizeBasketSingleStoreRequest,
   normalizeOptimizerOptions,
   optimizeBasketMultiStore,

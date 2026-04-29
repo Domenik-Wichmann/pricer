@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/foundation.dart';
 import 'package:purchases_flutter/purchases_flutter.dart' as rc;
 
@@ -39,6 +37,9 @@ class RevenueCatSubscriptionService implements SubscriptionService {
   Future<void> initialize({required String appUserId}) async {
     final apiKey = _resolveApiKey();
     if (apiKey.isEmpty || _configuredUserId == appUserId) {
+      if (apiKey.isEmpty && kDebugMode) {
+        debugPrint('RevenueCat disabled: no real API key configured.');
+      }
       return;
     }
 
@@ -153,11 +154,7 @@ class RevenueCatSubscriptionService implements SubscriptionService {
   }
 
   String _resolveApiKey() {
-    if (Platform.isIOS) {
-      return _config.revenueCatIosApiKey;
-    }
-
-    return _config.revenueCatAndroidApiKey;
+    return _config.currentRevenueCatApiKey;
   }
 
   DateTime? _parseDateTime(String? value) {
@@ -215,15 +212,30 @@ class MonetizationService {
   Future<MonetizationProfile> readProfile() => repository.readProfile();
 
   Future<MonetizationProfile> initialize() async {
-    await subscriptionService.initialize(appUserId: userId);
-    final existing = await repository.readProfile();
+    try {
+      await subscriptionService.initialize(appUserId: userId);
+    } catch (error) {
+      if (kDebugMode) {
+        debugPrint('Subscription initialization skipped: $error');
+      }
+    }
+
+    final existing = await _readProfileSafely();
     if (!subscriptionService.isConfigured) {
       return existing;
     }
 
-    final refreshed = await subscriptionService.refreshProfile(userId: userId);
-    await repository.saveProfile(refreshed);
-    return refreshed;
+    try {
+      final refreshed =
+          await subscriptionService.refreshProfile(userId: userId);
+      await _saveProfileSafely(refreshed);
+      return refreshed;
+    } catch (error) {
+      if (kDebugMode) {
+        debugPrint('Subscription profile refresh skipped: $error');
+      }
+      return existing;
+    }
   }
 
   Future<List<MonetizationPackage>> loadPackages() {
@@ -249,5 +261,26 @@ class MonetizationService {
     final profile = await subscriptionService.refreshProfile(userId: userId);
     await repository.saveProfile(profile);
     return profile;
+  }
+
+  Future<MonetizationProfile> _readProfileSafely() async {
+    try {
+      return await repository.readProfile();
+    } catch (error) {
+      if (kDebugMode) {
+        debugPrint('Billing profile read failed; using free profile: $error');
+      }
+      return MonetizationProfile.free(userId);
+    }
+  }
+
+  Future<void> _saveProfileSafely(MonetizationProfile profile) async {
+    try {
+      await repository.saveProfile(profile);
+    } catch (error) {
+      if (kDebugMode) {
+        debugPrint('Billing profile save failed: $error');
+      }
+    }
   }
 }

@@ -1,12 +1,8 @@
-import 'dart:io';
-
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import 'monetization_config.dart';
-
-const _testBannerAdUnitId = 'ca-app-pub-3940256099942544/6300978111';
-const _testInterstitialAdUnitId = 'ca-app-pub-3940256099942544/1033173712';
 
 abstract class AppAdService {
   bool get isConfigured;
@@ -39,6 +35,9 @@ class GoogleMobileAdsService implements AppAdService {
   @override
   Future<void> initialize() async {
     if (_initialized || !isConfigured) {
+      if (!isConfigured && kDebugMode) {
+        debugPrint('AdMob disabled: no real app/ad unit IDs configured.');
+      }
       return;
     }
 
@@ -52,13 +51,13 @@ class GoogleMobileAdsService implements AppAdService {
     Key? key,
     required bool enabled,
   }) {
-    if (!enabled || !isConfigured) {
+    if (!enabled || !isConfigured || !_config.hasBannerAdUnit) {
       return const SizedBox.shrink();
     }
 
     return _BannerAdSlot(
       key: key,
-      adUnitId: _resolveBannerAdUnitId(),
+      adUnitId: _config.currentBannerAdUnitId,
     );
   }
 
@@ -67,7 +66,7 @@ class GoogleMobileAdsService implements AppAdService {
     required bool enabled,
     String placement = 'default',
   }) async {
-    if (!enabled || !isConfigured) {
+    if (!enabled || !isConfigured || !_config.hasInterstitialAdUnit) {
       return;
     }
 
@@ -92,12 +91,14 @@ class GoogleMobileAdsService implements AppAdService {
   }
 
   Future<void> _preloadInterstitial() async {
-    if (!isConfigured || _interstitialAd != null) {
+    if (!isConfigured ||
+        !_config.hasInterstitialAdUnit ||
+        _interstitialAd != null) {
       return;
     }
 
     await InterstitialAd.load(
-      adUnitId: _resolveInterstitialAdUnitId(),
+      adUnitId: _config.currentInterstitialAdUnitId,
       request: const AdRequest(),
       adLoadCallback: InterstitialAdLoadCallback(
         onAdLoaded: (ad) {
@@ -108,30 +109,6 @@ class GoogleMobileAdsService implements AppAdService {
         },
       ),
     );
-  }
-
-  String _resolveBannerAdUnitId() {
-    if (Platform.isIOS) {
-      return _config.bannerAdUnitIdIos.isNotEmpty
-          ? _config.bannerAdUnitIdIos
-          : _testBannerAdUnitId;
-    }
-
-    return _config.bannerAdUnitIdAndroid.isNotEmpty
-        ? _config.bannerAdUnitIdAndroid
-        : _testBannerAdUnitId;
-  }
-
-  String _resolveInterstitialAdUnitId() {
-    if (Platform.isIOS) {
-      return _config.interstitialAdUnitIdIos.isNotEmpty
-          ? _config.interstitialAdUnitIdIos
-          : _testInterstitialAdUnitId;
-    }
-
-    return _config.interstitialAdUnitIdAndroid.isNotEmpty
-        ? _config.interstitialAdUnitIdAndroid
-        : _testInterstitialAdUnitId;
   }
 }
 

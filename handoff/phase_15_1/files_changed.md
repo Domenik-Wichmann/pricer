@@ -1,0 +1,31 @@
+# Files Changed
+
+- `app/functions/src/phase15/enrichment.js`
+- `app/functions/src/phase15/readers.js`
+- `app/functions/src/phase6/ingest.js`
+- `app/functions/src/index.js`
+- `functions/src/phase15/enrichment.js`
+- `functions/src/phase15/readers.js`
+- `functions/src/phase6/ingest.js`
+- `functions/src/index.js`
+- `tests/phase_15_1_enrichment_readers.test.js`
+- `tests/run_all.js`
+- `package.json`
+- `docs/PHASE_15_1_ENRICHMENT_PROP.md`
+- `docs/implementation/PHASE_15_1_ENRICHMENT_PROP.md`
+- `docs/CURRENT_STATE.md`
+- `docs/current_state.json`
+- `docs/ARCHITECTURE.md`
+- `docs/decision_log.md`
+- `docs/DECISION_LOG.md`
+- `docs/TEST_REGISTRY.md`
+- `docs/test_registry.json`
+- `docs/needed_secrets.md`
+- `docs/test_runs/phase_15_1_2026-04-23.json`
+- `app/secrets/backend.env.example`
+- `app/secrets/README.md`
+- `CHANGELOG.md`
+- `handoff/phase_15_1/verification_report.md`
+- `handoff/phase_15_1/operator_actions.md`
+- `handoff/phase_15_1/files_changed.md`
+- `handoff/phase_15_1/next_phase_readiness.md`

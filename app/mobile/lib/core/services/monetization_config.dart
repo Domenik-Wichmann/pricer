@@ -1,3 +1,5 @@
+import 'dart:io';
+
 class MonetizationConfig {
   const MonetizationConfig({
     required this.revenueCatAndroidApiKey,
@@ -21,11 +23,40 @@ class MonetizationConfig {
   final String interstitialAdUnitIdAndroid;
   final String interstitialAdUnitIdIos;
 
-  bool get revenueCatConfigured =>
-      revenueCatAndroidApiKey.isNotEmpty || revenueCatIosApiKey.isNotEmpty;
+  bool get revenueCatConfigured => currentRevenueCatApiKey.isNotEmpty;
 
   bool get admobConfigured =>
-      admobAndroidAppId.isNotEmpty || admobIosAppId.isNotEmpty;
+      currentAdMobAppId.isNotEmpty &&
+      (currentBannerAdUnitId.isNotEmpty ||
+          currentInterstitialAdUnitId.isNotEmpty);
+
+  String get currentRevenueCatApiKey {
+    return Platform.isIOS
+        ? _cleanConfigValue(revenueCatIosApiKey)
+        : _cleanConfigValue(revenueCatAndroidApiKey);
+  }
+
+  String get currentAdMobAppId {
+    return Platform.isIOS
+        ? _cleanConfigValue(admobIosAppId)
+        : _cleanConfigValue(admobAndroidAppId);
+  }
+
+  String get currentBannerAdUnitId {
+    return Platform.isIOS
+        ? _cleanConfigValue(bannerAdUnitIdIos)
+        : _cleanConfigValue(bannerAdUnitIdAndroid);
+  }
+
+  String get currentInterstitialAdUnitId {
+    return Platform.isIOS
+        ? _cleanConfigValue(interstitialAdUnitIdIos)
+        : _cleanConfigValue(interstitialAdUnitIdAndroid);
+  }
+
+  bool get hasBannerAdUnit => currentBannerAdUnitId.isNotEmpty;
+
+  bool get hasInterstitialAdUnit => currentInterstitialAdUnitId.isNotEmpty;
 
   factory MonetizationConfig.fromEnvironment() {
     return const MonetizationConfig(
@@ -38,11 +69,9 @@ class MonetizationConfig {
       ),
       admobAndroidAppId: String.fromEnvironment(
         'ADMOB_ANDROID_APP_ID',
-        defaultValue: 'ca-app-pub-3940256099942544~3347511713',
       ),
       admobIosAppId: String.fromEnvironment(
         'ADMOB_IOS_APP_ID',
-        defaultValue: 'ca-app-pub-3940256099942544~1458002511',
       ),
       bannerAdUnitIdAndroid:
           String.fromEnvironment('ADMOB_BANNER_ANDROID_UNIT_ID'),
@@ -53,4 +82,15 @@ class MonetizationConfig {
           String.fromEnvironment('ADMOB_INTERSTITIAL_IOS_UNIT_ID'),
     );
   }
+}
+
+String _cleanConfigValue(String value) {
+  final trimmed = value.trim();
+  final lower = trimmed.toLowerCase();
+  if (trimmed.isEmpty ||
+      lower.contains('replace_me') ||
+      lower.contains('ca-app-pub-replace-me')) {
+    return '';
+  }
+  return trimmed;
 }

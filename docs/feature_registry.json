@@ -109,6 +109,46 @@
       "id": "P16.3-BASKET-EXPLANATION",
       "phase": 16.3,
       "status": "implemented_verified"
+    },
+    {
+      "id": "P16.4-CONVENIENCE-AWARE-SCORING",
+      "phase": 16.4,
+      "status": "implemented_verified"
+    },
+    {
+      "id": "P16.5-BASKET-QUALITY-METRICS",
+      "phase": 16.5,
+      "status": "implemented_verified"
+    },
+    {
+      "id": "P16.6-BASKET-ANALYTICS",
+      "phase": 16.6,
+      "status": "implemented_verified"
+    },
+    {
+      "id": "P16.7-BASKET-HEALTH",
+      "phase": 16.7,
+      "status": "implemented_verified"
+    },
+    {
+      "id": "P17-SAVED-SHOPPING-LISTS",
+      "phase": 17,
+      "status": "implemented_verified"
+    },
+    {
+      "id": "P17.1-PERSISTENT-LISTS-OWNERSHIP",
+      "phase": 17.1,
+      "status": "implemented_verified"
+    },
+    {
+      "id": "P17.2-WATCHLIST-TRACKER",
+      "phase": 17.2,
+      "status": "implemented_verified"
+    },
+    {
+      "id": "P17.3-SIMPLE-DEAL-DETECTION",
+      "phase": 17.3,
+      "status": "implemented_verified"
     }
   ]
 }

@@ -9,6 +9,7 @@ Add a strict, additive semantic enrichment layer on top of canonical products so
 - cache-first enrichment reuse during ingest
 - optional LLM enrichment for net-new canonical fingerprints only
 - strict response validation, normalization, and rejection of malformed payloads
+- deterministic BG/EN/DE diet and attribute claim normalization for explicit text only
 - ingest metrics and samples for enrichment coverage, reuse, cache misses, and rejected outputs
 
 ## Rules
@@ -17,6 +18,7 @@ Add a strict, additive semantic enrichment layer on top of canonical products so
 - enrichment must be reused by canonical fingerprint whenever a cached record already exists
 - malformed enrichment output must be rejected rather than partially persisted
 - the schema must remain closed; no uncontrolled fields are allowed
+- diet and attribute claims such as organic, vegan, gluten-free, lactose-free, sugar-free, low-fat, and high-protein are extracted only when explicitly present in product/source text
 
 ## Success criteria
 - new canonical fingerprints can be enriched once and then reused from cache

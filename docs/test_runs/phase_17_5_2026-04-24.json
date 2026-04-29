@@ -1,0 +1,58 @@
+{
+  "phase": "17.5",
+  "name": "User-Facing Home Summary Feed",
+  "date": "2026-04-24",
+  "commands": [
+    {
+      "command": "node tests/phase_17_5_home_summary.test.js",
+      "status": "passed",
+      "summary": "9 passed, 0 failed, 9 total"
+    },
+    {
+      "command": "npm run validate:docs",
+      "status": "passed",
+      "summary": "JSON docs parse successfully"
+    },
+    {
+      "command": "node -e \"require('./app/functions/src/index.js'); require('./functions/src/index.js'); require('./functions/index.js'); console.log('runtime exports and firebase entry loaded')\"",
+      "status": "passed",
+      "summary": "runtime exports and firebase entry loaded"
+    },
+    {
+      "command": "node tests/phase_17_4_market_trends.test.js",
+      "status": "passed",
+      "summary": "8 passed, 0 failed, 8 total"
+    },
+    {
+      "command": "node tests/phase_17_3_deal_detection.test.js",
+      "status": "passed",
+      "summary": "9 passed, 0 failed, 9 total"
+    },
+    {
+      "command": "node tests/phase_17_2_watchlist_tracker.test.js",
+      "status": "passed",
+      "summary": "10 passed, 0 failed, 10 total"
+    },
+    {
+      "command": "node tests/phase_17_1_persistent_lists.test.js",
+      "status": "passed",
+      "summary": "10 passed, 0 failed, 10 total"
+    },
+    {
+      "command": "node tests/phase_17_saved_shopping_lists.test.js",
+      "status": "passed",
+      "summary": "9 passed, 0 failed, 9 total"
+    },
+    {
+      "command": "npm test",
+      "status": "passed",
+      "summary": "Full Node test suite passed"
+    }
+  ],
+  "notes": [
+    "Home summary combines top deals, watchlist highlights, saved-list shortcuts, market highlights, and quick actions.",
+    "Owner-scoped watchlist and saved-list data use existing temporary owner context behavior.",
+    "Internal health and analytics diagnostics are intentionally excluded.",
+    "The feed is read-only and does not run saved-list optimization."
+  ]
+}

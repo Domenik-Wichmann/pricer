@@ -2,6 +2,11 @@ const {
   normalizeSearchText,
   tokenizeSearchText,
 } = require('../phase12/canonicalization');
+const {
+  buildGapSignalFromResolvedItem,
+  normalizeLocalityCode,
+  persistGapSignals,
+} = require('../phase18/gap_detection');
 const { LAYER_SELECTIONS } = require('./readers');
 const {
   DEFAULT_PRODUCT_LAYER_MODE,
@@ -35,6 +40,7 @@ const BASE_PRODUCT_HINTS = Object.freeze([
 async function handleResolveShoppingListItemsRequest({
   store,
   body = {},
+  req,
 }) {
   const items = normalizeShoppingListItems(body.items);
   if (items.error) {
@@ -46,14 +52,46 @@ async function handleResolveShoppingListItemsRequest({
     return layerMode.response;
   }
 
+  const bodyResponse = await resolveShoppingListItems({
+    store,
+    items: items.value,
+    layerMode: layerMode.layerMode,
+    limitPerItem: resolveLimitPerItem(body.limit_per_item),
+  });
+  const localityCode = normalizeLocalityCode(
+    body.locality_code ||
+    req?.query?.locality_code ||
+    req?.headers?.['x-pricer-locality-code']
+  );
+  const chainId =
+    body.chain_id ||
+    req?.query?.chain_id ||
+    req?.headers?.['x-pricer-chain-id'];
+  const chainName =
+    body.chain_name ||
+    req?.query?.chain_name ||
+    req?.headers?.['x-pricer-chain-name'];
+  const storeId =
+    body.store_id ||
+    req?.query?.store_id ||
+    req?.headers?.['x-pricer-store-id'];
+  const storeName =
+    body.store_name ||
+    req?.query?.store_name ||
+    req?.headers?.['x-pricer-store-name'];
+  await persistGapSignals(store, bodyResponse.items.map((item) => buildGapSignalFromResolvedItem({
+    ...item,
+    source: 'shopping_list',
+    locality_code: localityCode,
+    chain_id: chainId,
+    chain_name: chainName,
+    store_id: storeId,
+    store_name: storeName,
+  })));
+
   return {
     status: 200,
-    body: await resolveShoppingListItems({
-      store,
-      items: items.value,
-      layerMode: layerMode.layerMode,
-      limitPerItem: resolveLimitPerItem(body.limit_per_item),
-    }),
+    body: bodyResponse,
   };
 }
 

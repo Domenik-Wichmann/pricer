@@ -1,0 +1,36 @@
+{
+  "phase": 15.6,
+  "date": "2026-04-26",
+  "status": "passed",
+  "commands": [
+    {
+      "command": "npm run test:phase15_6",
+      "result": "Phase 15.6 tests: 9 passed, 0 failed, 9 total"
+    },
+    {
+      "command": "npm run test:phase15",
+      "result": "Phase 15 tests: 15 passed, 0 failed, 15 total"
+    },
+    {
+      "command": "npm run test:phase15_1",
+      "result": "Phase 15.1 tests: 7 passed, 0 failed, 7 total"
+    },
+    {
+      "command": "npm run test:phase15_2",
+      "result": "Phase 15.2 tests: 9 passed, 0 failed, 9 total"
+    },
+    {
+      "command": "npm run validate:docs",
+      "result": "JSON docs parse successfully."
+    },
+    {
+      "command": "node -e \"require('./functions/src'); require('./app/functions/src'); console.log('entrypoints ok')\"",
+      "result": "entrypoints ok"
+    }
+  ],
+  "notes": [
+    "Diet and attribute normalization is explicit-text-only and additive to canonical enrichment.",
+    "Unknown or unmapped LLM-provided diet and attribute claim values are ignored.",
+    "Reader/search compatibility was reverified using controlled claim attributes."
+  ]
+}

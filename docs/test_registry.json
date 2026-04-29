@@ -271,6 +271,12 @@
       "status": "pending_operator_runtime"
     },
     {
+      "id": "P5-FLUTTER-005",
+      "description": "Flutter startup hardening covers shell-first bootstrap, Firebase/Firestore fallback, monetization fallback, and API timeout error UI.",
+      "phase": 5,
+      "status": "passed"
+    },
+    {
       "id": "P5.5-UI-001",
       "description": "Phase 5.5 shared UI system files and recent-activity support exist in the mobile app.",
       "phase": 5.5,
@@ -559,6 +565,12 @@
       "status": "passed"
     },
     {
+      "id": "P10-MONETIZATION-007",
+      "description": "Flutter monetization startup remains disabled and boot-safe with missing or placeholder RevenueCat and AdMob config.",
+      "phase": 10,
+      "status": "passed"
+    },
+    {
       "id": "P11-DEPLOYMENT-001",
       "description": "The repository deployment audit enumerates all runtime env vars and Flutter dart-define inputs referenced by code.",
       "phase": 11,
@@ -727,6 +739,30 @@
       "status": "passed"
     },
     {
+      "id": "P15-ENRICHMENT-008",
+      "description": "Explicit English, Bulgarian, and German diet and attribute claims normalize into controlled attributes and diet tags.",
+      "phase": 15,
+      "status": "passed"
+    },
+    {
+      "id": "P15-ENRICHMENT-009",
+      "description": "Lactose-free, sugar-free, low-fat, high-protein, and LLM-style synonyms normalize deterministically.",
+      "phase": 15,
+      "status": "passed"
+    },
+    {
+      "id": "P15-ENRICHMENT-010",
+      "description": "Category-only text does not infer diet or attribute claims.",
+      "phase": 15,
+      "status": "passed"
+    },
+    {
+      "id": "P15-ENRICHMENT-011",
+      "description": "Duplicate explicit and LLM diet or attribute claims are deduped and preserve matched-text evidence on the enrichment record.",
+      "phase": 15,
+      "status": "passed"
+    },
+    {
       "id": "P15-ENRICHMENT-005",
       "description": "Controlled category hierarchy validation rejects invalid category combinations.",
       "phase": 15,
@@ -742,6 +778,66 @@
       "id": "P15-ENRICHMENT-007",
       "description": "The enrichment prompt exposes the strict schema and controlled category tree.",
       "phase": 15,
+      "status": "passed"
+    },
+    {
+      "id": "P15.6-DIET-ATTRIBUTE-001",
+      "description": "English, Bulgarian, and German explicit aliases normalize into controlled diet and attribute tags.",
+      "phase": 15.6,
+      "status": "passed"
+    },
+    {
+      "id": "P15.6-DIET-ATTRIBUTE-002",
+      "description": "Lactose-free, sugar-free, low-fat, high-protein, and mixed-language aliases dedupe deterministically.",
+      "phase": 15.6,
+      "status": "passed"
+    },
+    {
+      "id": "P15.6-DIET-ATTRIBUTE-003",
+      "description": "Category and product-family words such as tofu do not infer diet or product-claim tags.",
+      "phase": 15.6,
+      "status": "passed"
+    },
+    {
+      "id": "P15.6-DIET-ATTRIBUTE-004",
+      "description": "LLM-provided unknown or unmapped diet and attribute values are ignored during normalization.",
+      "phase": 15.6,
+      "status": "passed"
+    },
+    {
+      "id": "P15.6-DIET-ATTRIBUTE-005",
+      "description": "Enrichment merge stores explicit claim evidence while preserving canonical products and mappings.",
+      "phase": 15.6,
+      "status": "passed"
+    },
+    {
+      "id": "P15.7-EXPANDED-ALIASES-001",
+      "description": "Turkish, Russian, Ukrainian, Dutch, and Spanish explicit aliases normalize into existing controlled diet and attribute tags.",
+      "phase": 15.7,
+      "status": "passed"
+    },
+    {
+      "id": "P15.7-EXPANDED-ALIASES-002",
+      "description": "Accented and reviewed unaccented variants normalize where aliases are present.",
+      "phase": 15.7,
+      "status": "passed"
+    },
+    {
+      "id": "P15.7-EXPANDED-ALIASES-003",
+      "description": "LLM-style expanded aliases normalize while unknown or unmapped values remain ignored.",
+      "phase": 15.7,
+      "status": "passed"
+    },
+    {
+      "id": "P15.7-EXPANDED-ALIASES-004",
+      "description": "Substring false positives inside unrelated words are rejected.",
+      "phase": 15.7,
+      "status": "passed"
+    },
+    {
+      "id": "P15.7-EXPANDED-ALIASES-005",
+      "description": "Tofu, natural, and low-sugar text do not infer vegan, organic, or sugar-free claims.",
+      "phase": 15.7,
       "status": "passed"
     },
     {
@@ -1195,6 +1291,1008 @@
       "status": "passed"
     },
     {
+      "id": "P16.4-CONVENIENCE-001",
+      "description": "actual_total remains unchanged after convenience scoring.",
+      "phase": 16.4,
+      "status": "passed"
+    },
+    {
+      "id": "P16.4-CONVENIENCE-002",
+      "description": "effective_total includes convenience penalties.",
+      "phase": 16.4,
+      "status": "passed"
+    },
+    {
+      "id": "P16.4-CONVENIENCE-003",
+      "description": "Convenience scoring can flip recommendation from multi-store to single-store.",
+      "phase": 16.4,
+      "status": "passed"
+    },
+    {
+      "id": "P16.4-CONVENIENCE-004",
+      "description": "Multi-store can still win when savings exceed convenience penalty.",
+      "phase": 16.4,
+      "status": "passed"
+    },
+    {
+      "id": "P16.4-CONVENIENCE-005",
+      "description": "Preferred chains avoid non-preferred penalties.",
+      "phase": 16.4,
+      "status": "passed"
+    },
+    {
+      "id": "P16.4-CONVENIENCE-006",
+      "description": "Avoided chains receive large penalties while remaining visible.",
+      "phase": 16.4,
+      "status": "passed"
+    },
+    {
+      "id": "P16.4-CONVENIENCE-007",
+      "description": "max_store_count affects recommendation.",
+      "phase": 16.4,
+      "status": "passed"
+    },
+    {
+      "id": "P16.4-CONVENIENCE-008",
+      "description": "Omitted include_convenience_scoring preserves old response shape.",
+      "phase": 16.4,
+      "status": "passed"
+    },
+    {
+      "id": "P16.4-CONVENIENCE-009",
+      "description": "Explanation includes convenience-adjusted total when enabled.",
+      "phase": 16.4,
+      "status": "passed"
+    },
+    {
+      "id": "P16.4-CONVENIENCE-010",
+      "description": "Convenience currency remains EUR.",
+      "phase": 16.4,
+      "status": "passed"
+    },
+    {
+      "id": "P16.4-CONVENIENCE-011",
+      "description": "Convenience scoring does not mutate optimizer inputs.",
+      "phase": 16.4,
+      "status": "passed"
+    },
+    {
+      "id": "P16.5-BASKET-QUALITY-001",
+      "description": "Resolver resolution, ambiguity, and unresolved rates are calculated.",
+      "phase": 16.5,
+      "status": "passed"
+    },
+    {
+      "id": "P16.5-BASKET-QUALITY-002",
+      "description": "Pricing coverage, missing, and stale rates are calculated.",
+      "phase": 16.5,
+      "status": "passed"
+    },
+    {
+      "id": "P16.5-BASKET-QUALITY-003",
+      "description": "Optimization savings and savings rate compare multi-store totals against single-store totals.",
+      "phase": 16.5,
+      "status": "passed"
+    },
+    {
+      "id": "P16.5-BASKET-QUALITY-004",
+      "description": "Convenience metrics detect recommendation flips and effective-vs-actual deltas.",
+      "phase": 16.5,
+      "status": "passed"
+    },
+    {
+      "id": "P16.5-BASKET-QUALITY-005",
+      "description": "include_metrics is flag-gated on the optimize response.",
+      "phase": 16.5,
+      "status": "passed"
+    },
+    {
+      "id": "P16.5-BASKET-QUALITY-006",
+      "description": "Metrics do not affect optimizer output.",
+      "phase": 16.5,
+      "status": "passed"
+    },
+    {
+      "id": "P16.5-BASKET-QUALITY-007",
+      "description": "Metrics helpers do not mutate inputs.",
+      "phase": 16.5,
+      "status": "passed"
+    },
+    {
+      "id": "P16.5-BASKET-QUALITY-008",
+      "description": "Edge cases cover all unresolved items, all missing prices, and no multi-store option.",
+      "phase": 16.5,
+      "status": "passed"
+    },
+    {
+      "id": "P16.6-BASKET-ANALYTICS-001",
+      "description": "Metrics persist when include_metrics and persist_metrics are true.",
+      "phase": 16.6,
+      "status": "passed"
+    },
+    {
+      "id": "P16.6-BASKET-ANALYTICS-002",
+      "description": "Metrics do not persist when persist_metrics is omitted.",
+      "phase": 16.6,
+      "status": "passed"
+    },
+    {
+      "id": "P16.6-BASKET-ANALYTICS-003",
+      "description": "Aggregation returns correct average resolution, price coverage, savings, multi-store usage, and convenience flip rates.",
+      "phase": 16.6,
+      "status": "passed"
+    },
+    {
+      "id": "P16.6-BASKET-ANALYTICS-004",
+      "description": "Empty analytics datasets return safe zero summaries.",
+      "phase": 16.6,
+      "status": "passed"
+    },
+    {
+      "id": "P16.6-BASKET-ANALYTICS-005",
+      "description": "Partial and malformed records are ignored during aggregation.",
+      "phase": 16.6,
+      "status": "passed"
+    },
+    {
+      "id": "P16.6-BASKET-ANALYTICS-006",
+      "description": "Analytics summaries apply deterministic window and limit handling.",
+      "phase": 16.6,
+      "status": "passed"
+    },
+    {
+      "id": "P16.6-BASKET-ANALYTICS-007",
+      "description": "Persisting metrics does not mutate optimizer results.",
+      "phase": 16.6,
+      "status": "passed"
+    },
+    {
+      "id": "P16.6-BASKET-ANALYTICS-008",
+      "description": "Persistence failures do not break the optimize API response.",
+      "phase": 16.6,
+      "status": "passed"
+    },
+    {
+      "id": "P16.7-BASKET-HEALTH-001",
+      "description": "Low resolver resolution triggers warning alerts.",
+      "phase": 16.7,
+      "status": "passed"
+    },
+    {
+      "id": "P16.7-BASKET-HEALTH-002",
+      "description": "Low price coverage triggers warning alerts.",
+      "phase": 16.7,
+      "status": "passed"
+    },
+    {
+      "id": "P16.7-BASKET-HEALTH-003",
+      "description": "High stale rate triggers warning alerts.",
+      "phase": 16.7,
+      "status": "passed"
+    },
+    {
+      "id": "P16.7-BASKET-HEALTH-004",
+      "description": "Low savings and low savings rate trigger warning alerts.",
+      "phase": 16.7,
+      "status": "passed"
+    },
+    {
+      "id": "P16.7-BASKET-HEALTH-005",
+      "description": "High convenience flip rate triggers warning alerts.",
+      "phase": 16.7,
+      "status": "passed"
+    },
+    {
+      "id": "P16.7-BASKET-HEALTH-006",
+      "description": "Multiple warning alerts combine correctly.",
+      "phase": 16.7,
+      "status": "passed"
+    },
+    {
+      "id": "P16.7-BASKET-HEALTH-007",
+      "description": "Critical alerts override warning status.",
+      "phase": 16.7,
+      "status": "passed"
+    },
+    {
+      "id": "P16.7-BASKET-HEALTH-008",
+      "description": "Empty datasets return safe health output with low-sample info.",
+      "phase": 16.7,
+      "status": "passed"
+    },
+    {
+      "id": "P16.7-BASKET-HEALTH-009",
+      "description": "Basket health endpoint aggregates persisted analytics and supports window filtering.",
+      "phase": 16.7,
+      "status": "passed"
+    },
+    {
+      "id": "P16.7-BASKET-HEALTH-010",
+      "description": "Health alert builder does not mutate summary input.",
+      "phase": 16.7,
+      "status": "passed"
+    },
+    {
+      "id": "P17-SAVED-LISTS-001",
+      "description": "Saved lists can be created with normalized string item input.",
+      "phase": 17,
+      "status": "passed"
+    },
+    {
+      "id": "P17-SAVED-LISTS-002",
+      "description": "Saved lists can be read by id.",
+      "phase": 17,
+      "status": "passed"
+    },
+    {
+      "id": "P17-SAVED-LISTS-003",
+      "description": "Saved lists can be updated with object item input.",
+      "phase": 17,
+      "status": "passed"
+    },
+    {
+      "id": "P17-SAVED-LISTS-004",
+      "description": "Saved lists can be deleted.",
+      "phase": 17,
+      "status": "passed"
+    },
+    {
+      "id": "P17-SAVED-LISTS-005",
+      "description": "Saved lists can be listed.",
+      "phase": 17,
+      "status": "passed"
+    },
+    {
+      "id": "P17-SAVED-LISTS-006",
+      "description": "Saved lists can be optimized by rerunning the basket pipeline.",
+      "phase": 17,
+      "status": "passed"
+    },
+    {
+      "id": "P17-SAVED-LISTS-007",
+      "description": "Invalid saved-list ids return not found.",
+      "phase": 17,
+      "status": "passed"
+    },
+    {
+      "id": "P17-SAVED-LISTS-008",
+      "description": "Empty list creation is rejected.",
+      "phase": 17,
+      "status": "passed"
+    },
+    {
+      "id": "P17-SAVED-LISTS-009",
+      "description": "Saved-list operations do not mutate canonical, enrichment, or price layers.",
+      "phase": 17,
+      "status": "passed"
+    },
+    {
+      "id": "P17.1-PERSISTENT-LISTS-001",
+      "description": "Missing owner context defaults saved lists to anonymous ownership.",
+      "phase": 17.1,
+      "status": "passed"
+    },
+    {
+      "id": "P17.1-PERSISTENT-LISTS-002",
+      "description": "Temporary owner headers create explicit owner-scoped saved lists.",
+      "phase": 17.1,
+      "status": "passed"
+    },
+    {
+      "id": "P17.1-PERSISTENT-LISTS-003",
+      "description": "List responses only include saved lists for the resolved owner.",
+      "phase": 17.1,
+      "status": "passed"
+    },
+    {
+      "id": "P17.1-PERSISTENT-LISTS-004",
+      "description": "Get blocks cross-owner access with a bounded not-found response.",
+      "phase": 17.1,
+      "status": "passed"
+    },
+    {
+      "id": "P17.1-PERSISTENT-LISTS-005",
+      "description": "Update blocks cross-owner access without changing the owner list.",
+      "phase": 17.1,
+      "status": "passed"
+    },
+    {
+      "id": "P17.1-PERSISTENT-LISTS-006",
+      "description": "Delete blocks cross-owner access without deleting the owner list.",
+      "phase": 17.1,
+      "status": "passed"
+    },
+    {
+      "id": "P17.1-PERSISTENT-LISTS-007",
+      "description": "Optimize blocks cross-owner access.",
+      "phase": 17.1,
+      "status": "passed"
+    },
+    {
+      "id": "P17.1-PERSISTENT-LISTS-008",
+      "description": "Ownerless legacy records remain readable as anonymous records.",
+      "phase": 17.1,
+      "status": "passed"
+    },
+    {
+      "id": "P17.1-PERSISTENT-LISTS-009",
+      "description": "Saved-list optimization preserves existing optimizer behavior.",
+      "phase": 17.1,
+      "status": "passed"
+    },
+    {
+      "id": "P17.1-PERSISTENT-LISTS-010",
+      "description": "Saved lists persist only ownership fields and user input, not optimizer outputs.",
+      "phase": 17.1,
+      "status": "passed"
+    },
+    {
+      "id": "P17.2-WATCHLIST-001",
+      "description": "Watchlist items can be added with owner metadata and canonical product references.",
+      "phase": 17.2,
+      "status": "passed"
+    },
+    {
+      "id": "P17.2-WATCHLIST-002",
+      "description": "Duplicate watchlist adds are idempotent per owner and canonical product.",
+      "phase": 17.2,
+      "status": "passed"
+    },
+    {
+      "id": "P17.2-WATCHLIST-003",
+      "description": "Watchlist listing only returns the resolved owner's items.",
+      "phase": 17.2,
+      "status": "passed"
+    },
+    {
+      "id": "P17.2-WATCHLIST-004",
+      "description": "Get blocks cross-owner access with bounded not-found behavior.",
+      "phase": 17.2,
+      "status": "passed"
+    },
+    {
+      "id": "P17.2-WATCHLIST-005",
+      "description": "Update blocks cross-owner access without changing the watched item.",
+      "phase": 17.2,
+      "status": "passed"
+    },
+    {
+      "id": "P17.2-WATCHLIST-006",
+      "description": "Delete blocks cross-owner access without deleting the watched item.",
+      "phase": 17.2,
+      "status": "passed"
+    },
+    {
+      "id": "P17.2-WATCHLIST-007",
+      "description": "Price tracker view includes current best price from Phase 16.0 lookup.",
+      "phase": 17.2,
+      "status": "passed"
+    },
+    {
+      "id": "P17.2-WATCHLIST-008",
+      "description": "Watched products without prices return missing price status.",
+      "phase": 17.2,
+      "status": "passed"
+    },
+    {
+      "id": "P17.2-WATCHLIST-009",
+      "description": "Watchlist records do not store price snapshots or lookup outputs.",
+      "phase": 17.2,
+      "status": "passed"
+    },
+    {
+      "id": "P17.2-WATCHLIST-010",
+      "description": "Watchlist operations do not mutate canonical or price data.",
+      "phase": 17.2,
+      "status": "passed"
+    },
+    {
+      "id": "P17.3-DEALS-001",
+      "description": "Good deal classification detects prices at least 20% below recent average.",
+      "phase": 17.3,
+      "status": "passed"
+    },
+    {
+      "id": "P17.3-DEALS-002",
+      "description": "Expensive classification detects prices at least 20% above recent average.",
+      "phase": 17.3,
+      "status": "passed"
+    },
+    {
+      "id": "P17.3-DEALS-003",
+      "description": "Normal classification covers prices near recent average.",
+      "phase": 17.3,
+      "status": "passed"
+    },
+    {
+      "id": "P17.3-DEALS-004",
+      "description": "Missing history falls back to normal.",
+      "phase": 17.3,
+      "status": "passed"
+    },
+    {
+      "id": "P17.3-DEALS-005",
+      "description": "Target-price hits are detected.",
+      "phase": 17.3,
+      "status": "passed"
+    },
+    {
+      "id": "P17.3-DEALS-006",
+      "description": "Watchlist price views include deal signals.",
+      "phase": 17.3,
+      "status": "passed"
+    },
+    {
+      "id": "P17.3-DEALS-007",
+      "description": "Basket optimizer outputs include item deal signals and basket deal summaries.",
+      "phase": 17.3,
+      "status": "passed"
+    },
+    {
+      "id": "P17.3-DEALS-008",
+      "description": "Standalone product deal checks return deal classifications.",
+      "phase": 17.3,
+      "status": "passed"
+    },
+    {
+      "id": "P17.3-DEALS-009",
+      "description": "Deal detection does not mutate price data.",
+      "phase": 17.3,
+      "status": "passed"
+    },
+    {
+      "id": "P17.4-MARKET-TRENDS-001",
+      "description": "Market trend summaries group by enrichment category.",
+      "phase": 17.4,
+      "status": "passed"
+    },
+    {
+      "id": "P17.4-MARKET-TRENDS-002",
+      "description": "Market trend summaries group by brand and base product.",
+      "phase": 17.4,
+      "status": "passed"
+    },
+    {
+      "id": "P17.4-MARKET-TRENDS-003",
+      "description": "Trend thresholds classify up, down, and flat movement.",
+      "phase": 17.4,
+      "status": "passed"
+    },
+    {
+      "id": "P17.4-MARKET-TRENDS-004",
+      "description": "Missing previous period data returns insufficient_data.",
+      "phase": 17.4,
+      "status": "passed"
+    },
+    {
+      "id": "P17.4-MARKET-TRENDS-005",
+      "description": "Deal density uses Phase 17.3 good-deal classifications.",
+      "phase": 17.4,
+      "status": "passed"
+    },
+    {
+      "id": "P17.4-MARKET-TRENDS-006",
+      "description": "Enrichment filters limit grouped trend summaries.",
+      "phase": 17.4,
+      "status": "passed"
+    },
+    {
+      "id": "P17.4-MARKET-TRENDS-007",
+      "description": "Market trend summaries do not mutate canonical, enrichment, or price data.",
+      "phase": 17.4,
+      "status": "passed"
+    },
+    {
+      "id": "P17.4-MARKET-TRENDS-008",
+      "description": "Market trend API validates request shape, grouping, and window options.",
+      "phase": 17.4,
+      "status": "passed"
+    },
+    {
+      "id": "P17.4-MARKET-TRENDS-009",
+      "description": "Market overview returns top-level category trends.",
+      "phase": 17.4,
+      "status": "passed"
+    },
+    {
+      "id": "P17.5-HOME-SUMMARY-001",
+      "description": "Home summary returns the app-ready top-level shape.",
+      "phase": 17.5,
+      "status": "passed"
+    },
+    {
+      "id": "P17.5-HOME-SUMMARY-002",
+      "description": "Watchlist highlights are owner-scoped.",
+      "phase": 17.5,
+      "status": "passed"
+    },
+    {
+      "id": "P17.5-HOME-SUMMARY-003",
+      "description": "Saved-list shortcuts are owner-scoped and do not run optimization.",
+      "phase": 17.5,
+      "status": "passed"
+    },
+    {
+      "id": "P17.5-HOME-SUMMARY-004",
+      "description": "Internal health and analytics metrics are not exposed.",
+      "phase": 17.5,
+      "status": "passed"
+    },
+    {
+      "id": "P17.5-HOME-SUMMARY-005",
+      "description": "Empty data returns safe empty arrays.",
+      "phase": 17.5,
+      "status": "passed"
+    },
+    {
+      "id": "P17.5-HOME-SUMMARY-006",
+      "description": "Section limits are respected.",
+      "phase": 17.5,
+      "status": "passed"
+    },
+    {
+      "id": "P17.5-HOME-SUMMARY-007",
+      "description": "Quick actions are included.",
+      "phase": 17.5,
+      "status": "passed"
+    },
+    {
+      "id": "P17.5-HOME-SUMMARY-008",
+      "description": "Owner headers drive GET /home/summary.",
+      "phase": 17.5,
+      "status": "passed"
+    },
+    {
+      "id": "P17.5-HOME-SUMMARY-009",
+      "description": "Home summary generation does not mutate underlying stores.",
+      "phase": 17.5,
+      "status": "passed"
+    },
+    {
+      "id": "P18-HOME-SCREEN-001",
+      "description": "Flutter home screen shows a loading state while GET /home/summary is pending.",
+      "phase": 18,
+      "status": "passed"
+    },
+    {
+      "id": "P18-HOME-SCREEN-002",
+      "description": "Flutter home screen renders top deal cards from the home summary feed.",
+      "phase": 18,
+      "status": "passed"
+    },
+    {
+      "id": "P18-HOME-SCREEN-003",
+      "description": "Flutter home screen renders watchlist highlights and saved-list shortcuts from the home summary feed.",
+      "phase": 18,
+      "status": "passed"
+    },
+    {
+      "id": "P18-HOME-SCREEN-004",
+      "description": "Flutter home screen hides empty dynamic sections while keeping quick actions available.",
+      "phase": 18,
+      "status": "passed"
+    },
+    {
+      "id": "P18-HOME-SCREEN-005",
+      "description": "Flutter home screen exposes an error state and retries the home summary request.",
+      "phase": 18,
+      "status": "passed"
+    },
+    {
+      "id": "P18-HOME-SCREEN-006",
+      "description": "Home summary DTO parsing tolerates partial response payloads without crashing.",
+      "phase": 18,
+      "status": "passed"
+    },
+    {
+      "id": "P18-HOME-SCREEN-007",
+      "description": "Flutter API client sends anonymous owner context for GET /home/summary.",
+      "phase": 18,
+      "status": "passed"
+    },
+    {
+      "id": "P18.1-MOBILE-NAV-001",
+      "description": "Home quick actions navigate through named routes instead of snackbars.",
+      "phase": 18.1,
+      "status": "passed"
+    },
+    {
+      "id": "P18.1-MOBILE-NAV-002",
+      "description": "Home saved-list cards navigate to /list_detail with list arguments.",
+      "phase": 18.1,
+      "status": "passed"
+    },
+    {
+      "id": "P18.1-MOBILE-NAV-003",
+      "description": "Home deal cards navigate to /product with canonical product arguments.",
+      "phase": 18.1,
+      "status": "passed"
+    },
+    {
+      "id": "P18.1-MOBILE-NAV-004",
+      "description": "Home watchlist highlights navigate to /watchlist.",
+      "phase": 18.1,
+      "status": "passed"
+    },
+    {
+      "id": "P18.1-MOBILE-NAV-005",
+      "description": "Named routes exist for search, watchlist, lists, list detail, optimize, and product.",
+      "phase": 18.1,
+      "status": "passed"
+    },
+    {
+      "id": "P18.1-MOBILE-NAV-006",
+      "description": "List detail and product routes tolerate missing arguments without crashing.",
+      "phase": 18.1,
+      "status": "passed"
+    },
+    {
+      "id": "P18.1-MOBILE-NAV-007",
+      "description": "Existing home screen rendering remains covered after navigation wiring.",
+      "phase": 18.1,
+      "status": "passed"
+    },
+    {
+      "id": "P18.2-PRODUCT-SCREEN-001",
+      "description": "The /product route without arguments shows a safe state.",
+      "phase": 18.2,
+      "status": "passed"
+    },
+    {
+      "id": "P18.2-PRODUCT-SCREEN-002",
+      "description": "Product detail loads and renders product name, category, brand, and base product.",
+      "phase": 18.2,
+      "status": "passed"
+    },
+    {
+      "id": "P18.2-PRODUCT-SCREEN-003",
+      "description": "Product deal information renders when deal-check succeeds.",
+      "phase": 18.2,
+      "status": "passed"
+    },
+    {
+      "id": "P18.2-PRODUCT-SCREEN-004",
+      "description": "Deal-check failure does not block product rendering.",
+      "phase": 18.2,
+      "status": "passed"
+    },
+    {
+      "id": "P18.2-PRODUCT-SCREEN-005",
+      "description": "Add-to-watchlist calls the mobile API client with owner context and shows success.",
+      "phase": 18.2,
+      "status": "passed"
+    },
+    {
+      "id": "P18.2-PRODUCT-SCREEN-006",
+      "description": "Product API error shows retry and reloads successfully.",
+      "phase": 18.2,
+      "status": "passed"
+    },
+    {
+      "id": "P18.2-PRODUCT-SCREEN-007",
+      "description": "Home deal tap still navigates to the real product route.",
+      "phase": 18.2,
+      "status": "passed"
+    },
+    {
+      "id": "P18.3-HOME-SEARCH-001",
+      "description": "Home search/add-to-basket input renders at the top with the app contract placeholder.",
+      "phase": 18.3,
+      "status": "passed"
+    },
+    {
+      "id": "P18.3-HOME-SEARCH-002",
+      "description": "Enter/search action navigates to /search with the entered query argument.",
+      "phase": 18.3,
+      "status": "passed"
+    },
+    {
+      "id": "P18.3-HOME-SEARCH-003",
+      "description": "Add-to-basket action parses comma/newline draft items and navigates to /optimize.",
+      "phase": 18.3,
+      "status": "passed"
+    },
+    {
+      "id": "P18.3-HOME-SEARCH-004",
+      "description": "Quick-add parsing trims draft entries and ignores empty values.",
+      "phase": 18.3,
+      "status": "passed"
+    },
+    {
+      "id": "P18.3-HOME-SEARCH-005",
+      "description": "Empty search and add-to-basket input actions do nothing safely.",
+      "phase": 18.3,
+      "status": "passed"
+    },
+    {
+      "id": "P18.3-HOME-SEARCH-006",
+      "description": "/search and /optimize routes tolerate missing or provided arguments without crashing.",
+      "phase": 18.3,
+      "status": "passed"
+    },
+    {
+      "id": "P18.4-SEARCH-RESULTS-001",
+      "description": "/search without a query shows a safe empty state and does not call product search.",
+      "phase": 18.4,
+      "status": "passed"
+    },
+    {
+      "id": "P18.4-SEARCH-RESULTS-002",
+      "description": "Initial /search query calls the product search API and renders product results.",
+      "phase": 18.4,
+      "status": "passed"
+    },
+    {
+      "id": "P18.4-SEARCH-RESULTS-003",
+      "description": "Result cards render product name, brand/category/base-product metadata, optional deal, and optional best price.",
+      "phase": 18.4,
+      "status": "passed"
+    },
+    {
+      "id": "P18.4-SEARCH-RESULTS-004",
+      "description": "Tapping a search result navigates to /product with canonicalProductId.",
+      "phase": 18.4,
+      "status": "passed"
+    },
+    {
+      "id": "P18.4-SEARCH-RESULTS-005",
+      "description": "Product search API errors show retry and recover.",
+      "phase": 18.4,
+      "status": "passed"
+    },
+    {
+      "id": "P18.4-SEARCH-RESULTS-006",
+      "description": "Empty product search results show a friendly empty state.",
+      "phase": 18.4,
+      "status": "passed"
+    },
+    {
+      "id": "P18.4-SEARCH-RESULTS-007",
+      "description": "In-screen re-search updates the query and result list.",
+      "phase": 18.4,
+      "status": "passed"
+    },
+    {
+      "id": "P18.4-SEARCH-RESULTS-008",
+      "description": "Product search DTO parsing tolerates partial result payloads.",
+      "phase": 18.4,
+      "status": "passed"
+    },
+    {
+      "id": "P18.5-BASKET-SCREEN-001",
+      "description": "/optimize without arguments shows a safe empty basket state.",
+      "phase": 18.5,
+      "status": "passed"
+    },
+    {
+      "id": "P18.5-BASKET-SCREEN-002",
+      "description": "Draft route items render in the editable basket input.",
+      "phase": 18.5,
+      "status": "passed"
+    },
+    {
+      "id": "P18.5-BASKET-SCREEN-003",
+      "description": "Optimize calls the mobile API client with parsed basket items and user-facing default options.",
+      "phase": 18.5,
+      "status": "passed"
+    },
+    {
+      "id": "P18.5-BASKET-SCREEN-004",
+      "description": "Pending basket optimization requests show a loading state.",
+      "phase": 18.5,
+      "status": "passed"
+    },
+    {
+      "id": "P18.5-BASKET-SCREEN-005",
+      "description": "Successful basket optimization renders estimated total and store cards.",
+      "phase": 18.5,
+      "status": "passed"
+    },
+    {
+      "id": "P18.5-BASKET-SCREEN-006",
+      "description": "Basket explanation headline renders when the backend includes explanation output.",
+      "phase": 18.5,
+      "status": "passed"
+    },
+    {
+      "id": "P18.5-BASKET-SCREEN-007",
+      "description": "Basket optimization errors show retry and recover on a subsequent successful call.",
+      "phase": 18.5,
+      "status": "passed"
+    },
+    {
+      "id": "P18.5-BASKET-SCREEN-008",
+      "description": "Strategy toggle changes the optimization request from multi_store to single_store.",
+      "phase": 18.5,
+      "status": "passed"
+    },
+    {
+      "id": "P18.5-BASKET-SCREEN-009",
+      "description": "The mobile optimize screen does not expose score_total, raw metrics, or debug fields.",
+      "phase": 18.5,
+      "status": "passed"
+    },
+    {
+      "id": "P18.6-WATCHLIST-SCREEN-001",
+      "description": "The mobile watchlist price screen shows a loading state while the owner-scoped price view is pending.",
+      "phase": 18.6,
+      "status": "passed"
+    },
+    {
+      "id": "P18.6-WATCHLIST-SCREEN-002",
+      "description": "Watched products render best price, currency, chain or store, deal badge, and target-hit badge.",
+      "phase": 18.6,
+      "status": "passed"
+    },
+    {
+      "id": "P18.6-WATCHLIST-SCREEN-003",
+      "description": "Missing-price watchlist items render a safe missing price state.",
+      "phase": 18.6,
+      "status": "passed"
+    },
+    {
+      "id": "P18.6-WATCHLIST-SCREEN-004",
+      "description": "Tapping a watchlist price card navigates to /product with canonicalProductId.",
+      "phase": 18.6,
+      "status": "passed"
+    },
+    {
+      "id": "P18.6-WATCHLIST-SCREEN-005",
+      "description": "Removing a watchlist item calls the delete API and removes the item from the local screen list.",
+      "phase": 18.6,
+      "status": "passed"
+    },
+    {
+      "id": "P18.6-WATCHLIST-SCREEN-006",
+      "description": "Watchlist remove failure shows bounded error feedback and keeps the item visible.",
+      "phase": 18.6,
+      "status": "passed"
+    },
+    {
+      "id": "P18.6-WATCHLIST-SCREEN-007",
+      "description": "Watchlist price load errors show retry and recover on a subsequent successful call.",
+      "phase": 18.6,
+      "status": "passed"
+    },
+    {
+      "id": "P18.6-WATCHLIST-SCREEN-008",
+      "description": "The empty watchlist state navigates to /search from the Search products action.",
+      "phase": 18.6,
+      "status": "passed"
+    },
+    {
+      "id": "P18.6-WATCHLIST-SCREEN-009",
+      "description": "Watchlist price DTO parsing tolerates partial payloads without crashing.",
+      "phase": 18.6,
+      "status": "passed"
+    },
+    {
+      "id": "P18.7-SAVED-LISTS-001",
+      "description": "The mobile saved-lists screen loads and renders backend saved-list summaries.",
+      "phase": 18.7,
+      "status": "passed"
+    },
+    {
+      "id": "P18.7-SAVED-LISTS-002",
+      "description": "The mobile saved-lists empty state renders safely.",
+      "phase": 18.7,
+      "status": "passed"
+    },
+    {
+      "id": "P18.7-SAVED-LISTS-003",
+      "description": "Creating a saved list calls the backend API and renders the new card.",
+      "phase": 18.7,
+      "status": "passed"
+    },
+    {
+      "id": "P18.7-SAVED-LISTS-004",
+      "description": "Opening a saved-list card navigates to detail and fetches saved-list items.",
+      "phase": 18.7,
+      "status": "passed"
+    },
+    {
+      "id": "P18.7-SAVED-LISTS-005",
+      "description": "Editing and saving a saved list calls the backend update API.",
+      "phase": 18.7,
+      "status": "passed"
+    },
+    {
+      "id": "P18.7-SAVED-LISTS-006",
+      "description": "Optimizing a saved list navigates current items to /optimize.",
+      "phase": 18.7,
+      "status": "passed"
+    },
+    {
+      "id": "P18.7-SAVED-LISTS-007",
+      "description": "Deleting a saved list calls the backend API and removes the card locally.",
+      "phase": 18.7,
+      "status": "passed"
+    },
+    {
+      "id": "P18.7-SAVED-LISTS-008",
+      "description": "Saved-list load errors show retry and recover on a subsequent successful call.",
+      "phase": 18.7,
+      "status": "passed"
+    },
+    {
+      "id": "P18.7-SAVED-LISTS-009",
+      "description": "Saved-list DTO parsing tolerates partial payloads without crashing.",
+      "phase": 18.7,
+      "status": "passed"
+    },
+    {
+      "id": "P18.8-VISUAL-POLISH-001",
+      "description": "Flutter analyze passes after shared visual polish changes.",
+      "phase": 18.8,
+      "status": "passed"
+    },
+    {
+      "id": "P18.8-VISUAL-POLISH-002",
+      "description": "Widget smoke flows pass after spacing, card, typography, and empty-copy refinements.",
+      "phase": 18.8,
+      "status": "passed"
+    },
+    {
+      "id": "P18.8-VISUAL-POLISH-003",
+      "description": "Combined Flutter widget tests pass for the app shell and Phase 18 mobile screens.",
+      "phase": 18.8,
+      "status": "passed"
+    },
+    {
+      "id": "P18.8-VISUAL-POLISH-004",
+      "description": "Phase 5, 5.5, and 5.6 static mobile checks pass after shared UI primitive updates.",
+      "phase": 18.8,
+      "status": "passed"
+    },
+    {
+      "id": "P18.8-VISUAL-POLISH-005",
+      "description": "Documentation registry validation passes after visual-polish documentation updates.",
+      "phase": 18.8,
+      "status": "passed"
+    },
+    {
+      "id": "P18.8-HOME-POLISH-001",
+      "description": "Home summary layout renders Top Deals, Watchlist Highlights, Saved Lists, Market Highlights, and Quick Actions in the refined hierarchy.",
+      "phase": 18.8,
+      "status": "passed"
+    },
+    {
+      "id": "P18.8-HOME-POLISH-002",
+      "description": "Home search/add-to-basket actions, quick actions, saved-list cards, deal cards, and product navigation remain covered after the visual-only home refactor.",
+      "phase": 18.8,
+      "status": "passed"
+    },
+    {
+      "id": "P18.9-VISUAL-CONSISTENCY-001",
+      "description": "Flutter analyze passes after cross-screen visual consistency updates.",
+      "phase": 18.9,
+      "status": "passed"
+    },
+    {
+      "id": "P18.9-VISUAL-CONSISTENCY-002",
+      "description": "Full Flutter widget test suite passes after shared card, button, input, section-header, spacing, and badge refinements.",
+      "phase": 18.9,
+      "status": "passed"
+    },
+    {
+      "id": "P18.9-VISUAL-CONSISTENCY-003",
+      "description": "Phase 5, 5.5, and 5.6 static mobile checks pass after the visual-only consistency pass.",
+      "phase": 18.9,
+      "status": "passed"
+    },
+    {
+      "id": "P18.9-VISUAL-CONSISTENCY-004",
+      "description": "Product search, product detail, optimize basket, watchlist, saved lists, and saved-list detail behavior remains covered by existing tests.",
+      "phase": 18.9,
+      "status": "passed"
+    },
+    {
+      "id": "P18.9-VISUAL-CONSISTENCY-005",
+      "description": "Documentation registry validation passes after Phase 18.9 documentation and registry updates.",
+      "phase": 18.9,
+      "status": "passed"
+    },
+    {
       "id": "PM0-MEAL-001",
       "description": "The shared flat backbone exposes meal foundation collections for ingredient hierarchy, units, conversions, ingredient rules, and bridge mappings.",
       "phase": "M0",
@@ -1300,6 +2398,1932 @@
       "id": "PDB1-POSTGRES-007",
       "description": "Optional real Postgres metadata insert/read flow runs when local Postgres is configured.",
       "phase": "DB1",
+      "status": "passed"
+    },
+    {
+      "id": "PDB2-USDA-001",
+      "description": "USDA macro nutrient constants include only the DB2-approved macro subset.",
+      "phase": "DB2",
+      "status": "passed"
+    },
+    {
+      "id": "PDB2-USDA-002",
+      "description": "CSV parsing and USDA row normalization preserve source ids, category text, and numeric macro values.",
+      "phase": "DB2",
+      "status": "passed"
+    },
+    {
+      "id": "PDB2-USDA-003",
+      "description": "DB2 migration creates USDA food, nutrient, food-nutrient, portion, measure-unit, category, and import-run tables.",
+      "phase": "DB2",
+      "status": "passed"
+    },
+    {
+      "id": "PDB2-USDA-004",
+      "description": "Fixture import is macro-only and safely repeatable with new import batches.",
+      "phase": "DB2",
+      "status": "passed"
+    },
+    {
+      "id": "PDB2-USDA-005",
+      "description": "Repository read returns a USDA food joined with imported macro rows.",
+      "phase": "DB2",
+      "status": "passed"
+    },
+    {
+      "id": "PDB2-USDA-006",
+      "description": "Normal npm test uses fixture data and does not require the full USDA import.",
+      "phase": "DB2",
+      "status": "passed"
+    },
+    {
+      "id": "PDB2-USDA-007",
+      "description": "Fixture import skips malformed and orphaned USDA rows and records invalid-row counters without throwing.",
+      "phase": "DB2",
+      "status": "passed"
+    },
+    {
+      "id": "PDB2.5-CLUSTER-001",
+      "description": "USDA cluster candidate migration creates the required candidate table and fields.",
+      "phase": "DB2.5",
+      "status": "passed"
+    },
+    {
+      "id": "PDB2.5-CLUSTER-002",
+      "description": "Deterministic parser extracts qualifiers from USDA comma-separated descriptions.",
+      "phase": "DB2.5",
+      "status": "passed"
+    },
+    {
+      "id": "PDB2.5-CLUSTER-003",
+      "description": "Branded foods are excluded from DB2.5 first-pass candidate generation.",
+      "phase": "DB2.5",
+      "status": "passed"
+    },
+    {
+      "id": "PDB2.5-CLUSTER-004",
+      "description": "Over-collapse tests keep apple raw, juice, and sauce separate.",
+      "phase": "DB2.5",
+      "status": "passed"
+    },
+    {
+      "id": "PDB2.5-CLUSTER-005",
+      "description": "Over-collapse tests keep raw rice, cooked rice, and rice flour separate.",
+      "phase": "DB2.5",
+      "status": "passed"
+    },
+    {
+      "id": "PDB2.5-CLUSTER-006",
+      "description": "Over-collapse tests keep whole milk and skim milk separate.",
+      "phase": "DB2.5",
+      "status": "passed"
+    },
+    {
+      "id": "PDB2.5-CLUSTER-007",
+      "description": "Over-collapse tests keep raw chicken breast, cooked chicken breast, and breaded chicken separate.",
+      "phase": "DB2.5",
+      "status": "passed"
+    },
+    {
+      "id": "PDB2.5-CLUSTER-008",
+      "description": "Over-collapse tests keep shiitake mushroom and generic mushroom separate.",
+      "phase": "DB2.5",
+      "status": "passed"
+    },
+    {
+      "id": "PDB2.5-CLUSTER-009",
+      "description": "Over-collapse tests keep canned beans drained/rinsed and solids/liquids separate.",
+      "phase": "DB2.5",
+      "status": "passed"
+    },
+    {
+      "id": "PDB2.5-CLUSTER-010",
+      "description": "Representative scoring prefers Foundation and simple macro-backed candidates.",
+      "phase": "DB2.5",
+      "status": "passed"
+    },
+    {
+      "id": "PDB2.5-CLUSTER-011",
+      "description": "Candidate repository upserts normalized records idempotently.",
+      "phase": "DB2.5",
+      "status": "passed"
+    },
+    {
+      "id": "PDB2.5-CLUSTER-012",
+      "description": "Batch generation scans eligible Foundation and SR Legacy USDA foods from Postgres with cursor pagination.",
+      "phase": "DB2.5",
+      "status": "passed"
+    },
+    {
+      "id": "PDB2.5-CLUSTER-013",
+      "description": "Batch generation skips unsupported data types and foods without macro nutrient rows before candidate writes.",
+      "phase": "DB2.5",
+      "status": "passed"
+    },
+    {
+      "id": "PDB2.5-CLUSTER-014",
+      "description": "Batch generation supports dry runs, max-row limits, data-type filters, and idempotent candidate upserts.",
+      "phase": "DB2.5",
+      "status": "passed"
+    },
+    {
+      "id": "PDB2.5-CLUSTER-015",
+      "description": "Representative score JSON records explicit macro-data presence for generated candidates.",
+      "phase": "DB2.5",
+      "status": "passed"
+    },
+    {
+      "id": "PDB2.5-CLUSTER-016",
+      "description": "Inspection reports summarize USDA cluster candidates by source data type and review status.",
+      "phase": "DB2.5",
+      "status": "passed"
+    },
+    {
+      "id": "PDB2.5-CLUSTER-017",
+      "description": "Inspection reports identify candidate-key and hard-boundary collision groups for review.",
+      "phase": "DB2.5",
+      "status": "passed"
+    },
+    {
+      "id": "PDB2.5-CLUSTER-018",
+      "description": "Inspection reports surface low-confidence candidates, missing qualifier structures, score buckets, and ambiguous core foods.",
+      "phase": "DB2.5",
+      "status": "passed"
+    },
+    {
+      "id": "PDB2.5-CLUSTER-019",
+      "description": "Inspection reports support candidate-key and core-food filters without writing sidecar data.",
+      "phase": "DB2.5",
+      "status": "passed"
+    },
+    {
+      "id": "PDB2.5-CLUSTER-020",
+      "description": "Materialization migration creates reviewable USDA cluster and cluster-member preview tables.",
+      "phase": "DB2.5",
+      "status": "passed"
+    },
+    {
+      "id": "PDB2.5-CLUSTER-021",
+      "description": "Materialization groups candidates by candidate key plus hard boundary into proposed clusters and members.",
+      "phase": "DB2.5",
+      "status": "passed"
+    },
+    {
+      "id": "PDB2.5-CLUSTER-022",
+      "description": "Representative selection uses score, Foundation preference, confidence, description simplicity, and FDC id tie-breaks.",
+      "phase": "DB2.5",
+      "status": "passed"
+    },
+    {
+      "id": "PDB2.5-CLUSTER-023",
+      "description": "Dry-run materialization returns proposed clusters and members without writes.",
+      "phase": "DB2.5",
+      "status": "passed"
+    },
+    {
+      "id": "PDB2.5-CLUSTER-024",
+      "description": "Non-dry-run materialization upserts preview clusters and members idempotently while preserving approved or rejected cluster review status.",
+      "phase": "DB2.5",
+      "status": "passed"
+    },
+    {
+      "id": "PDB2.5-CLUSTER-025",
+      "description": "Review workflow migration adds review provenance fields and append-only cluster review history.",
+      "phase": "DB2.5",
+      "status": "passed"
+    },
+    {
+      "id": "PDB2.5-CLUSTER-026",
+      "description": "Review service validates supported decisions and rejects invalid terminal status transitions.",
+      "phase": "DB2.5",
+      "status": "passed"
+    },
+    {
+      "id": "PDB2.5-CLUSTER-027",
+      "description": "Review queue listing filters proposed USDA clusters by review status.",
+      "phase": "DB2.5",
+      "status": "passed"
+    },
+    {
+      "id": "PDB2.5-CLUSTER-028",
+      "description": "Cluster review detail returns the cluster, members, and review history.",
+      "phase": "DB2.5",
+      "status": "passed"
+    },
+    {
+      "id": "PDB2.5-CLUSTER-029",
+      "description": "Cluster review updates preserve reviewer provenance, append history, and never delete candidates or members.",
+      "phase": "DB2.5",
+      "status": "passed"
+    },
+    {
+      "id": "PDB2.5-CLUSTER-030",
+      "description": "Ingredient nutrition mapping migration creates mapping and review-history tables.",
+      "phase": "DB2.5",
+      "status": "passed"
+    },
+    {
+      "id": "PDB2.5-CLUSTER-031",
+      "description": "Ingredient nutrition mapping suggestions read approved clusters only and never map raw USDA foods directly to ingredients.",
+      "phase": "DB2.5",
+      "status": "passed"
+    },
+    {
+      "id": "PDB2.5-CLUSTER-032",
+      "description": "Ingredient nutrition mapping suggestions cover exact name, alias, raw-state, and cooked-state deterministic matches.",
+      "phase": "DB2.5",
+      "status": "passed"
+    },
+    {
+      "id": "PDB2.5-CLUSTER-033",
+      "description": "Ingredient nutrition mapping suggestion upserts are idempotent and preserve approved or rejected review states.",
+      "phase": "DB2.5",
+      "status": "passed"
+    },
+    {
+      "id": "PDB2.5-CLUSTER-034",
+      "description": "Ingredient nutrition mapping review appends history and rejects invalid terminal transitions.",
+      "phase": "DB2.5",
+      "status": "passed"
+    },
+    {
+      "id": "PDB3A-INGREDIENT-001",
+      "description": "DB3A migration creates the canonical ingredients table with stable Pricer ids and review statuses.",
+      "phase": "DB3A",
+      "status": "passed"
+    },
+    {
+      "id": "PDB3A-INGREDIENT-002",
+      "description": "Ingredient repository normalizes stable ingredient keys and preserves ids across idempotent upserts.",
+      "phase": "DB3A",
+      "status": "passed"
+    },
+    {
+      "id": "PDB3A-INGREDIENT-003",
+      "description": "Ingredient repository supports alias search and Bulgarian name storage.",
+      "phase": "DB3A",
+      "status": "passed"
+    },
+    {
+      "id": "PDB3A-INGREDIENT-004",
+      "description": "Ingredient repository lists by review_status and exposes explicit no-delete behavior.",
+      "phase": "DB3A",
+      "status": "passed"
+    },
+    {
+      "id": "PDB3A-INGREDIENT-005",
+      "description": "DB3A ingredients are not USDA FDC ids and do not directly map raw USDA rows.",
+      "phase": "DB3A",
+      "status": "passed"
+    },
+    {
+      "id": "PDB3B-INGREDIENT-001",
+      "description": "Ingredient inspection reports summarize total ingredients by review status and food family.",
+      "phase": "DB3B",
+      "status": "passed"
+    },
+    {
+      "id": "PDB3B-INGREDIENT-002",
+      "description": "Ingredient inspection reports identify missing Bulgarian names and missing default or shopping units.",
+      "phase": "DB3B",
+      "status": "passed"
+    },
+    {
+      "id": "PDB3B-INGREDIENT-003",
+      "description": "Ingredient inspection reports identify duplicate normalized names and alias collisions.",
+      "phase": "DB3B",
+      "status": "passed"
+    },
+    {
+      "id": "PDB3B-INGREDIENT-004",
+      "description": "Ingredient inspection reports identify ingredients without nutrition mappings.",
+      "phase": "DB3B",
+      "status": "passed"
+    },
+    {
+      "id": "PDB3B-INGREDIENT-005",
+      "description": "Ingredient inspection report filters cover review status, missing Bulgarian names, and missing nutrition mappings while remaining read-only.",
+      "phase": "DB3B",
+      "status": "passed"
+    },
+    {
+      "id": "PDB3C-PROFILE-001",
+      "description": "DB3C migration creates ingredient nutrition profile candidate records for per-100g review.",
+      "phase": "DB3C",
+      "status": "passed"
+    },
+    {
+      "id": "PDB3C-PROFILE-002",
+      "description": "Profile candidate generation reads approved ingredient nutrition mappings only.",
+      "phase": "DB3C",
+      "status": "passed"
+    },
+    {
+      "id": "PDB3C-PROFILE-003",
+      "description": "Profile candidate generation joins USDA macro rows by representative FDC id and outputs kcal, protein, fat, carbs, fiber, sugar, and sodium where available.",
+      "phase": "DB3C",
+      "status": "passed"
+    },
+    {
+      "id": "PDB3C-PROFILE-004",
+      "description": "Profile candidate upserts are idempotent by mapping id.",
+      "phase": "DB3C",
+      "status": "passed"
+    },
+    {
+      "id": "PDB3C-PROFILE-005",
+      "description": "Profile candidate regeneration preserves existing review status and dry runs do not write records.",
+      "phase": "DB3C",
+      "status": "passed"
+    },
+    {
+      "id": "PDB3D-PROFILE-001",
+      "description": "DB3D migration creates approved ingredient nutrition profile and review-history tables.",
+      "phase": "DB3D",
+      "status": "passed"
+    },
+    {
+      "id": "PDB3D-PROFILE-002",
+      "description": "Profile candidate review listing and detail reads work by review status.",
+      "phase": "DB3D",
+      "status": "passed"
+    },
+    {
+      "id": "PDB3D-PROFILE-003",
+      "description": "Approving a profile candidate creates an approved ingredient nutrition profile with provenance.",
+      "phase": "DB3D",
+      "status": "passed"
+    },
+    {
+      "id": "PDB3D-PROFILE-004",
+      "description": "Rejecting and marking profile candidates as needs_review append review history.",
+      "phase": "DB3D",
+      "status": "passed"
+    },
+    {
+      "id": "PDB3D-PROFILE-005",
+      "description": "Existing approved profiles are not overwritten accidentally.",
+      "phase": "DB3D",
+      "status": "passed"
+    },
+    {
+      "id": "PDB3D-PROFILE-006",
+      "description": "Approving a replacement candidate supersedes the prior approved profile deterministically.",
+      "phase": "DB3D",
+      "status": "passed"
+    },
+    {
+      "id": "PDB3D-PROFILE-007",
+      "description": "Invalid terminal transitions are rejected and DB3D avoids Firestore, recipe, LLM, and runtime app paths.",
+      "phase": "DB3D",
+      "status": "passed"
+    },
+    {
+      "id": "PDB3E-PRODUCT-EQUIVALENCE-001",
+      "description": "DB3E migration creates ingredient product candidate, mapping, and substitution group tables with supported mapping and review statuses.",
+      "phase": "DB3E",
+      "status": "passed"
+    },
+    {
+      "id": "PDB3E-PRODUCT-EQUIVALENCE-002",
+      "description": "Deterministic matching generates product candidates and ingredient mapping suggestions from keys, names, aliases, food-family hints, and attributes.",
+      "phase": "DB3E",
+      "status": "passed"
+    },
+    {
+      "id": "PDB3E-PRODUCT-EQUIVALENCE-003",
+      "description": "Generated ingredient product mappings remain suggested and are not automatically approved.",
+      "phase": "DB3E",
+      "status": "passed"
+    },
+    {
+      "id": "PDB3E-PRODUCT-EQUIVALENCE-004",
+      "description": "Ingredient product candidate and mapping upserts are idempotent while preserving approved and rejected mapping decisions.",
+      "phase": "DB3E",
+      "status": "passed"
+    },
+    {
+      "id": "PDB3E-PRODUCT-EQUIVALENCE-005",
+      "description": "Approved products can be listed by ingredient with mapping and product candidate context.",
+      "phase": "DB3E",
+      "status": "passed"
+    },
+    {
+      "id": "PDB3E-PRODUCT-EQUIVALENCE-006",
+      "description": "DB3E avoids recipe writes, ingredient auto-creation, LLM calls, Firestore writes, sponsored logic, and runtime product/search/shopping/basket changes.",
+      "phase": "DB3E",
+      "status": "passed"
+    },
+    {
+      "id": "PDB4A-RECIPE-001",
+      "description": "DB4A migration creates recipes, recipe_ingredients, and recipe_steps with review statuses and ingredient references.",
+      "phase": "DB4A",
+      "status": "passed"
+    },
+    {
+      "id": "PDB4A-RECIPE-002",
+      "description": "Recipe repository upserts by stable recipe key idempotently and preserves recipe ids.",
+      "phase": "DB4A",
+      "status": "passed"
+    },
+    {
+      "id": "PDB4A-RECIPE-003",
+      "description": "Recipe seed validation links ingredient keys to existing ingredient ids and skips missing ingredient keys without auto-creation.",
+      "phase": "DB4A",
+      "status": "passed"
+    },
+    {
+      "id": "PDB4A-RECIPE-004",
+      "description": "Recipe detail returns ordered ingredient lines and ordered steps.",
+      "phase": "DB4A",
+      "status": "passed"
+    },
+    {
+      "id": "PDB4A-RECIPE-005",
+      "description": "Recipe ids are separate from ingredient ids and recipe ingredient lines do not carry direct USDA FDC ids.",
+      "phase": "DB4A",
+      "status": "passed"
+    },
+    {
+      "id": "PDB4A-RECIPE-006",
+      "description": "DB4A recipe seeding and repository actions avoid LLM, Firestore, source recipe ingest, and runtime product/search/shopping/basket paths.",
+      "phase": "DB4A",
+      "status": "passed"
+    },
+    {
+      "id": "PDB4B-RECIPE-NUTRITION-001",
+      "description": "DB4B migration creates recipe_nutrition_profile_candidates with recipe uniqueness, confidence, counts, and review-status constraints.",
+      "phase": "DB4B",
+      "status": "passed"
+    },
+    {
+      "id": "PDB4B-RECIPE-NUTRITION-002",
+      "description": "Recipe nutrition candidates aggregate approved ingredient profile nutrients using quantity_grams and compute per-serving values.",
+      "phase": "DB4B",
+      "status": "passed"
+    },
+    {
+      "id": "PDB4B-RECIPE-NUTRITION-003",
+      "description": "Missing ingredient grams or approved nutrition profiles are tracked while partial recipe candidates still generate.",
+      "phase": "DB4B",
+      "status": "passed"
+    },
+    {
+      "id": "PDB4B-RECIPE-NUTRITION-004",
+      "description": "Coverage confidence is assigned as high, medium, or low based on ingredient nutrition availability.",
+      "phase": "DB4B",
+      "status": "passed"
+    },
+    {
+      "id": "PDB4B-RECIPE-NUTRITION-005",
+      "description": "Recipe nutrition candidate upserts are idempotent by recipe_id and preserve existing review status.",
+      "phase": "DB4B",
+      "status": "passed"
+    },
+    {
+      "id": "PDB4B-RECIPE-NUTRITION-006",
+      "description": "Recipes with zero valid nutrition inputs are reported and skipped without creating profile candidates.",
+      "phase": "DB4B",
+      "status": "passed"
+    },
+    {
+      "id": "PDB4B-RECIPE-NUTRITION-007",
+      "description": "DB4B generation avoids LLM, Firestore, meal planner, runtime publishing, ingredient creation, and direct USDA recipe mappings.",
+      "phase": "DB4B",
+      "status": "passed"
+    },
+    {
+      "id": "PDB4C-RECIPE-NUTRITION-001",
+      "description": "DB4C migration creates recipe_nutrition_profiles and recipe_nutrition_profile_review_history with approved/superseded review constraints.",
+      "phase": "DB4C",
+      "status": "passed"
+    },
+    {
+      "id": "PDB4C-RECIPE-NUTRITION-002",
+      "description": "Recipe nutrition profile candidates can be listed by review status and recipe filter.",
+      "phase": "DB4C",
+      "status": "passed"
+    },
+    {
+      "id": "PDB4C-RECIPE-NUTRITION-003",
+      "description": "Candidate detail includes recipe context, ingredient lines, missing nutrition ids, and review history.",
+      "phase": "DB4C",
+      "status": "passed"
+    },
+    {
+      "id": "PDB4C-RECIPE-NUTRITION-004",
+      "description": "Approving a recipe nutrition candidate creates an approved recipe nutrition profile with candidate provenance.",
+      "phase": "DB4C",
+      "status": "passed"
+    },
+    {
+      "id": "PDB4C-RECIPE-NUTRITION-005",
+      "description": "Rejecting and marking candidates needs_review append review history without creating approved profiles.",
+      "phase": "DB4C",
+      "status": "passed"
+    },
+    {
+      "id": "PDB4C-RECIPE-NUTRITION-006",
+      "description": "Approved recipe profiles are not overwritten accidentally and replacement approvals supersede prior approved profiles deterministically.",
+      "phase": "DB4C",
+      "status": "passed"
+    },
+    {
+      "id": "PDB4C-RECIPE-NUTRITION-007",
+      "description": "Invalid terminal transitions are rejected and DB4C avoids LLM, Firestore, runtime publishing, ingredient creation, and direct USDA recipe mappings.",
+      "phase": "DB4C",
+      "status": "passed"
+    },
+    {
+      "id": "PDB4D-RECIPE-QUALITY-001",
+      "description": "DB4D recipe quality reporting summarizes canonical recipes by review status, stored usability status, and computed readiness status.",
+      "phase": "DB4D",
+      "status": "passed"
+    },
+    {
+      "id": "PDB4D-RECIPE-QUALITY-002",
+      "description": "Per-recipe readiness metrics deterministically compute ingredient match, grams coverage, nutrition coverage, product coverage, and approved recipe nutrition presence.",
+      "phase": "DB4D",
+      "status": "passed"
+    },
+    {
+      "id": "PDB4D-RECIPE-QUALITY-003",
+      "description": "Canonical recipe ingredient lines report missing matched ingredients, grams, approved ingredient nutrition, and approved product mappings without mutation.",
+      "phase": "DB4D",
+      "status": "passed"
+    },
+    {
+      "id": "PDB4D-RECIPE-QUALITY-004",
+      "description": "DB4D reports recipes with or without approved recipe nutrition profiles plus top ingredient gap candidates and suggested next review targets.",
+      "phase": "DB4D",
+      "status": "passed"
+    },
+    {
+      "id": "PDB4D-RECIPE-QUALITY-005",
+      "description": "Recipe, usability-status, and missing-data filters scope DB4D reports safely, and the CLI parses the supported flags deterministically.",
+      "phase": "DB4D",
+      "status": "passed"
+    },
+    {
+      "id": "PDB4D-RECIPE-QUALITY-006",
+      "description": "DB4D reporting stays read-only and avoids LLM, Firestore, planners, basket optimizers, ingredient creation, and runtime publishing.",
+      "phase": "DB4D",
+      "status": "passed"
+    },
+    {
+      "id": "PDB5A-RECIPE-INGEST-001",
+      "description": "DB5A migration creates raw-preserving recipe ingest jobs, staged recipes, staged ingredients, staged steps, and rich staged metadata tables.",
+      "phase": "DB5A",
+      "status": "passed"
+    },
+    {
+      "id": "PDB5A-RECIPE-INGEST-002",
+      "description": "Recipe ingest jobs preserve raw text and JSON input while staged recipes store rich metadata separately from canonical recipes.",
+      "phase": "DB5A",
+      "status": "passed"
+    },
+    {
+      "id": "PDB5A-RECIPE-INGEST-003",
+      "description": "Staged ingredients are stored separately from canonical recipe_ingredients and nullable matched_ingredient_id links only to existing ingredients.",
+      "phase": "DB5A",
+      "status": "passed"
+    },
+    {
+      "id": "PDB5A-RECIPE-INGEST-004",
+      "description": "Tools, methods, tags, state changes, substitution hints, and quality signals persist as separate staged child rows.",
+      "phase": "DB5A",
+      "status": "passed"
+    },
+    {
+      "id": "PDB5A-RECIPE-INGEST-005",
+      "description": "Staged recipe listing and search support review-status, job-status, proposed key, and title filters.",
+      "phase": "DB5A",
+      "status": "passed"
+    },
+    {
+      "id": "PDB5A-RECIPE-INGEST-006",
+      "description": "DB5A repository and seed CLI reject deletion and avoid canonical recipe writes, ingredient creation, LLM calls, Firestore writes, and runtime product/search/shopping/basket changes.",
+      "phase": "DB5A",
+      "status": "passed"
+    },
+    {
+      "id": "PDB5B-RECIPE-INGEST-001",
+      "description": "DB5B migration allows extracting job status and the prompt requires strict JSON-only recipe extraction output.",
+      "phase": "DB5B",
+      "status": "passed"
+    },
+    {
+      "id": "PDB5B-RECIPE-INGEST-002",
+      "description": "Valid mocked LLM extraction inserts a staged recipe bundle through the DB5A staging repository and stores DB5B provenance in job and staged extraction JSON.",
+      "phase": "DB5B",
+      "status": "passed"
+    },
+    {
+      "id": "PDB5B-RECIPE-INGEST-003",
+      "description": "Invalid JSON, missing recipe title, and empty ingredient list are rejected before staging writes.",
+      "phase": "DB5B",
+      "status": "passed"
+    },
+    {
+      "id": "PDB5B-RECIPE-INGEST-004",
+      "description": "Deterministic ingredient matching resolves existing ingredients by key, normalized name, or alias while unmatched ingredients remain staged with null matched_ingredient_id.",
+      "phase": "DB5B",
+      "status": "passed"
+    },
+    {
+      "id": "PDB5B-RECIPE-INGEST-005",
+      "description": "DB5B idempotency skips already staged jobs by default and force restaging safely upserts deterministic staging rows.",
+      "phase": "DB5B",
+      "status": "passed"
+    },
+    {
+      "id": "PDB5B-RECIPE-INGEST-006",
+      "description": "Failed extraction preserves raw job input and DB5B tests use mocked LLM output only without canonical recipe writes, ingredient creation, Firestore writes, or runtime product/search/shopping/basket changes.",
+      "phase": "DB5B",
+      "status": "passed"
+    },
+    {
+      "id": "PDB5C-RECIPE-PROMOTION-001",
+      "description": "DB5C can promote staged recipes into canonical recipes even when ingredient matching is partial.",
+      "phase": "DB5C",
+      "status": "passed"
+    },
+    {
+      "id": "PDB5C-RECIPE-PROMOTION-002",
+      "description": "Promoted canonical recipe ingredient rows preserve unmatched lines with nullable matched_ingredient_id and no ingredient auto-creation.",
+      "phase": "DB5C",
+      "status": "passed"
+    },
+    {
+      "id": "PDB5C-RECIPE-PROMOTION-003",
+      "description": "DB5C promotion generates or increments ingredient_gap_candidates for unmatched staged ingredient names.",
+      "phase": "DB5C",
+      "status": "passed"
+    },
+    {
+      "id": "PDB5C-RECIPE-PROMOTION-004",
+      "description": "DB5C usability classification is deterministic from ingredient match rate and approved nutrition coverage.",
+      "phase": "DB5C",
+      "status": "passed"
+    },
+    {
+      "id": "PDB5C-RECIPE-PROMOTION-005",
+      "description": "DB5C promotion reruns are idempotent for canonical recipe, ingredient, and step rows while still appending review history.",
+      "phase": "DB5C",
+      "status": "passed"
+    },
+    {
+      "id": "PDB5C-RECIPE-PROMOTION-006",
+      "description": "Structurally invalid zero-ingredient staged recipes are rejected instead of promoted, and DB5C avoids LLM, Firestore, and ingredient creation side effects.",
+      "phase": "DB5C",
+      "status": "passed"
+    },
+    {
+      "id": "PUX1-USER-FOOD-001",
+      "description": "UX1 migration creates user food profile, constraint, preference, and equipment tables with bounded domain checks.",
+      "phase": "UX1",
+      "status": "passed"
+    },
+    {
+      "id": "PUX1-USER-FOOD-002",
+      "description": "User food profiles upsert deterministically by user_id and preserve stable profile ids.",
+      "phase": "UX1",
+      "status": "passed"
+    },
+    {
+      "id": "PUX1-USER-FOOD-003",
+      "description": "UX1 nutrition target updates persist independently, and hard allergy plus softer dislike and avoid constraints store correctly.",
+      "phase": "UX1",
+      "status": "passed"
+    },
+    {
+      "id": "PUX1-USER-FOOD-004",
+      "description": "Flavor, texture, and cuisine preferences plus equipment availability persist deterministically and return through the full profile bundle.",
+      "phase": "UX1",
+      "status": "passed"
+    },
+    {
+      "id": "PUX1-USER-FOOD-005",
+      "description": "UX1 seed reruns are idempotent for logical profile-domain rows and dry-run mode remains write-free.",
+      "phase": "UX1",
+      "status": "passed"
+    },
+    {
+      "id": "PUX1-USER-FOOD-006",
+      "description": "UX1 does not call planners, does not write Firestore, and does not mutate recipes or products.",
+      "phase": "UX1",
+      "status": "passed"
+    },
+    {
+      "id": "P20-GAP-DETECTION-001",
+      "description": "Unresolved queries produce high gap scores and missing_supply classification.",
+      "phase": 20,
+      "status": "passed"
+    },
+    {
+      "id": "P20-GAP-DETECTION-002",
+      "description": "Ambiguous queries produce medium gap scores and poor_match_quality classification.",
+      "phase": 20,
+      "status": "passed"
+    },
+    {
+      "id": "P20-GAP-DETECTION-003",
+      "description": "High category-relative prices add price pressure score and classify high_price_pressure.",
+      "phase": 20,
+      "status": "passed"
+    },
+    {
+      "id": "P20-GAP-DETECTION-004",
+      "description": "Gap summaries group by normalized_query and category_l2.",
+      "phase": 20,
+      "status": "passed"
+    },
+    {
+      "id": "P20-GAP-DETECTION-005",
+      "description": "Empty signal datasets return safe empty summaries.",
+      "phase": 20,
+      "status": "passed"
+    },
+    {
+      "id": "P20-GAP-DETECTION-006",
+      "description": "Gap summary reads and endpoint reads do not mutate the signal store.",
+      "phase": 20,
+      "status": "passed"
+    },
+    {
+      "id": "P20-GAP-DETECTION-007",
+      "description": "Gap detection output is deterministic for repeated reads.",
+      "phase": 20,
+      "status": "passed"
+    },
+    {
+      "id": "P20-GAP-DETECTION-008",
+      "description": "Search and resolver handlers capture gap signals without changing successful responses.",
+      "phase": 20,
+      "status": "passed"
+    },
+    {
+      "id": "P20-GAP-DETECTION-009",
+      "description": "Gap detection endpoint validates options and applies limits.",
+      "phase": 20,
+      "status": "passed"
+    },
+    {
+      "id": "P20.1-LOCAL-GAP-001",
+      "description": "Gap signals normalize nullable locality_code values and keep deterministic identities distinct across localities.",
+      "phase": 20.1,
+      "status": "passed"
+    },
+    {
+      "id": "P20.1-LOCAL-GAP-002",
+      "description": "Direct gap-summary reads can filter to one locality without breaking the existing global summary shape.",
+      "phase": 20.1,
+      "status": "passed"
+    },
+    {
+      "id": "P20.1-LOCAL-GAP-003",
+      "description": "Single-locality summaries filter correctly and include category context for grouped gaps.",
+      "phase": 20.1,
+      "status": "passed"
+    },
+    {
+      "id": "P20.1-LOCAL-GAP-004",
+      "description": "Multi-locality summaries return top gaps per locality and sort localities by strongest gap.",
+      "phase": 20.1,
+      "status": "passed"
+    },
+    {
+      "id": "P20.1-LOCAL-GAP-005",
+      "description": "Missing locality values are handled safely as nullable locality segments.",
+      "phase": 20.1,
+      "status": "passed"
+    },
+    {
+      "id": "P20.1-LOCAL-GAP-006",
+      "description": "Locality summaries support grouping by normalized_query and category_l2.",
+      "phase": 20.1,
+      "status": "passed"
+    },
+    {
+      "id": "P20.1-LOCAL-GAP-007",
+      "description": "Gap detection endpoints route locality-specific and multi-locality requests with bounded limits.",
+      "phase": 20.1,
+      "status": "passed"
+    },
+    {
+      "id": "P20.1-LOCAL-GAP-008",
+      "description": "Locality summaries stay deterministic and do not mutate the stored signal collection.",
+      "phase": 20.1,
+      "status": "passed"
+    },
+    {
+      "id": "P20.1-LOCAL-GAP-009",
+      "description": "Search, shopping-list resolution, and watchlist flows capture locality context when available.",
+      "phase": 20.1,
+      "status": "passed"
+    },
+    {
+      "id": "P20.2-CHAIN-GAP-001",
+      "description": "Legacy signals without chain or store context still work in default gap summaries.",
+      "phase": 20.2,
+      "status": "passed"
+    },
+    {
+      "id": "P20.2-CHAIN-GAP-002",
+      "description": "Gap signals normalize optional chain_id and store_id fields without breaking backward compatibility.",
+      "phase": 20.2,
+      "status": "passed"
+    },
+    {
+      "id": "P20.2-CHAIN-GAP-003",
+      "description": "Gap summaries support direct filtering by chain_id and store_id.",
+      "phase": 20.2,
+      "status": "passed"
+    },
+    {
+      "id": "P20.2-CHAIN-GAP-004",
+      "description": "Locality and chain filters work together without breaking locality-specific summary reads.",
+      "phase": 20.2,
+      "status": "passed"
+    },
+    {
+      "id": "P20.2-CHAIN-GAP-005",
+      "description": "Gap summaries support grouping by chain_id and store_id.",
+      "phase": 20.2,
+      "status": "passed"
+    },
+    {
+      "id": "P20.2-CHAIN-GAP-006",
+      "description": "Coverage-by-chain computes coverage_rate from resolved and total chain signals.",
+      "phase": 20.2,
+      "status": "passed"
+    },
+    {
+      "id": "P20.2-CHAIN-GAP-007",
+      "description": "Coverage-by-chain sorts lowest coverage first and then higher-signal chains before weaker evidence.",
+      "phase": 20.2,
+      "status": "passed"
+    },
+    {
+      "id": "P20.2-CHAIN-GAP-008",
+      "description": "Unknown chain or store context is handled safely as nullable or uncategorized segments.",
+      "phase": 20.2,
+      "status": "passed"
+    },
+    {
+      "id": "P20.2-CHAIN-GAP-009",
+      "description": "Chain/store coverage reads stay deterministic and do not mutate the stored signal collection.",
+      "phase": 20.2,
+      "status": "passed"
+    },
+    {
+      "id": "P20.2-CHAIN-GAP-010",
+      "description": "Search, shopping-list resolution, and watchlist flows capture chain and store context when available.",
+      "phase": 20.2,
+      "status": "passed"
+    },
+    {
+      "id": "P20.2-CHAIN-GAP-011",
+      "description": "Coverage-by-chain endpoints validate required input and support optional locality filters.",
+      "phase": 20.2,
+      "status": "passed"
+    },
+    {
+      "id": "P20.3-OPPORTUNITY-001",
+      "description": "Market opportunity reports generate missing_supply opportunities from unresolved-heavy evidence.",
+      "phase": 20.3,
+      "status": "passed"
+    },
+    {
+      "id": "P20.3-OPPORTUNITY-002",
+      "description": "Market opportunity reports generate poor_match_quality opportunities from ambiguous-heavy evidence.",
+      "phase": 20.3,
+      "status": "passed"
+    },
+    {
+      "id": "P20.3-OPPORTUNITY-003",
+      "description": "Category-relative price pressure generates high_price_pressure opportunities.",
+      "phase": 20.3,
+      "status": "passed"
+    },
+    {
+      "id": "P20.3-OPPORTUNITY-004",
+      "description": "Uneven chain coverage generates distribution_gap opportunities with chain coverage evidence.",
+      "phase": 20.3,
+      "status": "passed"
+    },
+    {
+      "id": "P20.3-OPPORTUNITY-005",
+      "description": "Low-sample weak evidence generates data_quality_gap opportunities.",
+      "phase": 20.3,
+      "status": "passed"
+    },
+    {
+      "id": "P20.3-OPPORTUNITY-006",
+      "description": "Normal high-volume demand generates emerging_interest opportunities.",
+      "phase": 20.3,
+      "status": "passed"
+    },
+    {
+      "id": "P20.3-OPPORTUNITY-007",
+      "description": "Confidence labels follow deterministic high, medium, and low sample/score rules.",
+      "phase": 20.3,
+      "status": "passed"
+    },
+    {
+      "id": "P20.3-OPPORTUNITY-008",
+      "description": "Recommended action text is deterministic per opportunity type.",
+      "phase": 20.3,
+      "status": "passed"
+    },
+    {
+      "id": "P20.3-OPPORTUNITY-009",
+      "description": "Filters are preserved and applied in market opportunity report output.",
+      "phase": 20.3,
+      "status": "passed"
+    },
+    {
+      "id": "P20.3-OPPORTUNITY-010",
+      "description": "Opportunities sort deterministically by score, confidence, signal count, and id.",
+      "phase": 20.3,
+      "status": "passed"
+    },
+    {
+      "id": "P20.3-OPPORTUNITY-011",
+      "description": "Empty datasets and endpoint validation are safe.",
+      "phase": 20.3,
+      "status": "passed"
+    },
+    {
+      "id": "P20.3-OPPORTUNITY-012",
+      "description": "Report generation and endpoint reads do not mutate gap_signal_store.",
+      "phase": 20.3,
+      "status": "passed"
+    },
+    {
+      "id": "P20.4-INSIGHTS-001",
+      "description": "Merchant/admin overview aggregates total signals, total opportunities, high-confidence opportunities, top opportunity, and top category.",
+      "phase": 20.4,
+      "status": "passed"
+    },
+    {
+      "id": "P20.4-INSIGHTS-002",
+      "description": "Insights opportunities wrapper applies filters and limits while preserving opportunity card shape.",
+      "phase": 20.4,
+      "status": "passed"
+    },
+    {
+      "id": "P20.4-INSIGHTS-003",
+      "description": "Category aggregation returns opportunity count, average gap score, and top gap.",
+      "phase": 20.4,
+      "status": "passed"
+    },
+    {
+      "id": "P20.4-INSIGHTS-004",
+      "description": "Locality aggregation returns opportunity count, average gap score, and top gap.",
+      "phase": 20.4,
+      "status": "passed"
+    },
+    {
+      "id": "P20.4-INSIGHTS-005",
+      "description": "Chain aggregation reuses opportunity coverage evidence for coverage rate, gap count, and top gap.",
+      "phase": 20.4,
+      "status": "passed"
+    },
+    {
+      "id": "P20.4-INSIGHTS-006",
+      "description": "Filters are preserved and applied across insight builders.",
+      "phase": 20.4,
+      "status": "passed"
+    },
+    {
+      "id": "P20.4-INSIGHTS-007",
+      "description": "Empty datasets return safe empty arrays and null summary cards.",
+      "phase": 20.4,
+      "status": "passed"
+    },
+    {
+      "id": "P20.4-INSIGHTS-008",
+      "description": "Insight reads do not mutate gap_signal_store.",
+      "phase": 20.4,
+      "status": "passed"
+    },
+    {
+      "id": "P20.4-INSIGHTS-009",
+      "description": "Insight outputs are deterministic and endpoint validation is bounded.",
+      "phase": 20.4,
+      "status": "passed"
+    },
+    {
+      "id": "P20.5-INTERNAL-GUARD-001",
+      "description": "Protected internal analytics reads without a token return bounded forbidden responses.",
+      "phase": 20.5,
+      "status": "passed"
+    },
+    {
+      "id": "P20.5-INTERNAL-GUARD-002",
+      "description": "Wrong tokens return bounded forbidden responses.",
+      "phase": 20.5,
+      "status": "passed"
+    },
+    {
+      "id": "P20.5-INTERNAL-GUARD-003",
+      "description": "Correct token plus admin role is allowed.",
+      "phase": 20.5,
+      "status": "passed"
+    },
+    {
+      "id": "P20.5-INTERNAL-GUARD-004",
+      "description": "Correct token plus analyst role is allowed.",
+      "phase": 20.5,
+      "status": "passed"
+    },
+    {
+      "id": "P20.5-INTERNAL-GUARD-005",
+      "description": "Correct token plus merchant role is denied for now.",
+      "phase": 20.5,
+      "status": "passed"
+    },
+    {
+      "id": "P20.5-INTERNAL-GUARD-006",
+      "description": "Missing PRICER_INTERNAL_ANALYTICS_TOKEN denies protected access by default.",
+      "phase": 20.5,
+      "status": "passed"
+    },
+    {
+      "id": "P20.5-INTERNAL-GUARD-007",
+      "description": "Normal consumer endpoints remain outside the internal analytics protected path list.",
+      "phase": 20.5,
+      "status": "passed"
+    },
+    {
+      "id": "P20.5-INTERNAL-GUARD-008",
+      "description": "All Phase 20 market-intelligence endpoint paths are covered by the protected path list.",
+      "phase": 20.5,
+      "status": "passed"
+    },
+    {
+      "id": "P20.5-INTERNAL-GUARD-009",
+      "description": "Forbidden responses do not include submitted or configured token values.",
+      "phase": 20.5,
+      "status": "passed"
+    },
+    {
+      "id": "P20.6-DASHBOARD-001",
+      "description": "Internal dashboard shell renders as an HTML surface.",
+      "phase": 20.6,
+      "status": "passed"
+    },
+    {
+      "id": "P20.6-DASHBOARD-002",
+      "description": "Dashboard consumes all Phase 20.4 insight endpoints.",
+      "phase": 20.6,
+      "status": "passed"
+    },
+    {
+      "id": "P20.6-DASHBOARD-003",
+      "description": "Dashboard sends token and role headers without embedding a token value.",
+      "phase": 20.6,
+      "status": "passed"
+    },
+    {
+      "id": "P20.6-DASHBOARD-004",
+      "description": "Dashboard keeps token browser-local and configurable.",
+      "phase": 20.6,
+      "status": "passed"
+    },
+    {
+      "id": "P20.6-DASHBOARD-005",
+      "description": "Dashboard includes overview, opportunities, categories, localities, and chains sections.",
+      "phase": 20.6,
+      "status": "passed"
+    },
+    {
+      "id": "P20.6-DASHBOARD-006",
+      "description": "Dashboard shell route stays outside the protected path list while data endpoints remain guarded.",
+      "phase": 20.6,
+      "status": "passed"
+    },
+    {
+      "id": "P20.6-DASHBOARD-007",
+      "description": "Dashboard handler returns no-store HTML response headers.",
+      "phase": 20.6,
+      "status": "passed"
+    },
+    {
+      "id": "P20.6-DASHBOARD-008",
+      "description": "Dashboard copy avoids merchant billing or polished product positioning.",
+      "phase": 20.6,
+      "status": "passed"
+    },
+    {
+      "id": "PUX2-RECIPE-FEEDBACK-001",
+      "description": "UX2 migration creates recipe_feedback_events and recipe_feedback_note_signals with bounded score and enum checks.",
+      "phase": "UX2",
+      "status": "passed"
+    },
+    {
+      "id": "PUX2-RECIPE-FEEDBACK-002",
+      "description": "UX2 impressions plus swipe left, right, and up events store the expected default sentiment and intent semantics.",
+      "phase": "UX2",
+      "status": "passed"
+    },
+    {
+      "id": "PUX2-RECIPE-FEEDBACK-003",
+      "description": "UX2 saved, cooked, and cooked_again events persist deterministic defaults while note-backed feedback stores note text and note language.",
+      "phase": "UX2",
+      "status": "passed"
+    },
+    {
+      "id": "PUX2-RECIPE-FEEDBACK-004",
+      "description": "Manual note signals attach as child rows and latest feedback reads return the most recent event for one profile plus one recipe.",
+      "phase": "UX2",
+      "status": "passed"
+    },
+    {
+      "id": "PUX2-RECIPE-FEEDBACK-005",
+      "description": "Profile and recipe feedback summaries aggregate event counts and average scores deterministically, and deterministic fixture ids keep seed reruns idempotent.",
+      "phase": "UX2",
+      "status": "passed"
+    },
+    {
+      "id": "PUX2-RECIPE-FEEDBACK-006",
+      "description": "UX2 does not infer taste profiles, does not affect planner behavior, and does not write Firestore.",
+      "phase": "UX2",
+      "status": "passed"
+    },
+    {
+      "id": "PPROF1-TASTE-001",
+      "description": "PROF1 migration creates append-only user_taste_profile_snapshots and user_taste_profile_signal_sources with bounded source and family enums.",
+      "phase": "PROF1",
+      "status": "passed"
+    },
+    {
+      "id": "PPROF1-TASTE-002",
+      "description": "Explicit preferences contribute deterministically to normalized flavor, feeling, and cuisine vectors while negative swipe feedback pushes recipe metadata signals negative.",
+      "phase": "PROF1",
+      "status": "passed"
+    },
+    {
+      "id": "PPROF1-TASTE-003",
+      "description": "Swipe-up and saved feedback plus note-signal polarity contribute deterministic positive and negative taste-profile signals.",
+      "phase": "PROF1",
+      "status": "passed"
+    },
+    {
+      "id": "PPROF1-TASTE-004",
+      "description": "Canonical plus staged recipe metadata contributes cuisine, region, meal-type, feeling, flavor, texture, and cooking-method vectors within the safe normalized range.",
+      "phase": "PROF1",
+      "status": "passed"
+    },
+    {
+      "id": "PPROF1-TASTE-005",
+      "description": "Confidence classification is deterministic for low, medium, and high feedback volumes, and stored snapshots append new versions instead of overwriting prior profile history.",
+      "phase": "PROF1",
+      "status": "passed"
+    },
+    {
+      "id": "PPROF1-TASTE-006",
+      "description": "Signal-source audit rows are written alongside stored snapshots, dry-run builds remain write-free, and PROF1 does not write Firestore, call planners, or call LLMs.",
+      "phase": "PROF1",
+      "status": "passed"
+    },
+    {
+      "id": "PPLAN1-MEAL-001",
+      "description": "PLAN1 migration creates meal_plans and meal_plan_items with bounded breakfast/lunch/dinner/snack meal types.",
+      "phase": "PLAN1",
+      "status": "passed"
+    },
+    {
+      "id": "PPLAN1-MEAL-002",
+      "description": "PLAN1 only considers canonical recipes with usability_status usable or meal_plan_ready and approved recipe nutrition profiles.",
+      "phase": "PLAN1",
+      "status": "passed"
+    },
+    {
+      "id": "PPLAN1-MEAL-003",
+      "description": "Hard allergy and hard avoid constraints plus explicitly unavailable equipment are filtered before deterministic recipe selection.",
+      "phase": "PLAN1",
+      "status": "passed"
+    },
+    {
+      "id": "PPLAN1-MEAL-004",
+      "description": "PLAN1 scoring and item ordering remain deterministic across reruns, and same-day duplicate recipes are avoided when enough eligible recipes exist.",
+      "phase": "PLAN1",
+      "status": "passed"
+    },
+    {
+      "id": "PPLAN1-MEAL-005",
+      "description": "Meal-plan macro totals and daily calorie summaries are computed from selected per-serving recipe nutrition, and the plan key upserts one canonical sidecar plan.",
+      "phase": "PLAN1",
+      "status": "passed"
+    },
+    {
+      "id": "PPLAN1-MEAL-006",
+      "description": "Missing PROF1 snapshots fall back to explicit UX1 preferences, and PLAN1 does not call Firestore, LLMs, or mutate recipe/product truth.",
+      "phase": "PLAN1",
+      "status": "passed"
+    },
+    {
+      "id": "PPLAN2A-REQ-001",
+      "description": "PLAN2A migration creates meal_plan_requirements and meal_plan_requirement_items with bounded adapter statuses.",
+      "phase": "PLAN2A",
+      "status": "passed"
+    },
+    {
+      "id": "PPLAN2A-REQ-002",
+      "description": "PLAN2A aggregates canonical recipe ingredient demand by effective canonical ingredient id across multiple selected recipes.",
+      "phase": "PLAN2A",
+      "status": "passed"
+    },
+    {
+      "id": "PPLAN2A-REQ-003",
+      "description": "PLAN2A sums quantity_grams only from source lines that provide grams and preserves source recipe and recipe-ingredient ids on aggregate rows.",
+      "phase": "PLAN2A",
+      "status": "passed"
+    },
+    {
+      "id": "PPLAN2A-REQ-004",
+      "description": "PLAN2A aggregates unmatched recipe lines deterministically by normalized key or display name and marks them missing_ingredient.",
+      "phase": "PLAN2A",
+      "status": "passed"
+    },
+    {
+      "id": "PPLAN2A-REQ-005",
+      "description": "PLAN2A classifies canonical ingredient rows into missing_quantity, needs_review, and ready_for_product_mapping from grams coverage completeness.",
+      "phase": "PLAN2A",
+      "status": "passed"
+    },
+    {
+      "id": "PPLAN2A-REQ-006",
+      "description": "PLAN2A estimates shopping quantities in kg, g, and piece units when canonical ingredient metadata allows it.",
+      "phase": "PLAN2A",
+      "status": "passed"
+    },
+    {
+      "id": "PPLAN2A-REQ-007",
+      "description": "PLAN2A reruns refresh one requirement bundle per meal plan without duplicating rows and do not call Firestore, price lookup, or basket optimizer paths.",
+      "phase": "PLAN2A",
+      "status": "passed"
+    },
+    {
+      "id": "PPLAN2A1-NET-001",
+      "description": "PLAN2A.1 migration creates meal_plan_net_requirements and meal_plan_net_requirement_items with bounded inventory and adapter statuses.",
+      "phase": "PLAN2A.1",
+      "status": "passed"
+    },
+    {
+      "id": "PPLAN2A1-NET-002",
+      "description": "PLAN2A.1 subtracts inventory by canonical ingredient id first and ingredient-key snapshot second without mutating source inventory rows.",
+      "phase": "PLAN2A.1",
+      "status": "passed"
+    },
+    {
+      "id": "PPLAN2A1-NET-003",
+      "description": "PLAN2A.1 fully covered items net to zero, partial coverage preserves remaining grams, and shopping quantities are recomputed from net grams.",
+      "phase": "PLAN2A.1",
+      "status": "passed"
+    },
+    {
+      "id": "PPLAN2A1-NET-004",
+      "description": "PLAN2A.1 preserves missing ingredient and missing quantity statuses in the derived net-requirement layer.",
+      "phase": "PLAN2A.1",
+      "status": "passed"
+    },
+    {
+      "id": "PPLAN2A1-NET-005",
+      "description": "PLAN2A.1 reruns refresh one net-requirement bundle per gross requirement without duplicates and do not call Firestore, price lookup, or basket optimizer paths.",
+      "phase": "PLAN2A.1",
+      "status": "passed"
+    },
+    {
+      "id": "PPLAN2B-CAND-001",
+      "description": "PLAN2B migration creates meal_plan_product_candidate_sets and meal_plan_product_candidates with bounded candidate statuses.",
+      "phase": "PLAN2B",
+      "status": "passed"
+    },
+    {
+      "id": "PPLAN2B-CAND-002",
+      "description": "PLAN2B approved ingredient-product mappings create purchasable candidates while unapproved mappings are ignored.",
+      "phase": "PLAN2B",
+      "status": "passed"
+    },
+    {
+      "id": "PPLAN2B-CAND-003",
+      "description": "PLAN2B resolves direct canonical-product ids and source-product ids onto the existing runtime canonical product backbone and normalizes package sizes to grams conservatively.",
+      "phase": "PLAN2B",
+      "status": "passed"
+    },
+    {
+      "id": "PPLAN2B-CAND-004",
+      "description": "PLAN2B computes units_needed, total_purchased_grams, overage_grams, and total_estimated_price when size and price are available, while keeping missing-mapping, missing-size, missing-price, and covered-by-inventory rows explicit.",
+      "phase": "PLAN2B",
+      "status": "passed"
+    },
+    {
+      "id": "PPLAN2B-CAND-005",
+      "description": "PLAN2B reruns refresh one candidate-set bundle per PLAN2A.1 net requirement without duplicates and do not call the basket optimizer, write Firestore, or add sponsored logic.",
+      "phase": "PLAN2B",
+      "status": "passed"
+    },
+    {
+      "id": "PPLAN2C-OPT-001",
+      "description": "PLAN2C migration creates meal_plan_optimized_baskets and meal_plan_optimized_basket_items with bounded item statuses.",
+      "phase": "PLAN2C",
+      "status": "passed"
+    },
+    {
+      "id": "PPLAN2C-OPT-002",
+      "description": "PLAN2C converts PLAN2B ready candidates into a synthetic optimizer input shape and reuses the existing price lookup plus single-store and multi-store optimizer functions.",
+      "phase": "PLAN2C",
+      "status": "passed"
+    },
+    {
+      "id": "PPLAN2C-OPT-003",
+      "description": "PLAN2C persists selected optimizer output with candidate, requirement, store, chain, and price provenance.",
+      "phase": "PLAN2C",
+      "status": "passed"
+    },
+    {
+      "id": "PPLAN2C-OPT-004",
+      "description": "PLAN2C keeps covered-by-inventory, missing-product, missing-price, and optimizer-excluded rows explicit alongside optimized selections.",
+      "phase": "PLAN2C",
+      "status": "passed"
+    },
+    {
+      "id": "PPLAN2C-OPT-005",
+      "description": "PLAN2C reruns refresh one optimized-basket bundle per candidate set without duplicates and do not write Firestore or add sponsored logic.",
+      "phase": "PLAN2C",
+      "status": "passed"
+    },
+    {
+      "id": "PPLAN2D-RUN-001",
+      "description": "PLAN2D migration creates meal_plan_shopping_runs with bounded orchestration run statuses.",
+      "phase": "PLAN2D",
+      "status": "passed"
+    },
+    {
+      "id": "PPLAN2D-RUN-002",
+      "description": "PLAN2D existing-plan orchestration chains PLAN2A, PLAN2A.1, PLAN2B, and PLAN2C correctly and persists the linked ids plus summary metrics.",
+      "phase": "PLAN2D",
+      "status": "passed"
+    },
+    {
+      "id": "PPLAN2D-RUN-003",
+      "description": "PLAN2D can generate a new PLAN1 plan first and then run the existing PLAN2 pipeline without introducing a second shopping stack.",
+      "phase": "PLAN2D",
+      "status": "passed"
+    },
+    {
+      "id": "PPLAN2D-RUN-004",
+      "description": "PLAN2D preserves partial outcomes when candidate or optimizer rows remain missing, and it reports those gaps without treating them as new optimizer logic.",
+      "phase": "PLAN2D",
+      "status": "passed"
+    },
+    {
+      "id": "PPLAN2D-RUN-005",
+      "description": "PLAN2D reruns refresh one orchestration row per user and plan without duplicating artifacts and do not write Firestore or call an LLM.",
+      "phase": "PLAN2D",
+      "status": "passed"
+    },
+    {
+      "id": "PAPP1-API-001",
+      "description": "POST /meal-plans/generate reuses PLAN1 and returns generated meal-plan detail without introducing a second planner path.",
+      "phase": "APP1",
+      "status": "passed"
+    },
+    {
+      "id": "PAPP1-API-002",
+      "description": "GET /meal-plans/:planId returns ordered plan items, recipe snapshots, and macro totals from Postgres sidecar tables.",
+      "phase": "APP1",
+      "status": "passed"
+    },
+    {
+      "id": "PAPP1-API-003",
+      "description": "POST /meal-plans/:planId/shopping/run reuses PLAN2D with an existing plan and returns linked artifact ids plus orchestration summary.",
+      "phase": "APP1",
+      "status": "passed"
+    },
+    {
+      "id": "PAPP1-API-004",
+      "description": "GET /meal-plan-shopping-runs/:runId and GET /meal-plan-optimized-baskets/:basketId return stored sidecar detail and bounded not-found errors.",
+      "phase": "APP1",
+      "status": "passed"
+    },
+    {
+      "id": "PAPP1-API-005",
+      "description": "APP1 reuses PLAN1 and PLAN2D without adding new optimizer logic or direct Firestore writes.",
+      "phase": "APP1",
+      "status": "passed"
+    },
+    {
+      "id": "PINVENTORY1-INV-001",
+      "description": "INVENTORY1 migration creates user_inventories and inventory_items with bounded storage, perishability, and update-source enums.",
+      "phase": "INVENTORY1",
+      "status": "passed"
+    },
+    {
+      "id": "PINVENTORY1-INV-002",
+      "description": "Inventory creation is idempotent per user_id and read-only listing does not auto-create inventory rows.",
+      "phase": "INVENTORY1",
+      "status": "passed"
+    },
+    {
+      "id": "PINVENTORY1-INV-003",
+      "description": "Canonical ingredient inventory rows store ingredient links, merge duplicate additions, and update quantities deterministically.",
+      "phase": "INVENTORY1",
+      "status": "passed"
+    },
+    {
+      "id": "PINVENTORY1-INV-004",
+      "description": "Quantity reductions and zero-quantity removals update remaining ratio and preserve row history without hard deletion.",
+      "phase": "INVENTORY1",
+      "status": "passed"
+    },
+    {
+      "id": "PINVENTORY1-INV-005",
+      "description": "Expiry estimation uses ingredient shelf-life hints when available and product-level fallback tracking works without canonical ingredient ids.",
+      "phase": "INVENTORY1",
+      "status": "passed"
+    },
+    {
+      "id": "PINVENTORY1-INV-006",
+      "description": "Deterministic inventory seed reruns reset fixture quantities instead of doubling them, and INVENTORY1 does not call planners or write Firestore.",
+      "phase": "INVENTORY1",
+      "status": "passed"
+    },
+    {
+      "id": "P6-STORE-LOCATION-001",
+      "description": "Deterministic parser extracts Bulgarian city/address text from raw store names.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-STORE-LOCATION-002",
+      "description": "Deterministic parser handles English and German-compatible address strings.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-STORE-LOCATION-003",
+      "description": "Phase 6 ingest derives retailer_locations with provenance, confidence, null coordinates, and no price lookup regression.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-STORE-LOCATION-004",
+      "description": "Store-only rows remain auditable low-confidence locations without geocoding requirements.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-STORE-GEOCODING-001",
+      "description": "Bulgarian street-marker addresses write matched geocoding cache rows with provider provenance.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-STORE-GEOCODING-002",
+      "description": "Slash-separated Sofia address text builds a conservative query and stores matched coordinates.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-STORE-GEOCODING-003",
+      "description": "Store-only retailer locations are skipped without provider calls.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-STORE-GEOCODING-004",
+      "description": "Ambiguous provider results persist ambiguous status without coordinates.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-STORE-GEOCODING-005",
+      "description": "Matched geocoding records are reused by normalized cache key without repeat provider calls.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-MANUAL-GEOCODING-001",
+      "description": "Manual-address geocoding uses the fake provider, stores matched coordinates, and preserves raw address provenance.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-MANUAL-GEOCODING-002",
+      "description": "Manual-address geocoding reuses cache records before calling a provider again.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-MANUAL-GEOCODING-003",
+      "description": "Manual-address geocode handler rejects missing owner identity and invalid address input.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-LOCATION-AVAILABILITY-001",
+      "description": "Haversine distance helper returns deterministic kilometer distances for valid coordinates.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-LOCATION-AVAILABILITY-002",
+      "description": "Nearest-store availability sorts matched geocoded product offers by distance.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-LOCATION-AVAILABILITY-003",
+      "description": "Nearest-store availability can sort matched geocoded product offers by cheapest price.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-LOCATION-AVAILABILITY-004",
+      "description": "Nearest-store availability filters product offers by bounded radius and reports no_nearby_stores when all geocoded offers are outside radius.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-LOCATION-AVAILABILITY-005",
+      "description": "Products with offers but no matched geocoded locations return no_geocoded_locations.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-LOCATION-AVAILABILITY-006",
+      "description": "Unmatched location-aware query text returns product_not_found.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-LOCATION-AVAILABILITY-007",
+      "description": "Invalid latitude or longitude returns invalid_location without reading distance results.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-LOCATION-AVAILABILITY-008",
+      "description": "Normal product search still works without coordinates after the location-aware helper is added.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-LOCATION-AVAILABILITY-009",
+      "description": "Nearest availability defaults to provider-only coordinates even when active reviewed coordinates exist.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-LOCATION-AVAILABILITY-010",
+      "description": "Nearest availability uses an active reviewed coordinate when coordinate_mode is reviewed_first.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-LOCATION-AVAILABILITY-011",
+      "description": "Nearest availability in reviewed_first mode falls back to matched provider coordinates when no active reviewed coordinate exists.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-LOCATION-AVAILABILITY-012",
+      "description": "Nearest availability ignores superseded reviewed coordinates and uses the matched provider coordinate.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-LOCATION-AVAILABILITY-013",
+      "description": "Nearest availability responses include coordinate_source and coordinate_mode metadata for debugging.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-LOCATION-AVAILABILITY-014",
+      "description": "Nearest availability API rejects invalid coordinate_mode values.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-LOCATION-AVAILABILITY-015",
+      "description": "Nearest availability defaults to provider_only when DEFAULT_COORDINATE_MODE is unset.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-LOCATION-AVAILABILITY-016",
+      "description": "Nearest availability falls back to provider_only when DEFAULT_COORDINATE_MODE is invalid.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-LOCATION-AVAILABILITY-017",
+      "description": "Nearest availability uses reviewed_first as the default when DEFAULT_COORDINATE_MODE is explicitly set to reviewed_first.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-LOCATION-AVAILABILITY-018",
+      "description": "Nearest availability request coordinate_mode overrides DEFAULT_COORDINATE_MODE config.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-SAVED-LOCATION-001",
+      "description": "Saved user locations create home, work, and custom records as explicit user preferences.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-SAVED-LOCATION-002",
+      "description": "Saved user location upsert updates an existing home location by user and label.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-SAVED-LOCATION-003",
+      "description": "Saved user locations reject invalid latitude or longitude values.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-SAVED-LOCATION-004",
+      "description": "Saved user location resolution applies default radius and sort when search omits them.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-SAVED-LOCATION-005",
+      "description": "Saved user locations resolve into nearest-store availability search without one-off coordinates.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-SAVED-LOCATION-006",
+      "description": "Saved user location label lookup rejects ambiguous labels.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-SAVED-LOCATION-007",
+      "description": "Saved user locations can be deleted by user and location id.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-LOCATION-API-001",
+      "description": "Saved-location backend handlers require user identity and support list, upsert, and delete flows.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-LOCATION-API-002",
+      "description": "Nearest availability backend handler resolves saved locations through owner identity.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-LOCATION-FLUTTER-001",
+      "description": "Flutter API client exposes saved-location and nearest-availability methods and DTOs.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-LOCATION-FLUTTER-002",
+      "description": "Flutter product search renders opt-in location controls and nearest availability results without GPS or maps.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-LOCATION-FLUTTER-003",
+      "description": "Flutter manual nearby availability validates latitude and longitude before calling the backend.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-LOCATION-FLUTTER-004",
+      "description": "Flutter manual nearby availability shows raw address and display-name fields without sending them to geocoding or nearest-availability APIs.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-LOCATION-FLUTTER-005",
+      "description": "Flutter nearby availability applies bounded radius and sort selector choices to the opt-in nearest search request.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-LOCATION-FLUTTER-006",
+      "description": "Flutter nearby availability shows a no-saved-locations state and avoids backend nearest search when a saved location is required but missing.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-LOCATION-FLUTTER-007",
+      "description": "Flutter nearby availability shows a Use current location button without requesting location automatically on screen load.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-LOCATION-FLUTTER-008",
+      "description": "Flutter current-location flow shows a permission-denied state after a user-triggered request is denied.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-LOCATION-FLUTTER-009",
+      "description": "Flutter current-location flow copies acquired coordinates into the opt-in nearest availability request.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-LOCATION-FLUTTER-010",
+      "description": "Flutter current-location flow exposes explicit save-as Home, Work, and Custom actions after coordinates are acquired.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-LOCATION-FLUTTER-011",
+      "description": "Flutter manual address text is not geocoded before the user taps Find coordinates.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-LOCATION-FLUTTER-012",
+      "description": "Flutter matched manual-address geocode results require confirmation before coordinates populate manual fields.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-LOCATION-FLUTTER-013",
+      "description": "Flutter ambiguous manual-address geocode results do not auto-apply coordinates.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-LOCATION-FLUTTER-014",
+      "description": "Flutter failed manual-address geocode results render an explicit failed state.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-LOCATION-FLUTTER-015",
+      "description": "Flutter confirmed manual-address coordinates can populate the nearest-availability request.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-LOCATION-FLUTTER-016",
+      "description": "Flutter confirmed manual-address coordinates can be saved as a custom geocoded user location with provider provenance.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-LOCATION-REVIEW-001",
+      "description": "Location review candidate builder ranks ambiguous high-reuse and missing-coordinate candidates before lower-risk rows.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-LOCATION-REVIEW-002",
+      "description": "Location review approval records reviewer, note, approved coordinates, and correction reason.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-LOCATION-REVIEW-003",
+      "description": "Location review rejection records a decision without approved coordinates.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-LOCATION-REVIEW-004",
+      "description": "Location review approved coordinate corrections survive rebuilds without mutating raw retailer location evidence.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-LOCATION-REVIEW-005",
+      "description": "Guarded location review API lists pending candidates and fetches candidate detail when operator identity is present.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-LOCATION-REVIEW-006",
+      "description": "Guarded location review API approves a candidate with corrected coordinates and correction reason.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-LOCATION-REVIEW-007",
+      "description": "Guarded location review API rejects a candidate with reviewer note and reason.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-LOCATION-REVIEW-008",
+      "description": "Guarded location review API marks a candidate as needs_more_info without approved coordinates.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-LOCATION-REVIEW-009",
+      "description": "Guarded location review API rejects list and decision requests that omit admin/operator identity.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-LOCATION-REVIEW-010",
+      "description": "Reviewed location coordinate publisher writes approved candidate corrections into an additive read model with provenance.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-LOCATION-REVIEW-011",
+      "description": "Reviewed location coordinate publisher skips rejected candidates.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-LOCATION-REVIEW-012",
+      "description": "Reviewed location coordinate publisher skips candidates marked needs_more_info.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-LOCATION-REVIEW-013",
+      "description": "Reviewed location coordinate publisher supersedes older approved coordinates for the same source identity.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-LOCATION-REVIEW-014",
+      "description": "Reviewed location coordinate publication leaves raw geocode cache rows unchanged.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-LOCATION-REVIEW-015",
+      "description": "Reviewed coordinate diagnostics dry-run lets an active reviewed coordinate win over a matched provider coordinate.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-LOCATION-REVIEW-016",
+      "description": "Reviewed coordinate diagnostics dry-run uses a matched provider coordinate when no active reviewed coordinate exists.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-LOCATION-REVIEW-017",
+      "description": "Reviewed coordinate diagnostics ignore superseded reviewed coordinates as winners.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-LOCATION-REVIEW-018",
+      "description": "Reviewed coordinate diagnostics return unavailable when neither active reviewed nor matched provider coordinates exist.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-LOCATION-REVIEW-019",
+      "description": "Reviewed coordinate admin API lists active and superseded coordinates and fetches coordinate detail.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-LOCATION-REVIEW-020",
+      "description": "Reviewed coordinate diagnostics and read APIs require explicit admin/operator identity.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-LOCATION-REVIEW-021",
+      "description": "Reviewed-coordinate rollout diagnostics count changed provider-vs-reviewed coordinates and summarize distance deltas.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-LOCATION-REVIEW-022",
+      "description": "Reviewed-coordinate rollout diagnostics calculate high-reuse store coverage and reviewed-coordinate confidence distribution.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-LOCATION-REVIEW-023",
+      "description": "Reviewed-coordinate rollout diagnostics preserve provider_only as the nearest-availability default.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-LOCATION-REVIEW-024",
+      "description": "Reviewed-coordinate rollout diagnostics API requires explicit admin/operator identity.",
+      "phase": 6,
       "status": "passed"
     }
   ]

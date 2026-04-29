@@ -10,6 +10,7 @@ function buildBasketOptimizationExplanation({
   price_lookup: priceLookupSnakeCase = null,
   optimizerResult,
   optimizer_result: optimizerResultSnakeCase = null,
+  convenience = null,
   options = {},
 }) {
   const effectiveBasketPlan = basketPlanSnakeCase || basketPlan || {};
@@ -33,6 +34,7 @@ function buildBasketOptimizationExplanation({
     recommendedStrategy,
     recommendedOption,
     itemNotes,
+    convenience,
   });
   const estimatedTotal = recommendedOption?.actual_total ?? null;
 
@@ -43,6 +45,7 @@ function buildBasketOptimizationExplanation({
       currency,
       savings,
       recommendedStrategy,
+      convenience,
     }),
     recommended_strategy: recommendedStrategy,
     estimated_total: estimatedTotal,
@@ -58,6 +61,7 @@ function buildBasketOptimizationExplanation({
     item_notes: itemNotes,
     warnings: collectWarnings(effectiveOptimizerResult, recommendedOption),
     limitations,
+    convenience: buildConvenienceSummary(convenience, currency),
   };
 }
 
@@ -118,17 +122,21 @@ function buildSummaryText({
   estimatedTotal,
   currency,
   savings,
+  convenience,
 }) {
   if (estimatedTotal === null) {
     return 'No priced basket option is available yet.';
   }
 
   const totalText = formatMoney(estimatedTotal, currency);
+  const convenienceText = convenience?.applied && convenience.best_effective_option
+    ? ` Convenience-adjusted total ${formatMoney(convenience.best_effective_option.effective_total, currency)}.`
+    : '';
   if (savings.amount > 0) {
-    return `Estimated total ${totalText}, saving ${formatMoney(savings.amount, currency)} compared with the best single-store option.`;
+    return `Estimated total ${totalText}, saving ${formatMoney(savings.amount, currency)} compared with the best single-store option.${convenienceText}`;
   }
 
-  return `Estimated total ${totalText}.`;
+  return `Estimated total ${totalText}.${convenienceText}`;
 }
 
 function buildStoreSummaries(recommendedOption, recommendedStrategy, currency) {
@@ -243,6 +251,7 @@ function buildLimitations({
   recommendedStrategy,
   recommendedOption,
   itemNotes,
+  convenience,
 }) {
   const limitations = [{
     type: 'availability_not_guaranteed',
@@ -253,6 +262,13 @@ function buildLimitations({
     limitations.push({
       type: 'travel_not_included',
       message: 'Travel time and fuel cost are not included yet.',
+    });
+  }
+
+  if (convenience?.applied) {
+    limitations.push({
+      type: 'distance_not_modeled',
+      message: 'Convenience scoring uses configured penalties; real distance and travel time are not modeled yet.',
     });
   }
 
@@ -271,6 +287,27 @@ function buildLimitations({
   }
 
   return limitations;
+}
+
+function buildConvenienceSummary(convenience, currency) {
+  if (!convenience?.applied || !convenience.best_effective_option) {
+    return null;
+  }
+
+  const before = convenience.recommended_strategy_before_convenience || convenience.recommended_strategy_before;
+  const after = convenience.recommended_strategy_after_convenience || convenience.recommended_strategy_after;
+  return {
+    applied: true,
+    currency,
+    product_total: convenience.best_effective_option.actual_total,
+    convenience_adjusted_total: convenience.best_effective_option.effective_total,
+    convenience_penalty: convenience.best_effective_option.convenience_penalty,
+    estimated_travel_cost: convenience.best_effective_option.estimated_travel_cost,
+    recommended_strategy_before_convenience: before,
+    recommended_strategy_after_convenience: after,
+    recommendation_changed: before !== after,
+    penalty_breakdown: cloneValue(convenience.best_effective_option.penalty_breakdown || []),
+  };
 }
 
 function collectWarnings(optimizerResult, recommendedOption) {

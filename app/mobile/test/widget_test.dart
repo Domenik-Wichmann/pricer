@@ -6,6 +6,7 @@ import 'package:pricer_mobile/core/services/ad_service.dart';
 import 'package:pricer_mobile/core/services/api_client.dart';
 import 'package:pricer_mobile/core/services/app_dependencies.dart';
 import 'package:pricer_mobile/core/services/billing_repositories.dart';
+import 'package:pricer_mobile/core/services/current_location_service.dart';
 import 'package:pricer_mobile/core/services/firestore_repositories.dart';
 import 'package:pricer_mobile/core/services/monetization_service.dart';
 import 'package:pricer_mobile/core/services/recent_activity_service.dart';
@@ -13,6 +14,14 @@ import 'package:pricer_mobile/core/services/voice_input_service.dart';
 
 class _SmokeApiClient extends QueryApiClient {
   _SmokeApiClient() : super(baseUrl: 'http://example.test');
+
+  @override
+  Future<HomeSummary> getHomeSummary({
+    required String ownerId,
+    String ownerType = 'anonymous',
+  }) async {
+    return HomeSummary.empty();
+  }
 
   @override
   Future<QueryResponse> query(String query) async {
@@ -102,6 +111,7 @@ void main() {
       adService: _SmokeAdService(),
       voiceInputService: _SmokeVoiceInputService(),
       recentActivityService: InMemoryRecentActivityService(),
+      currentLocationService: const DisabledCurrentLocationService(),
       firestoreConfigured: false,
       firestoreStatus: 'Test mode',
       subscriptionConfigured: false,

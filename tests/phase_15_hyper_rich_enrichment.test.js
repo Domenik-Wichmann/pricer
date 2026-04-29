@@ -5,8 +5,10 @@ const {
   ENRICHMENT_PROMPT_VERSION,
   InMemoryDataBackboneStore,
   buildEnrichmentPrompt,
+  extractExplicitDietAndAttributeTags,
   getEnrichmentByFingerprint,
   importDailySnapshotCsvStream,
+  normalizeDietOrAttributeTag,
   storeEnrichment,
   validateEnrichmentResponse,
 } = require('../app/functions/src');
@@ -103,8 +105,96 @@ test('new canonical fingerprint triggers enrichment LLM and caches the validated
   assert.equal(enrichmentRecord.prompt_version, ENRICHMENT_PROMPT_VERSION);
   assert.equal(enrichmentRecord.enrichment.base_product, 'milk');
   assert.deepEqual(enrichmentRecord.enrichment.flavor, ['chocolate']);
-  assert.deepEqual(enrichmentRecord.enrichment.attributes, ['low fat']);
+  assert.deepEqual(enrichmentRecord.enrichment.attributes, ['low_fat']);
   assert.equal(getEnrichmentByFingerprint(result.state, enrichmentRecord.canonical_fingerprint).enrichment.packaging, 'carton');
+});
+
+test('explicit EN diet and attribute claims normalize with evidence', () => {
+  const claims = extractExplicitDietAndAttributeTags('Organic vegan gluten-free chocolate');
+
+  assert.deepEqual(claims.diet_tags, ['vegan']);
+  assert.deepEqual(claims.attributes, ['organic', 'gluten_free']);
+  assert.deepEqual(claims.evidence.map((entry) => entry.tag), ['vegan', 'organic', 'gluten_free']);
+});
+
+test('explicit BG diet and attribute claims normalize with evidence', () => {
+  const claims = extractExplicitDietAndAttributeTags('Био веган шоколад без глутен');
+
+  assert.deepEqual(claims.diet_tags, ['vegan']);
+  assert.deepEqual(claims.attributes, ['organic', 'gluten_free']);
+  assert.equal(claims.evidence.some((entry) => entry.matched_text === 'Био'), true);
+  assert.equal(claims.evidence.some((entry) => entry.matched_text === 'без глутен'), true);
+});
+
+test('explicit DE diet and attribute claims normalize with evidence', () => {
+  const claims = extractExplicitDietAndAttributeTags('Bio vegan Schokolade glutenfrei');
+
+  assert.deepEqual(claims.diet_tags, ['vegan']);
+  assert.deepEqual(claims.attributes, ['organic', 'gluten_free']);
+});
+
+test('lactose-free and sugar-free normalize across EN BG and DE aliases', () => {
+  const claims = extractExplicitDietAndAttributeTags(
+    'lactose free sugar-free без лактоза без захар laktosefrei zuckerfrei'
+  );
+
+  assert.deepEqual(claims.attributes, ['lactose_free', 'sugar_free']);
+});
+
+test('low-fat and high-protein normalize across EN BG and DE aliases', () => {
+  const claims = extractExplicitDietAndAttributeTags(
+    'low fat high-protein нискомаслен високо протеинов fettarm proteinreich'
+  );
+
+  assert.deepEqual(claims.attributes, ['low_fat', 'high_protein']);
+});
+
+test('LLM-style diet and attribute synonyms normalize into controlled tags', () => {
+  const normalized = validateEnrichmentResponse(buildValidEnrichment({
+    attributes: ['bio', 'gluten free', 'low fat', 'high protein', 'sparkling'],
+    diet_tags: ['vegan', 'vegetarisch'],
+  }));
+
+  assert.deepEqual(normalized.attributes, ['organic', 'gluten_free', 'low_fat', 'high_protein']);
+  assert.deepEqual(normalized.diet_tags, ['vegan', 'vegetarian']);
+  assert.equal(normalizeDietOrAttributeTag('biologisch', 'attributes'), 'organic');
+});
+
+test('extractor does not infer diet or attributes from category-like text alone', () => {
+  const claims = extractExplicitDietAndAttributeTags('Chocolate category dairy snacks');
+
+  assert.deepEqual(claims.diet_tags, []);
+  assert.deepEqual(claims.attributes, []);
+  assert.deepEqual(claims.evidence, []);
+});
+
+test('duplicate explicit and LLM claims are deduped during enrichment', async () => {
+  const store = new InMemoryDataBackboneStore();
+  const result = await importInlineCsv({
+    store,
+    rows: [
+      '"1000","Store A","Био веган шоколад без глутен","1101","6","4.99","0"',
+    ],
+    canonicalEnrichmentClient: async () => buildValidEnrichment({
+      base_product: 'chocolate',
+      category_l1: 'Food & Beverage',
+      category_l2: 'Sweets',
+      category_l3: 'Chocolate',
+      category_l4: 'organic',
+      attributes: ['bio', 'gluten free', 'organic'],
+      diet_tags: ['vegan', 'веган'],
+      allergens: [],
+      product_form: 'solid',
+      packaging: 'wrapper',
+    }),
+    enableLlmEnrichment: true,
+    ingestedAt: '2026-04-23T10:12:00.000Z',
+  });
+
+  const enrichmentRecord = result.state.canonical_enrichment_store[0];
+  assert.deepEqual(enrichmentRecord.enrichment.diet_tags, ['vegan']);
+  assert.deepEqual(enrichmentRecord.enrichment.attributes, ['organic', 'gluten_free']);
+  assert.equal(enrichmentRecord.explicit_claim_evidence.length, 3);
 });
 
 test('existing canonical fingerprint reuses cached enrichment without a second LLM call', async () => {

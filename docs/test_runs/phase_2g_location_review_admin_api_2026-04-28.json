@@ -1,0 +1,21 @@
+{
+  "phase": "Phase 2G guarded location review admin API",
+  "date": "2026-04-28",
+  "commands": [
+    {
+      "command": "npm run test:phase6_location_review",
+      "status": "passed",
+      "summary": "9 passed, 0 failed"
+    },
+    {
+      "command": "node -e \"require('./functions'); require('./functions/src'); require('./app/functions/src'); console.log('phase2g load ok')\"",
+      "status": "passed",
+      "summary": "Firebase entrypoint and mirrored backend exports loaded"
+    }
+  ],
+  "notes": [
+    "Phase 2G uses internal HTTP handlers rather than a CLI.",
+    "Routes require x-pricer-admin-id or x-pricer-operator-id.",
+    "Approved corrections remain additive and do not feed consumer nearest availability."
+  ]
+}

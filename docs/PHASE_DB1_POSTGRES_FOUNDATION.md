@@ -65,7 +65,7 @@ Local defaults:
 
 ```text
 POSTGRES_HOST=localhost
-POSTGRES_PORT=5432
+POSTGRES_PORT=5433
 POSTGRES_DB=pricer_dev
 POSTGRES_USER=pricer
 POSTGRES_PASSWORD=pricer_dev_password

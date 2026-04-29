@@ -1,0 +1,129 @@
+[
+  {
+    "feedback_id": "recipe_feedback:user_weight_loss_demo:chicken_rice_bowl:swipe_up:20260425100000",
+    "user_id": "user_weight_loss_demo",
+    "recipe_key": "chicken_rice_bowl",
+    "event_type": "swipe_up",
+    "reason_tags_json": ["cozy", "high_protein", "weeknight_win"],
+    "source": "swipe",
+    "context_json": {
+      "surface": "swipe_stack",
+      "session_id": "ux2_demo_session_a"
+    },
+    "created_at": "2026-04-25T10:00:00.000Z"
+  },
+  {
+    "feedback_id": "recipe_feedback:user_weight_loss_demo:green_bean_chicken_plate:saved:20260425101000",
+    "user_id": "user_weight_loss_demo",
+    "recipe_key": "green_bean_chicken_plate",
+    "event_type": "saved",
+    "reason_tags_json": ["high_protein", "easy_cleanup"],
+    "source": "explicit",
+    "context_json": {
+      "surface": "recipe_detail"
+    },
+    "created_at": "2026-04-25T10:10:00.000Z"
+  },
+  {
+    "feedback_id": "recipe_feedback:user_picky_low_spice_demo:beef_rice_skillet:swipe_left:20260425102000",
+    "user_id": "user_picky_low_spice_demo",
+    "recipe_key": "beef_rice_skillet",
+    "event_type": "swipe_left",
+    "reason_tags_json": ["spicy", "skip_for_now"],
+    "source": "swipe",
+    "context_json": {
+      "surface": "swipe_stack"
+    },
+    "created_at": "2026-04-25T10:20:00.000Z"
+  },
+  {
+    "feedback_id": "recipe_feedback:user_family_meal_demo:chicken_rice_bowl:swipe_right:20260425102500",
+    "user_id": "user_family_meal_demo",
+    "recipe_key": "chicken_rice_bowl",
+    "event_type": "swipe_right",
+    "reason_tags_json": ["easy_family_meal", "kid_friendly"],
+    "source": "swipe",
+    "context_json": {
+      "surface": "swipe_stack"
+    },
+    "created_at": "2026-04-25T10:25:00.000Z"
+  },
+  {
+    "feedback_id": "recipe_feedback:user_family_meal_demo:pork_potato_stew:cooked:20260425110000",
+    "user_id": "user_family_meal_demo",
+    "recipe_key": "pork_potato_stew",
+    "event_type": "cooked",
+    "note_text": "needed 10 more minutes",
+    "note_language": "en",
+    "reason_tags_json": ["cozy", "family_meal"],
+    "source": "note",
+    "context_json": {
+      "surface": "cook_log"
+    },
+    "created_at": "2026-04-25T11:00:00.000Z",
+    "note_signals": [
+      {
+        "signal_id": "recipe_feedback_signal:recipe_feedback_user_family_meal_demo_pork_potato_stew_cooked_20260425110000:timing:needed_10_more_minutes:00",
+        "signal_type": "timing",
+        "signal_key": "needed_10_more_minutes",
+        "signal_value": "10",
+        "polarity": "negative",
+        "confidence": 1,
+        "extraction_method": "manual_tag",
+        "created_at": "2026-04-25T11:00:00.000Z"
+      }
+    ]
+  },
+  {
+    "feedback_id": "recipe_feedback:user_family_meal_demo:green_bean_chicken_plate:cooked_again:20260425113000",
+    "user_id": "user_family_meal_demo",
+    "recipe_key": "green_bean_chicken_plate",
+    "event_type": "cooked_again",
+    "note_text": "kids loved it",
+    "note_language": "en",
+    "reason_tags_json": ["easy_family_meal", "repeatable"],
+    "source": "note",
+    "context_json": {
+      "surface": "cook_log"
+    },
+    "created_at": "2026-04-25T11:30:00.000Z",
+    "note_signals": [
+      {
+        "signal_id": "recipe_feedback_signal:recipe_feedback_user_family_meal_demo_green_bean_chicken_plate_cooked_again_20260425113000:family_response:kids_loved_it:00",
+        "signal_type": "family_response",
+        "signal_key": "kids_loved_it",
+        "signal_value": "kids_loved_it",
+        "polarity": "positive",
+        "confidence": 1,
+        "extraction_method": "manual_tag",
+        "created_at": "2026-04-25T11:30:00.000Z"
+      }
+    ]
+  },
+  {
+    "feedback_id": "recipe_feedback:user_picky_low_spice_demo:apple_milk_bowl:dismissed:20260425120000",
+    "user_id": "user_picky_low_spice_demo",
+    "recipe_key": "apple_milk_bowl",
+    "event_type": "dismissed",
+    "note_text": "too expensive this week",
+    "note_language": "en",
+    "reason_tags_json": ["price_sensitive", "skip_for_now"],
+    "source": "note",
+    "context_json": {
+      "surface": "recipe_detail"
+    },
+    "created_at": "2026-04-25T12:00:00.000Z",
+    "note_signals": [
+      {
+        "signal_id": "recipe_feedback_signal:recipe_feedback_user_picky_low_spice_demo_apple_milk_bowl_dismissed_20260425120000:price:too_expensive_this_week:00",
+        "signal_type": "price",
+        "signal_key": "too_expensive_this_week",
+        "signal_value": "too_expensive_this_week",
+        "polarity": "negative",
+        "confidence": 1,
+        "extraction_method": "manual_tag",
+        "created_at": "2026-04-25T12:00:00.000Z"
+      }
+    ]
+  }
+]

@@ -1,0 +1,48 @@
+{
+  "phase": "DB2",
+  "date": "2026-04-24",
+  "scope": "USDA macro-only Postgres sidecar import",
+  "commands": [
+    {
+      "command": "npm run db:health",
+      "status": "passed",
+      "notes": "Postgres was not configured; health check skipped safely with local startup guidance."
+    },
+    {
+      "command": "npm run db:migrate",
+      "status": "passed",
+      "notes": "Postgres was not configured; migrations skipped safely with local startup guidance for port 5433."
+    },
+    {
+      "command": "npm run test:db2",
+      "status": "passed",
+      "notes": "6 passed, 0 failed; uses fixture data only and covers malformed-row skips."
+    },
+    {
+      "command": "npm test",
+      "status": "passed",
+      "notes": "Full test suite passed, including DB1 and DB2 sidecar tests and existing product/shopping/basket suites."
+    },
+    {
+      "command": "npm run validate:docs",
+      "status": "passed",
+      "notes": "JSON docs parse successfully."
+    },
+    {
+      "command": "node -e \"const f=require('./functions/src'); const a=require('./app/functions/src'); console.log(f.USDA_MACRO_NUTRIENT_IDS.length, a.USDA_MACRO_NUTRIENT_IDS.length)\"",
+      "status": "passed",
+      "notes": "Both backend export surfaces expose DB2 USDA macro helpers."
+    },
+    {
+      "command": "npm run import:usda:macros",
+      "status": "passed",
+      "notes": "Full local USDA macro import completed against local Postgres on port 5433. Imported 2,085,331 foods, 9 nutrients, 12,797,082 macro food nutrient rows, and 47,173 portions."
+    }
+  ],
+  "results": [
+    "DB2 introduced USDA macro-only Postgres sidecar tables and importer modules.",
+    "No full USDA import is required for normal tests.",
+    "Full local USDA macro import completed with skipped-row metadata: invalid_food_rows=9, invalid_food_portion_rows=273, orphan_food_nutrient_rows=7, non_macro_nutrient_rows_skipped=14297407.",
+    "No Firestore runtime, kolkostruva ingest, product search, shopping, basket, OFF, recipe, LLM, or app-facing nutrition publishing behavior was changed."
+  ]
+}

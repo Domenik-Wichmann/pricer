@@ -24,6 +24,7 @@ const MAX_AMBIGUOUS_TOP_N = 10;
 async function handleBuildBasketPlanRequest({
   store,
   body = {},
+  req,
 }) {
   const resolverResponse = await handleResolveShoppingListItemsRequest({
     store,
@@ -31,7 +32,13 @@ async function handleBuildBasketPlanRequest({
       items: body.items,
       layer_mode: body.layer_mode,
       limit_per_item: resolveResolverLimit(body.planner_options),
+      locality_code: body.locality_code,
+      chain_id: body.chain_id,
+      chain_name: body.chain_name,
+      store_id: body.store_id,
+      store_name: body.store_name,
     },
+    req,
   });
   if (resolverResponse.status !== 200) {
     return resolverResponse;

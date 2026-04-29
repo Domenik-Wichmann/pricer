@@ -1,0 +1,196 @@
+[
+  {
+    "job": {
+      "job_id": "recipe_ingest_job:fixture:chicken_rice_bowl",
+      "source_type": "fixture",
+      "source_name": "db5a_seed_chicken_rice_bowl",
+      "source_url": null,
+      "language": "en",
+      "status": "staged",
+      "raw_text": "Chicken rice bowl: cook rice, sear chicken breast strips, add chopped tomato and cucumber, serve warm.",
+      "raw_json": {
+        "fixture_key": "chicken_rice_bowl",
+        "source_note": "DB5A deterministic staging seed"
+      }
+    },
+    "recipe": {
+      "staged_recipe_id": "staged_recipe:fixture:chicken_rice_bowl",
+      "proposed_recipe_key": "chicken_rice_bowl",
+      "title_original": "Chicken rice bowl",
+      "title_en": "Chicken Rice Bowl",
+      "title_bg": "BG Chicken Rice Bowl",
+      "description": "Simple warm rice bowl with chicken and fresh vegetables.",
+      "servings": 2,
+      "yield_quantity": 2,
+      "yield_unit": "bowls",
+      "cuisine_tags": ["home_style"],
+      "region_tags": ["global"],
+      "dietary_tags": ["high_protein"],
+      "meal_type_tags": ["lunch", "dinner"],
+      "feeling_tags": ["filling", "fresh"],
+      "flavor_profile": {"primary": ["savory", "fresh"], "intensity": "medium"},
+      "texture_profile": {"primary": ["tender", "soft", "crisp"]},
+      "difficulty_level": "easy",
+      "budget_level": "medium",
+      "prep_time_minutes": 10,
+      "cook_time_minutes": 25,
+      "rest_time_minutes": 0,
+      "total_time_minutes": 35,
+      "review_status": "staged",
+      "confidence": 0.92,
+      "extraction_json": {"extractor": "fixture", "notes": ["structured manually for DB5A"]}
+    },
+    "ingredients": [
+      {"raw_line": "160 g rice", "ingredient_name_original": "rice", "ingredient_name_en": "Rice", "ingredient_name_bg": "BG rice", "proposed_ingredient_key": "rice", "matched_ingredient_id": "ingredient:rice", "quantity": 160, "unit": "g", "quantity_grams": 160, "preparation_note": "dry rice", "sort_order": 1, "match_confidence": 0.98, "review_status": "matched"},
+      {"raw_line": "300 g chicken breast, sliced", "ingredient_name_original": "chicken breast", "ingredient_name_en": "Chicken breast", "ingredient_name_bg": "BG chicken breast", "proposed_ingredient_key": "chicken_breast", "matched_ingredient_id": "ingredient:chicken_breast", "quantity": 300, "unit": "g", "quantity_grams": 300, "preparation_note": "cut into strips", "sort_order": 2, "match_confidence": 0.97, "review_status": "matched"},
+      {"raw_line": "2 tomatoes, chopped", "ingredient_name_original": "tomatoes", "ingredient_name_en": "Tomato", "ingredient_name_bg": "BG tomato", "proposed_ingredient_key": "tomato", "matched_ingredient_id": "ingredient:tomato", "quantity": 2, "unit": "piece", "quantity_grams": 246, "preparation_note": "chopped", "sort_order": 3, "match_confidence": 0.94, "review_status": "matched"},
+      {"raw_line": "1 cucumber, sliced", "ingredient_name_original": "cucumber", "ingredient_name_en": "Cucumber", "ingredient_name_bg": "BG cucumber", "proposed_ingredient_key": "cucumber", "matched_ingredient_id": null, "quantity": 1, "unit": "piece", "quantity_grams": 300, "preparation_note": "sliced", "sort_order": 4, "match_confidence": 0.72, "review_status": "needs_review"}
+    ],
+    "steps": [
+      {"step_number": 1, "instruction_original": "Cook the rice until tender.", "instruction_en": "Cook the rice until tender.", "instruction_bg": "BG cook rice", "duration_minutes": 18, "state_change_summary": "rice dry to cooked"},
+      {"step_number": 2, "instruction_original": "Sear the chicken breast strips until cooked through.", "instruction_en": "Sear the chicken breast strips until cooked through.", "instruction_bg": "BG cook chicken", "duration_minutes": 10, "temperature_c": 74, "state_change_summary": "chicken raw to cooked"},
+      {"step_number": 3, "instruction_original": "Serve chicken and vegetables over the rice.", "instruction_en": "Serve chicken and vegetables over the rice.", "instruction_bg": "BG assemble bowl", "duration_minutes": 3}
+    ],
+    "tools": [
+      {"key": "pot", "name_en": "Pot", "name_bg": "BG pot", "confidence": 0.95, "evidence_text": "cook rice"},
+      {"key": "skillet", "name_en": "Skillet", "name_bg": "BG skillet", "confidence": 0.9, "evidence_text": "sear chicken"}
+    ],
+    "methods": [
+      {"key": "boiling", "name_en": "Boiling", "name_bg": "BG boiling", "confidence": 0.9, "evidence_text": "cook rice"},
+      {"key": "searing", "name_en": "Searing", "name_bg": "BG searing", "confidence": 0.88, "evidence_text": "sear chicken"}
+    ],
+    "tags": [
+      {"tag_type": "cuisine", "tag_key": "home_style", "tag_value": "Home style", "confidence": 0.8},
+      {"tag_type": "feeling", "tag_key": "filling", "tag_value": "Filling", "confidence": 0.86}
+    ],
+    "state_changes": [
+      {"state_change_key": "rice_dry_to_cooked", "ingredient_name": "Rice", "from_state": "dry", "to_state": "cooked", "confidence": 0.92, "evidence_text": "cook rice"},
+      {"state_change_key": "chicken_raw_to_cooked", "ingredient_name": "Chicken breast", "from_state": "raw", "to_state": "cooked", "confidence": 0.94, "evidence_text": "sear chicken until cooked through"}
+    ],
+    "substitution_hints": [
+      {"substitution_key": "rice_to_potato", "original_ingredient_name": "Rice", "substitute_ingredient_name": "Potato", "reason": "Use cooked potato for a grain-free bowl.", "confidence": 0.55, "evidence_text": "bowl format is flexible"}
+    ],
+    "quality_signals": [
+      {"signal_key": "has_servings", "signal_name": "Servings present", "signal_value": "true", "severity": "info", "confidence": 1},
+      {"signal_key": "one_unmatched_ingredient", "signal_name": "One ingredient needs match review", "signal_value": "cucumber", "severity": "warning", "confidence": 0.9}
+    ]
+  },
+  {
+    "job": {
+      "job_id": "recipe_ingest_job:fixture:tomato_cucumber_salad",
+      "source_type": "fixture",
+      "source_name": "db5a_seed_tomato_cucumber_salad",
+      "language": "en",
+      "status": "staged",
+      "raw_text": "Tomato cucumber salad: chop tomatoes and cucumber, season lightly, chill and serve.",
+      "raw_json": {"fixture_key": "tomato_cucumber_salad"}
+    },
+    "recipe": {
+      "staged_recipe_id": "staged_recipe:fixture:tomato_cucumber_salad",
+      "proposed_recipe_key": "tomato_cucumber_salad",
+      "title_original": "Tomato cucumber salad",
+      "title_en": "Tomato Cucumber Salad",
+      "title_bg": "BG Tomato Cucumber Salad",
+      "description": "Fresh chopped salad with tomato and cucumber.",
+      "servings": 2,
+      "yield_quantity": 1,
+      "yield_unit": "bowl",
+      "cuisine_tags": ["bulgarian", "simple"],
+      "region_tags": ["balkan"],
+      "dietary_tags": ["vegan", "vegetarian"],
+      "meal_type_tags": ["salad", "side"],
+      "feeling_tags": ["light", "refreshing"],
+      "flavor_profile": {"primary": ["fresh", "mild"], "acidity": "medium"},
+      "texture_profile": {"primary": ["crisp", "juicy"]},
+      "difficulty_level": "very_easy",
+      "budget_level": "low",
+      "prep_time_minutes": 8,
+      "cook_time_minutes": 0,
+      "rest_time_minutes": 10,
+      "total_time_minutes": 18,
+      "review_status": "staged",
+      "confidence": 0.9
+    },
+    "ingredients": [
+      {"raw_line": "3 tomatoes, chopped", "ingredient_name_original": "tomatoes", "ingredient_name_en": "Tomato", "ingredient_name_bg": "BG tomato", "proposed_ingredient_key": "tomato", "matched_ingredient_id": "ingredient:tomato", "quantity": 3, "unit": "piece", "quantity_grams": 369, "preparation_note": "chopped", "sort_order": 1, "match_confidence": 0.96, "review_status": "matched"},
+      {"raw_line": "1 cucumber, chopped", "ingredient_name_original": "cucumber", "ingredient_name_en": "Cucumber", "ingredient_name_bg": "BG cucumber", "proposed_ingredient_key": "cucumber", "matched_ingredient_id": "ingredient:cucumber", "quantity": 1, "unit": "piece", "quantity_grams": 300, "preparation_note": "chopped", "sort_order": 2, "match_confidence": 0.96, "review_status": "matched"}
+    ],
+    "steps": [
+      {"step_number": 1, "instruction_original": "Chop the tomatoes and cucumber.", "instruction_en": "Chop the tomatoes and cucumber.", "instruction_bg": "BG chop vegetables", "duration_minutes": 6, "state_change_summary": "whole vegetables to chopped vegetables"},
+      {"step_number": 2, "instruction_original": "Season lightly, chill, and serve.", "instruction_en": "Season lightly, chill, and serve.", "instruction_bg": "BG season and chill", "duration_minutes": 2, "state_change_summary": "fresh salad to chilled salad"}
+    ],
+    "tools": [{"key": "knife", "name_en": "Knife", "name_bg": "BG knife", "confidence": 0.97, "evidence_text": "chop"}],
+    "methods": [{"key": "chopping", "name_en": "Chopping", "name_bg": "BG chopping", "confidence": 0.98, "evidence_text": "chop vegetables"}],
+    "tags": [
+      {"tag_type": "cuisine", "tag_key": "bulgarian", "tag_value": "Bulgarian", "confidence": 0.8},
+      {"tag_type": "feeling", "tag_key": "refreshing", "tag_value": "Refreshing", "confidence": 0.9}
+    ],
+    "state_changes": [{"state_change_key": "vegetables_whole_to_chopped", "ingredient_name": "Tomato and cucumber", "from_state": "whole", "to_state": "chopped", "confidence": 0.95, "evidence_text": "chop"}],
+    "substitution_hints": [{"substitution_key": "tomato_to_canned_green_beans", "original_ingredient_name": "Tomato", "substitute_ingredient_name": "Canned green beans", "reason": "Emergency pantry side, but changes recipe character.", "confidence": 0.25, "evidence_text": "side salad format"}],
+    "quality_signals": [{"signal_key": "no_cook_recipe", "signal_name": "No cook recipe", "signal_value": "true", "severity": "info", "confidence": 1}]
+  },
+  {
+    "job": {
+      "job_id": "recipe_ingest_job:fixture:pork_potato_stew",
+      "source_type": "fixture",
+      "source_name": "db5a_seed_pork_potato_stew",
+      "language": "en",
+      "status": "staged",
+      "raw_text": "Pork potato stew: brown pork, add potatoes and water, simmer until tender.",
+      "raw_json": {"fixture_key": "pork_potato_stew"}
+    },
+    "recipe": {
+      "staged_recipe_id": "staged_recipe:fixture:pork_potato_stew",
+      "proposed_recipe_key": "pork_potato_stew",
+      "title_original": "Pork potato stew",
+      "title_en": "Pork Potato Stew",
+      "title_bg": "BG Pork Potato Stew",
+      "description": "Simple simmered pork and potato stew.",
+      "servings": 4,
+      "yield_quantity": 1,
+      "yield_unit": "pot",
+      "cuisine_tags": ["home_style"],
+      "region_tags": ["balkan"],
+      "dietary_tags": [],
+      "meal_type_tags": ["dinner"],
+      "feeling_tags": ["comforting", "hearty"],
+      "flavor_profile": {"primary": ["savory", "meaty"], "intensity": "medium_high"},
+      "texture_profile": {"primary": ["tender", "soft", "brothy"]},
+      "difficulty_level": "easy",
+      "budget_level": "medium",
+      "prep_time_minutes": 15,
+      "cook_time_minutes": 60,
+      "rest_time_minutes": 5,
+      "total_time_minutes": 80,
+      "review_status": "needs_review",
+      "confidence": 0.84
+    },
+    "ingredients": [
+      {"raw_line": "500 g pork cubes", "ingredient_name_original": "pork", "ingredient_name_en": "Pork", "ingredient_name_bg": "BG pork", "proposed_ingredient_key": "pork", "matched_ingredient_id": "ingredient:pork", "quantity": 500, "unit": "g", "quantity_grams": 500, "preparation_note": "cubed", "sort_order": 1, "match_confidence": 0.95, "review_status": "matched"},
+      {"raw_line": "700 g potatoes", "ingredient_name_original": "potatoes", "ingredient_name_en": "Potato", "ingredient_name_bg": "BG potato", "proposed_ingredient_key": "potato", "matched_ingredient_id": null, "quantity": 700, "unit": "g", "quantity_grams": 700, "preparation_note": "peeled and cut", "sort_order": 2, "match_confidence": 0.7, "review_status": "needs_review"}
+    ],
+    "steps": [
+      {"step_number": 1, "instruction_original": "Brown pork cubes in the pot.", "instruction_en": "Brown pork cubes in the pot.", "instruction_bg": "BG brown pork", "duration_minutes": 10, "state_change_summary": "pork raw to browned"},
+      {"step_number": 2, "instruction_original": "Add potatoes and water.", "instruction_en": "Add potatoes and water.", "instruction_bg": "BG add potatoes", "duration_minutes": 5},
+      {"step_number": 3, "instruction_original": "Simmer until pork and potatoes are tender.", "instruction_en": "Simmer until pork and potatoes are tender.", "instruction_bg": "BG simmer stew", "duration_minutes": 50, "temperature_c": 95, "state_change_summary": "pork and potatoes to tender stew"}
+    ],
+    "tools": [{"key": "pot", "name_en": "Pot", "name_bg": "BG pot", "confidence": 0.96, "evidence_text": "stew"}],
+    "methods": [
+      {"key": "browning", "name_en": "Browning", "name_bg": "BG browning", "confidence": 0.9, "evidence_text": "brown pork"},
+      {"key": "simmering", "name_en": "Simmering", "name_bg": "BG simmering", "confidence": 0.95, "evidence_text": "simmer until tender"}
+    ],
+    "tags": [
+      {"tag_type": "feeling", "tag_key": "comforting", "tag_value": "Comforting", "confidence": 0.88},
+      {"tag_type": "meal_type", "tag_key": "dinner", "tag_value": "Dinner", "confidence": 0.9}
+    ],
+    "state_changes": [
+      {"state_change_key": "pork_raw_to_browned", "ingredient_name": "Pork", "from_state": "raw", "to_state": "browned", "confidence": 0.9, "evidence_text": "brown pork"},
+      {"state_change_key": "potato_raw_to_tender", "ingredient_name": "Potato", "from_state": "raw", "to_state": "tender", "confidence": 0.92, "evidence_text": "simmer until tender"}
+    ],
+    "substitution_hints": [{"substitution_key": "pork_to_beef", "original_ingredient_name": "Pork", "substitute_ingredient_name": "Beef", "reason": "Similar stew format with longer cooking if needed.", "confidence": 0.62, "evidence_text": "meat stew"}],
+    "quality_signals": [
+      {"signal_key": "long_cook_time", "signal_name": "Long cook time", "signal_value": "60", "severity": "info", "confidence": 1},
+      {"signal_key": "ingredient_match_review", "signal_name": "Ingredient match needs review", "signal_value": "potato", "severity": "warning", "confidence": 0.8}
+    ]
+  }
+]

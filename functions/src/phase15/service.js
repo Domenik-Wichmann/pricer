@@ -6,6 +6,11 @@ const {
   listCanonicalProductViews,
   searchCanonicalProductViews,
 } = require('./readers');
+const {
+  buildGapSignalFromSearch,
+  normalizeLocalityCode,
+  persistGapSignal,
+} = require('../phase18/gap_detection');
 
 const DEFAULT_PRODUCT_LAYER_MODE = LAYER_SELECTIONS.CANONICAL_WITH_ENRICHMENT;
 const DEFAULT_SEARCH_LIMIT = 25;
@@ -73,6 +78,7 @@ async function handleGetCanonicalProductRequest({
 async function handleSearchCanonicalProductsRequest({
   store,
   body,
+  req,
 }) {
   if (!body || typeof body.query !== 'string') {
     return {
@@ -110,10 +116,36 @@ async function handleSearchCanonicalProductsRequest({
     return buildLayerFilterError(error);
   }
 
-  return {
+  const response = {
     status: 200,
     body: responseBody,
   };
+  await persistGapSignal(store, buildGapSignalFromSearch({
+    query: body.query,
+    results: responseBody.results,
+    locality_code: normalizeLocalityCode(
+      body.locality_code ||
+      req?.query?.locality_code ||
+      req?.headers?.['x-pricer-locality-code']
+    ),
+    chain_id:
+      body.chain_id ||
+      req?.query?.chain_id ||
+      req?.headers?.['x-pricer-chain-id'],
+    chain_name:
+      body.chain_name ||
+      req?.query?.chain_name ||
+      req?.headers?.['x-pricer-chain-name'],
+    store_id:
+      body.store_id ||
+      req?.query?.store_id ||
+      req?.headers?.['x-pricer-store-id'],
+    store_name:
+      body.store_name ||
+      req?.query?.store_name ||
+      req?.headers?.['x-pricer-store-name'],
+  }));
+  return response;
 }
 
 async function handleCanonicalProductFilterFacetsRequest({

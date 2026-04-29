@@ -1,0 +1,161 @@
+[
+  {
+    "recipe_key": "chicken_rice_bowl",
+    "title_en": "Chicken Rice Bowl",
+    "title_bg": "Купа с пиле и ориз",
+    "description": "Simple chicken, rice, tomato, and cucumber bowl.",
+    "servings": 2,
+    "yield_quantity": 2,
+    "yield_unit": "servings",
+    "cuisine_tags_json": ["simple"],
+    "dietary_tags_json": [],
+    "meal_type_tags_json": ["lunch", "dinner"],
+    "review_status": "active",
+    "ingredients": [
+      {"ingredient_key": "rice", "quantity": 160, "unit": "g", "quantity_grams": 160, "preparation_note": "dry rice"},
+      {"ingredient_key": "chicken_breast", "quantity": 300, "unit": "g", "quantity_grams": 300, "preparation_note": "cut into strips"},
+      {"ingredient_key": "tomato", "quantity": 2, "unit": "piece", "quantity_grams": 246, "preparation_note": "chopped"},
+      {"ingredient_key": "cucumber", "quantity": 1, "unit": "piece", "quantity_grams": 300, "preparation_note": "sliced"}
+    ],
+    "steps": [
+      {"instruction": "Cook the rice until tender."},
+      {"instruction": "Cook the chicken breast pieces until done."},
+      {"instruction": "Add tomato and cucumber over the rice and chicken."}
+    ]
+  },
+  {
+    "recipe_key": "tomato_cucumber_salad",
+    "title_en": "Tomato Cucumber Salad",
+    "title_bg": "Салата от домати и краставици",
+    "description": "Fresh tomato and cucumber salad.",
+    "servings": 2,
+    "yield_quantity": 1,
+    "yield_unit": "bowl",
+    "cuisine_tags_json": ["bulgarian", "simple"],
+    "dietary_tags_json": ["vegetarian", "vegan"],
+    "meal_type_tags_json": ["salad", "side"],
+    "review_status": "active",
+    "ingredients": [
+      {"ingredient_key": "tomato", "quantity": 3, "unit": "piece", "quantity_grams": 369, "preparation_note": "chopped"},
+      {"ingredient_key": "cucumber", "quantity": 1, "unit": "piece", "quantity_grams": 300, "preparation_note": "chopped"}
+    ],
+    "steps": [
+      {"instruction": "Chop the tomatoes and cucumber."},
+      {"instruction": "Toss together and serve chilled."}
+    ]
+  },
+  {
+    "recipe_key": "apple_milk_bowl",
+    "title_en": "Apple Milk Bowl",
+    "title_bg": "Купа с ябълка и мляко",
+    "description": "Cold apple and milk bowl with dried apple pieces.",
+    "servings": 1,
+    "yield_quantity": 1,
+    "yield_unit": "bowl",
+    "cuisine_tags_json": ["simple"],
+    "dietary_tags_json": ["vegetarian"],
+    "meal_type_tags_json": ["breakfast", "snack"],
+    "review_status": "active",
+    "ingredients": [
+      {"ingredient_key": "apple", "quantity": 1, "unit": "piece", "quantity_grams": 182, "preparation_note": "diced"},
+      {"ingredient_key": "milk_whole", "quantity": 200, "unit": "ml", "quantity_grams": 206},
+      {"ingredient_key": "dried_apple", "quantity": 20, "unit": "g", "quantity_grams": 20, "optional": true}
+    ],
+    "steps": [
+      {"instruction": "Dice the apple."},
+      {"instruction": "Pour milk over the apple and top with dried apple pieces."}
+    ]
+  },
+  {
+    "recipe_key": "pork_potato_stew",
+    "title_en": "Pork Potato Stew",
+    "title_bg": "Свинско с картофи",
+    "description": "Basic pork and potato stew with tomato.",
+    "servings": 4,
+    "yield_quantity": 4,
+    "yield_unit": "servings",
+    "cuisine_tags_json": ["home_cooking"],
+    "dietary_tags_json": [],
+    "meal_type_tags_json": ["dinner"],
+    "review_status": "active",
+    "ingredients": [
+      {"ingredient_key": "pork", "quantity": 500, "unit": "g", "quantity_grams": 500, "preparation_note": "cubed"},
+      {"ingredient_key": "potato", "quantity": 700, "unit": "g", "quantity_grams": 700, "preparation_note": "cubed"},
+      {"ingredient_key": "tomato", "quantity": 2, "unit": "piece", "quantity_grams": 246, "preparation_note": "chopped"}
+    ],
+    "steps": [
+      {"instruction": "Brown the pork pieces in a pot."},
+      {"instruction": "Add potatoes, tomato, and enough water to cover."},
+      {"instruction": "Simmer until the pork and potatoes are tender.", "duration_minutes": 45}
+    ]
+  },
+  {
+    "recipe_key": "beef_rice_skillet",
+    "title_en": "Beef Rice Skillet",
+    "title_bg": "Телешко с ориз на тиган",
+    "description": "One-pan beef and rice with tomato.",
+    "servings": 3,
+    "yield_quantity": 3,
+    "yield_unit": "servings",
+    "cuisine_tags_json": ["simple"],
+    "dietary_tags_json": [],
+    "meal_type_tags_json": ["dinner"],
+    "review_status": "active",
+    "ingredients": [
+      {"ingredient_key": "beef", "quantity": 350, "unit": "g", "quantity_grams": 350, "preparation_note": "minced or diced"},
+      {"ingredient_key": "rice", "quantity": 180, "unit": "g", "quantity_grams": 180, "preparation_note": "dry rice"},
+      {"ingredient_key": "tomato", "quantity": 2, "unit": "piece", "quantity_grams": 246, "preparation_note": "chopped"}
+    ],
+    "steps": [
+      {"instruction": "Cook the beef in a skillet until browned."},
+      {"instruction": "Stir in rice, tomato, and water."},
+      {"instruction": "Cover and cook until the rice is tender.", "duration_minutes": 25}
+    ]
+  },
+  {
+    "recipe_key": "mushroom_rice",
+    "title_en": "Mushroom Rice",
+    "title_bg": "Ориз с гъби",
+    "description": "Rice with mushrooms and shiitake mushrooms.",
+    "servings": 3,
+    "yield_quantity": 3,
+    "yield_unit": "servings",
+    "cuisine_tags_json": ["simple"],
+    "dietary_tags_json": ["vegetarian", "vegan"],
+    "meal_type_tags_json": ["lunch", "dinner"],
+    "review_status": "active",
+    "ingredients": [
+      {"ingredient_key": "rice", "quantity": 200, "unit": "g", "quantity_grams": 200, "preparation_note": "dry rice"},
+      {"ingredient_key": "mushroom", "quantity": 200, "unit": "g", "quantity_grams": 200, "preparation_note": "sliced"},
+      {"ingredient_key": "shiitake_mushroom", "quantity": 80, "unit": "g", "quantity_grams": 80, "preparation_note": "sliced", "optional": true}
+    ],
+    "steps": [
+      {"instruction": "Cook mushrooms until softened."},
+      {"instruction": "Add rice and water."},
+      {"instruction": "Simmer until the rice is tender.", "duration_minutes": 25}
+    ]
+  },
+  {
+    "recipe_key": "green_bean_chicken_plate",
+    "title_en": "Green Bean Chicken Plate",
+    "title_bg": "Пиле със зелен фасул",
+    "description": "Chicken plate with green beans and potatoes.",
+    "servings": 2,
+    "yield_quantity": 2,
+    "yield_unit": "plates",
+    "cuisine_tags_json": ["simple"],
+    "dietary_tags_json": [],
+    "meal_type_tags_json": ["dinner"],
+    "review_status": "active",
+    "ingredients": [
+      {"ingredient_key": "chicken_breast", "quantity": 300, "unit": "g", "quantity_grams": 300, "preparation_note": "cooked"},
+      {"ingredient_key": "green_beans", "quantity": 250, "unit": "g", "quantity_grams": 250, "preparation_note": "trimmed"},
+      {"ingredient_key": "potato", "quantity": 400, "unit": "g", "quantity_grams": 400, "preparation_note": "boiled"}
+    ],
+    "steps": [
+      {"instruction": "Cook the chicken breast until done."},
+      {"instruction": "Boil or steam the green beans and potatoes."},
+      {"instruction": "Serve the chicken with green beans and potatoes."}
+    ]
+  }
+]

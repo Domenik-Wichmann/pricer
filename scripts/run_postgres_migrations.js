@@ -8,7 +8,7 @@ async function main() {
   if (!isPostgresConfigured(process.env)) {
     console.log('Postgres is not configured; skipping migrations.');
     console.log('Start local Postgres with: docker compose up -d postgres');
-    console.log('Then set POSTGRES_HOST=localhost POSTGRES_PORT=5432 POSTGRES_DB=pricer_dev POSTGRES_USER=pricer POSTGRES_PASSWORD=pricer_dev_password');
+    console.log('Then set POSTGRES_HOST=localhost POSTGRES_PORT=5433 POSTGRES_DB=pricer_dev POSTGRES_USER=pricer POSTGRES_PASSWORD=pricer_dev_password');
     return;
   }
 

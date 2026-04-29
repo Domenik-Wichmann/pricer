@@ -8,6 +8,7 @@ Implement a hyper-rich enrichment layer that is additive to canonical truth, cac
 ### `canonical_enrichment_store`
 - `canonical_fingerprint`
 - `enrichment`
+- `explicit_claim_evidence`
 - `model_name`
 - `prompt_version`
 - `created_at`
@@ -37,6 +38,7 @@ Implement a hyper-rich enrichment layer that is additive to canonical truth, cac
 - `category_l2` and `category_l3` must be valid descendants of the selected higher level
 - `category_l4`, `product_form`, `packaging`, and `quality_tier` remain controlled optional sets
 - arrays must contain normalized string values only
+- diet/attribute claims are normalized through the Phase 15 controlled vocabulary documented in `docs/DIET_ATTRIBUTE_NORMALIZATION.md`; deterministic evidence is stored outside the strict `enrichment` object as `explicit_claim_evidence`
 
 ## Ingest contract
 1. Run deterministic source enrichment as before.

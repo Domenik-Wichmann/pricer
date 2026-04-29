@@ -41,8 +41,8 @@ test('results and product screens include savings, share, and good-price hooks',
 test('widget tests cover growth hooks and core polished flows', () => {
   const widgetTests = read('app/mobile/test/widget_smoke_test.dart');
   assert.equal(widgetTests.includes('english rendering shows localized app shell'), true);
-  assert.equal(widgetTests.includes('search flow still renders localized results'), true);
-  assert.equal(widgetTests.includes("find.byKey(const Key('share-results-button'))"), true);
+  assert.equal(widgetTests.includes('home search enter navigates to search route'), true);
+  assert.equal(widgetTests.includes('home add-to-basket parses draft items and navigates'), true);
   assert.equal(widgetTests.includes('watchlist summary banner still renders with localization'), true);
 });
 

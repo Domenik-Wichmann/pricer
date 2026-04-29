@@ -1,0 +1,52 @@
+{
+  "phase": "20.1",
+  "date": "2026-04-25",
+  "title": "Phase 20.1 Locality-Aware Gap Intelligence",
+  "commands": [
+    {
+      "command": "node tests/phase_20_1_local_gap.test.js",
+      "result": "passed",
+      "details": "9 passed, 0 failed, 9 total"
+    },
+    {
+      "command": "node tests/phase_18_7_market_gap_detection.test.js",
+      "result": "passed",
+      "details": "9 passed, 0 failed, 9 total"
+    },
+    {
+      "command": "node tests/phase_15_2_product_api.test.js",
+      "result": "passed",
+      "details": "9 passed, 0 failed, 9 total"
+    },
+    {
+      "command": "node tests/phase_15_3_shopping_list_resolution.test.js",
+      "result": "passed",
+      "details": "9 passed, 0 failed, 9 total"
+    },
+    {
+      "command": "node tests/phase_15_4_basket_input_planner.test.js",
+      "result": "passed",
+      "details": "8 passed, 0 failed, 8 total"
+    },
+    {
+      "command": "node tests/phase_16_1_basket_optimizer.test.js",
+      "result": "passed",
+      "details": "13 passed, 0 failed, 13 total"
+    },
+    {
+      "command": "node tests/phase_17_2_watchlist_tracker.test.js",
+      "result": "passed",
+      "details": "10 passed, 0 failed, 10 total"
+    },
+    {
+      "command": "npm run validate:docs",
+      "result": "passed",
+      "details": "JSON docs parse successfully."
+    },
+    {
+      "command": "node -e \"require('./functions'); console.log('functions entrypoint loaded')\"",
+      "result": "passed",
+      "details": "functions entrypoint loaded"
+    }
+  ]
+}

@@ -61,6 +61,8 @@ async function importUsdaMacros({
     food_nutrients_imported: 0,
     portions_imported: 0,
   };
+  const rowStats = createRowStats();
+  const validFoodIds = new Set();
 
   await upsertSourceDataset(client, {
     datasetId,
@@ -93,12 +95,13 @@ async function importUsdaMacros({
     importBatchId: batchId,
     datasetRoot: root,
     status: 'running',
+    metadataJson: rowStats,
   });
 
   try {
     counts.nutrients_imported = await importCsvInBatches(files.nutrient, batchSize, {
       normalize: normalizeNutrient,
-      filter: (row) => isUsdaMacroNutrientId(row.id || row.nutrient_id),
+      validate: (row) => validateNutrientRow(row, rowStats),
       flush: (records) => upsertUsdaNutrients(client, records),
     });
     logger.log(`Imported USDA macro nutrients: ${counts.nutrients_imported}`);
@@ -114,20 +117,26 @@ async function importUsdaMacros({
     });
 
     counts.foods_imported = await importCsvInBatches(files.food, batchSize, {
-      normalize: normalizeFood,
+      normalize: (row) => {
+        const record = normalizeFood(row);
+        validFoodIds.add(record.fdc_id);
+        return record;
+      },
+      validate: (row) => validateFoodRow(row, rowStats),
       flush: (records) => upsertUsdaFoods(client, records),
     });
     logger.log(`Imported USDA foods: ${counts.foods_imported}`);
 
     counts.portions_imported = await importCsvInBatches(files.foodPortion, batchSize, {
       normalize: normalizeFoodPortion,
+      validate: (row) => validateFoodPortionRow(row, rowStats, validFoodIds),
       flush: (records) => upsertUsdaFoodPortions(client, records),
     });
     logger.log(`Imported USDA food portions: ${counts.portions_imported}`);
 
     counts.food_nutrients_imported = await importCsvInBatches(files.foodNutrient, batchSize, {
       normalize: normalizeFoodNutrient,
-      filter: (row) => isUsdaMacroNutrientId(row.nutrient_id),
+      validate: (row) => validateFoodNutrientRow(row, rowStats, validFoodIds),
       flush: (records) => upsertUsdaFoodNutrients(client, records),
     });
     logger.log(`Imported USDA macro food nutrients: ${counts.food_nutrients_imported}`);
@@ -135,12 +144,14 @@ async function importUsdaMacros({
     await completeUsdaImportRun(client, {
       usdaImportRunId: runId,
       status: 'completed',
+      metadataJson: rowStats,
       ...counts,
     });
     await completeImportBatch(client, {
       importBatchId: batchId,
       status: 'completed',
     });
+    logSkippedRowSummary(logger, rowStats);
 
     return {
       dataset_id: datasetId,
@@ -148,6 +159,7 @@ async function importUsdaMacros({
       usda_import_run_id: runId,
       dataset_root: root,
       status: 'completed',
+      metadata_json: rowStats,
       ...counts,
     };
   } catch (error) {
@@ -155,6 +167,7 @@ async function importUsdaMacros({
       usdaImportRunId: runId,
       status: 'failed',
       errorMessage: error.message,
+      metadataJson: rowStats,
       ...counts,
     });
     await completeImportBatch(client, {
@@ -187,14 +200,14 @@ async function registerSourceFiles(client, {
 
 async function importCsvInBatches(filePath, batchSize, {
   normalize,
-  filter = () => true,
+  validate = () => true,
   flush,
 }) {
   let imported = 0;
   let batch = [];
 
   for await (const row of readCsvRows(filePath)) {
-    if (!filter(row)) {
+    if (!validate(row)) {
       continue;
     }
     batch.push(normalize(row));
@@ -209,6 +222,122 @@ async function importCsvInBatches(filePath, batchSize, {
   }
 
   return imported;
+}
+
+function createRowStats() {
+  return {
+    invalid_food_rows: 0,
+    invalid_nutrient_rows: 0,
+    invalid_food_nutrient_rows: 0,
+    invalid_food_portion_rows: 0,
+    orphan_food_nutrient_rows: 0,
+    orphan_food_portion_rows: 0,
+    non_macro_nutrient_rows_skipped: 0,
+    warnings: [],
+    sample_invalid_rows: [],
+  };
+}
+
+function validateFoodRow(row, stats) {
+  const fdcId = toNumberOrNull(row.fdc_id);
+  if (fdcId === null || !hasText(row.description)) {
+    recordInvalidRow(stats, 'invalid_food_rows', 'food.csv', row.fdc_id || null);
+    return false;
+  }
+  return true;
+}
+
+function validateNutrientRow(row, stats) {
+  const nutrientId = toNumberOrNull(row.id || row.nutrient_id);
+  if (!isUsdaMacroNutrientId(nutrientId)) {
+    stats.non_macro_nutrient_rows_skipped += 1;
+    return false;
+  }
+  if (nutrientId === null || !hasText(row.name)) {
+    recordInvalidRow(stats, 'invalid_nutrient_rows', 'nutrient.csv', row.id || row.nutrient_id || null);
+    return false;
+  }
+  return true;
+}
+
+function validateFoodNutrientRow(row, stats, validFoodIds = null) {
+  const nutrientId = toNumberOrNull(row.nutrient_id);
+  if (!isUsdaMacroNutrientId(nutrientId)) {
+    stats.non_macro_nutrient_rows_skipped += 1;
+    return false;
+  }
+  const hasRequiredFields = toNumberOrNull(row.id || row.food_nutrient_id) !== null
+    && toNumberOrNull(row.fdc_id) !== null
+    && nutrientId !== null
+    && toNumberOrNull(row.amount) !== null;
+  if (!hasRequiredFields) {
+    recordInvalidRow(stats, 'invalid_food_nutrient_rows', 'food_nutrient.csv', row.id || row.food_nutrient_id || null);
+    return false;
+  }
+  if (validFoodIds && !validFoodIds.has(toNumberOrNull(row.fdc_id))) {
+    recordInvalidRow(stats, 'orphan_food_nutrient_rows', 'food_nutrient.csv', row.id || row.food_nutrient_id || null);
+    return false;
+  }
+  return true;
+}
+
+function validateFoodPortionRow(row, stats, validFoodIds = null) {
+  const hasRequiredFields = toNumberOrNull(row.id) !== null
+    && toNumberOrNull(row.fdc_id) !== null
+    && toNumberOrNull(row.gram_weight) !== null;
+  if (!hasRequiredFields) {
+    recordInvalidRow(stats, 'invalid_food_portion_rows', 'food_portion.csv', row.id || null);
+    return false;
+  }
+  if (validFoodIds && !validFoodIds.has(toNumberOrNull(row.fdc_id))) {
+    recordInvalidRow(stats, 'orphan_food_portion_rows', 'food_portion.csv', row.id || null);
+    return false;
+  }
+  return true;
+}
+
+function recordInvalidRow(stats, counter, fileName, sourceId) {
+  stats[counter] += 1;
+  if (stats.sample_invalid_rows.length < 5) {
+    stats.sample_invalid_rows.push({
+      file: fileName,
+      source_id: sourceId,
+      reason: counter,
+    });
+  }
+}
+
+function logSkippedRowSummary(logger, stats) {
+  const skippedCount = stats.invalid_food_rows
+    + stats.invalid_nutrient_rows
+    + stats.invalid_food_nutrient_rows
+    + stats.invalid_food_portion_rows
+    + stats.orphan_food_nutrient_rows
+    + stats.orphan_food_portion_rows
+    + stats.non_macro_nutrient_rows_skipped;
+  if (skippedCount === 0) {
+    return;
+  }
+  logger.log('USDA import completed with skipped rows:');
+  logger.log(`- invalid_food_rows: ${stats.invalid_food_rows}`);
+  logger.log(`- invalid_nutrient_rows: ${stats.invalid_nutrient_rows}`);
+  logger.log(`- invalid_food_nutrient_rows: ${stats.invalid_food_nutrient_rows}`);
+  logger.log(`- invalid_food_portion_rows: ${stats.invalid_food_portion_rows}`);
+  logger.log(`- orphan_food_nutrient_rows: ${stats.orphan_food_nutrient_rows}`);
+  logger.log(`- orphan_food_portion_rows: ${stats.orphan_food_portion_rows}`);
+  logger.log(`- non_macro_nutrient_rows_skipped: ${stats.non_macro_nutrient_rows_skipped}`);
+}
+
+function hasText(value) {
+  return value !== undefined && value !== null && String(value).trim() !== '';
+}
+
+function toNumberOrNull(value) {
+  if (value === undefined || value === null || value === '') {
+    return null;
+  }
+  const normalized = Number(value);
+  return Number.isFinite(normalized) ? normalized : null;
 }
 
 async function inspectSourceFile(filePath) {
@@ -259,8 +388,14 @@ function requireClient(client) {
 module.exports = {
   DEFAULT_BATCH_SIZE,
   checksumFile,
+  createRowStats,
   importCsvInBatches,
   importUsdaMacros,
   inspectSourceFile,
+  logSkippedRowSummary,
   registerSourceFiles,
+  validateFoodNutrientRow,
+  validateFoodPortionRow,
+  validateFoodRow,
+  validateNutrientRow,
 };

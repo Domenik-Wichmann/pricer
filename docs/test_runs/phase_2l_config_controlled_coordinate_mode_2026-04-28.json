@@ -1,0 +1,48 @@
+{
+  "phase": "Phase 2L",
+  "date": "2026-04-28",
+  "summary": "Config-controlled nearest-availability coordinate mode default",
+  "commands": [
+    {
+      "command": "npm run test:phase6_location_availability",
+      "status": "passed",
+      "result": "19 passed, 0 failed, 19 total"
+    },
+    {
+      "command": "npm run test:phase6_location_review",
+      "status": "passed",
+      "result": "24 passed, 0 failed, 24 total"
+    },
+    {
+      "command": "npm run test:phase6_geocoding",
+      "status": "passed",
+      "result": "8 passed, 0 failed, 8 total"
+    },
+    {
+      "command": "node -e \"require('./functions'); require('./functions/src'); require('./app/functions/src'); console.log('phase2l load ok')\"",
+      "status": "passed",
+      "result": "phase2l load ok"
+    },
+    {
+      "command": "node -e \"const m=require('./app/functions/src'); if (m.resolveDefaultCoordinateMode({DEFAULT_COORDINATE_MODE:'reviewed_first'}) !== 'reviewed_first') process.exit(1); if (m.resolveDefaultCoordinateMode({DEFAULT_COORDINATE_MODE:'bad'}) !== 'provider_only') process.exit(1); console.log('phase2l config resolver ok')\"",
+      "status": "passed",
+      "result": "phase2l config resolver ok"
+    },
+    {
+      "command": "Get-FileHash functions/src/phase6/location_availability.js,app/functions/src/phase6/location_availability.js,functions/src/index.js,app/functions/src/index.js -Algorithm SHA256 | Select-Object Path,Hash",
+      "status": "passed",
+      "result": "Mirrored backend files have matching hashes between functions/src and app/functions/src."
+    },
+    {
+      "command": "npm run validate:docs",
+      "status": "passed",
+      "result": "JSON docs parse successfully"
+    }
+  ],
+  "notes": [
+    "DEFAULT_COORDINATE_MODE accepts provider_only or reviewed_first.",
+    "Unset or invalid config falls back to provider_only.",
+    "Request coordinate_mode still overrides config and invalid request values remain rejected.",
+    "No maps UI, live geocoding, LLM calls, or normal product search behavior changed."
+  ]
+}

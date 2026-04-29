@@ -1,0 +1,42 @@
+{
+  "phase": "Phase 2E-3 manual-address geocoding",
+  "date": "2026-04-27",
+  "commands": [
+    {
+      "command": "node tests/phase_6_store_geocoding.test.js",
+      "status": "passed",
+      "summary": "8 passed, 0 failed"
+    },
+    {
+      "command": "node -e \"require('./functions/src'); require('./app/functions/src'); console.log('phase2e3 exports load ok')\"",
+      "status": "passed",
+      "summary": "Backend exports loaded from both source trees"
+    },
+    {
+      "command": "node -e \"require('./functions'); console.log('functions root load ok')\"",
+      "status": "passed",
+      "summary": "Firebase Functions Express entrypoint loaded"
+    },
+    {
+      "command": "flutter analyze",
+      "cwd": "app/mobile",
+      "status": "passed",
+      "summary": "No issues found"
+    },
+    {
+      "command": "flutter test test/widget_smoke_test.dart",
+      "cwd": "app/mobile",
+      "status": "passed",
+      "summary": "73 passed, 0 failed"
+    },
+    {
+      "command": "npm run validate:docs",
+      "status": "passed",
+      "summary": "JSON docs parse successfully"
+    }
+  ],
+  "notes": [
+    "An earlier widget-test run exposed stale scroll assumptions in two existing nearby-availability tests after the manual-address controls grew taller; the tests were updated to use the existing large-viewport pattern and then passed.",
+    "No live geocoding, GPS, maps, or LLM calls were introduced."
+  ]
+}

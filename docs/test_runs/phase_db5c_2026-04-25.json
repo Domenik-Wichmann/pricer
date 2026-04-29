@@ -1,0 +1,44 @@
+{
+  "phase": "DB5C",
+  "date": "2026-04-25",
+  "status": "passed",
+  "summary": "Implemented staged recipe review and canonical promotion with DB5C usability states, ingredient gap tracking, deterministic promotion history, mirrored services, CLI support, tests, docs, and handoff artifacts.",
+  "commands": [
+    {
+      "command": "node -e \"require('./functions/src'); require('./app/functions/src'); console.log('load ok')\"",
+      "status": "passed",
+      "notes": "Both mirrored backend export surfaces loaded successfully after DB5C wiring."
+    },
+    {
+      "command": "npm run test:db5c",
+      "status": "passed",
+      "notes": "Focused DB5C promotion tests passed for partial promotion, usability classification, gap aggregation, idempotency, and safety boundaries."
+    },
+    {
+      "command": "npm test",
+      "status": "passed",
+      "notes": "Full repository test suite passed with DB5C included. Also refreshed older tests that needed current locality-owner context and the expanded canonical recipe ingredient shape."
+    },
+    {
+      "command": "npm run validate:docs",
+      "status": "passed",
+      "notes": "Documentation validation passed after DB5C doc, registry, changelog, and handoff updates."
+    }
+  ],
+  "safety": {
+    "postgres_sidecar_only": true,
+    "llm_calls": false,
+    "firestore_writes": false,
+    "runtime_publishing": false,
+    "ingredient_auto_creation": false,
+    "product_search_shopping_basket_changes": false
+  },
+  "artifacts": [
+    "db/migrations/018_db5c_recipe_promotion_usability.sql",
+    "functions/src/db/recipes/recipe_ingest_promotion_service.js",
+    "app/functions/src/db/recipes/recipe_ingest_promotion_service.js",
+    "scripts/db5c_review_and_promote_recipe.js",
+    "tests/db5c_recipe_promotion.test.js",
+    "handoff/phase_db5c/"
+  ]
+}

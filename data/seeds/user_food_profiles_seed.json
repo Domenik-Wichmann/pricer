@@ -1,0 +1,222 @@
+[
+  {
+    "user_id": "user_weight_loss_demo",
+    "household_size": 1,
+    "default_servings": 1,
+    "weekly_budget_amount": 75,
+    "weekly_budget_currency": "EUR",
+    "preferred_language": "en",
+    "cooking_skill_level": "intermediate",
+    "max_prep_time_minutes": 20,
+    "max_total_time_minutes": 35,
+    "meal_prep_preference": "batch_friendly",
+    "nutrition_goal": "weight_loss",
+    "daily_calorie_target": 1800,
+    "protein_target_g": 140,
+    "carbs_target_g": 150,
+    "fat_target_g": 55,
+    "fiber_target_g": 30,
+    "sodium_limit_mg": 2200,
+    "review_status": "active",
+    "constraints": [
+      {
+        "constraint_type": "allergy",
+        "target_type": "ingredient",
+        "target_key": "peanut",
+        "severity": "hard",
+        "notes": "Avoid all peanut ingredients."
+      },
+      {
+        "constraint_type": "avoid",
+        "target_type": "ingredient_family",
+        "target_key": "fried_food",
+        "severity": "soft",
+        "notes": "Prefer baked or grilled meals."
+      }
+    ],
+    "preferences": [
+      {
+        "preference_type": "flavor",
+        "preference_key": "savory",
+        "preference_score": 0.8,
+        "source": "explicit",
+        "confidence": 1
+      },
+      {
+        "preference_type": "texture",
+        "preference_key": "crunchy",
+        "preference_score": 0.4,
+        "source": "explicit",
+        "confidence": 0.9
+      },
+      {
+        "preference_type": "cuisine",
+        "preference_key": "mediterranean",
+        "preference_score": 0.7,
+        "source": "explicit",
+        "confidence": 0.9
+      }
+    ],
+    "equipment": [
+      {
+        "equipment_key": "oven",
+        "available": true
+      },
+      {
+        "equipment_key": "air_fryer",
+        "available": true
+      },
+      {
+        "equipment_key": "slow_cooker",
+        "available": false,
+        "notes": "No counter space right now."
+      }
+    ]
+  },
+  {
+    "user_id": "user_family_meal_demo",
+    "household_size": 4,
+    "default_servings": 4,
+    "weekly_budget_amount": 140,
+    "weekly_budget_currency": "EUR",
+    "preferred_language": "bg",
+    "cooking_skill_level": "beginner",
+    "max_prep_time_minutes": 25,
+    "max_total_time_minutes": 50,
+    "meal_prep_preference": "family_style",
+    "nutrition_goal": "balanced_family_meals",
+    "daily_calorie_target": 2200,
+    "protein_target_g": 120,
+    "carbs_target_g": 240,
+    "fat_target_g": 70,
+    "fiber_target_g": 35,
+    "sodium_limit_mg": 2600,
+    "review_status": "active",
+    "constraints": [
+      {
+        "constraint_type": "required",
+        "target_type": "tag",
+        "target_key": "dinner",
+        "severity": "preference",
+        "notes": "Dinner should reliably feed the whole household."
+      },
+      {
+        "constraint_type": "dislike",
+        "target_type": "ingredient",
+        "target_key": "mushroom",
+        "severity": "soft",
+        "notes": "One child strongly dislikes mushrooms."
+      }
+    ],
+    "preferences": [
+      {
+        "preference_type": "cuisine",
+        "preference_key": "bulgarian_home_cooking",
+        "preference_score": 0.9,
+        "source": "explicit",
+        "confidence": 1
+      },
+      {
+        "preference_type": "budget",
+        "preference_key": "value",
+        "preference_score": 0.8,
+        "source": "explicit",
+        "confidence": 0.9
+      },
+      {
+        "preference_type": "convenience",
+        "preference_key": "one_pan",
+        "preference_score": 0.6,
+        "source": "explicit",
+        "confidence": 0.8
+      }
+    ],
+    "equipment": [
+      {
+        "equipment_key": "stovetop",
+        "available": true
+      },
+      {
+        "equipment_key": "oven",
+        "available": true
+      },
+      {
+        "equipment_key": "rice_cooker",
+        "available": true
+      }
+    ]
+  },
+  {
+    "user_id": "user_picky_low_spice_demo",
+    "household_size": 2,
+    "default_servings": 2,
+    "weekly_budget_amount": 90,
+    "weekly_budget_currency": "EUR",
+    "preferred_language": "en",
+    "cooking_skill_level": "beginner",
+    "max_prep_time_minutes": 15,
+    "max_total_time_minutes": 30,
+    "meal_prep_preference": "quick_simple",
+    "nutrition_goal": "easy_high_protein",
+    "daily_calorie_target": 2000,
+    "protein_target_g": 110,
+    "carbs_target_g": 190,
+    "fat_target_g": 65,
+    "fiber_target_g": 24,
+    "sodium_limit_mg": 2300,
+    "review_status": "needs_review",
+    "constraints": [
+      {
+        "constraint_type": "dislike",
+        "target_type": "ingredient",
+        "target_key": "onion",
+        "severity": "soft",
+        "notes": "Texture aversion."
+      },
+      {
+        "constraint_type": "avoid",
+        "target_type": "tag",
+        "target_key": "spicy",
+        "severity": "hard",
+        "notes": "Low-spice household."
+      }
+    ],
+    "preferences": [
+      {
+        "preference_type": "flavor",
+        "preference_key": "mild",
+        "preference_score": 0.9,
+        "source": "explicit",
+        "confidence": 1
+      },
+      {
+        "preference_type": "texture",
+        "preference_key": "smooth",
+        "preference_score": 0.7,
+        "source": "explicit",
+        "confidence": 0.9
+      },
+      {
+        "preference_type": "cuisine",
+        "preference_key": "american_comfort",
+        "preference_score": 0.5,
+        "source": "note",
+        "confidence": 0.7
+      }
+    ],
+    "equipment": [
+      {
+        "equipment_key": "microwave",
+        "available": true
+      },
+      {
+        "equipment_key": "blender",
+        "available": true
+      },
+      {
+        "equipment_key": "grill_pan",
+        "available": false
+      }
+    ]
+  }
+]

@@ -89,9 +89,10 @@ async function createUsdaImportRun(client, run) {
       nutrients_imported,
       food_nutrients_imported,
       portions_imported,
+      metadata_json,
       started_at
     )
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, COALESCE($9::timestamptz, NOW()))
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, COALESCE($10::timestamptz, NOW()))
     ON CONFLICT (usda_import_run_id) DO UPDATE SET
       import_batch_id = EXCLUDED.import_batch_id,
       dataset_root = EXCLUDED.dataset_root,
@@ -100,6 +101,7 @@ async function createUsdaImportRun(client, run) {
       nutrients_imported = EXCLUDED.nutrients_imported,
       food_nutrients_imported = EXCLUDED.food_nutrients_imported,
       portions_imported = EXCLUDED.portions_imported,
+      metadata_json = EXCLUDED.metadata_json,
       error_message = NULL
     RETURNING *
   `, [
@@ -111,6 +113,7 @@ async function createUsdaImportRun(client, run) {
     record.nutrients_imported,
     record.food_nutrients_imported,
     record.portions_imported,
+    JSON.stringify(record.metadata_json),
     record.started_at,
   ]);
   return result.rows[0];
@@ -125,8 +128,9 @@ async function completeUsdaImportRun(client, run) {
         nutrients_imported = $4,
         food_nutrients_imported = $5,
         portions_imported = $6,
-        completed_at = COALESCE($7::timestamptz, NOW()),
-        error_message = $8
+        metadata_json = $7::jsonb,
+        completed_at = COALESCE($8::timestamptz, NOW()),
+        error_message = $9
     WHERE usda_import_run_id = $1
     RETURNING *
   `, [
@@ -136,6 +140,7 @@ async function completeUsdaImportRun(client, run) {
     nullableNumber(run.nutrients_imported || run.nutrientsImported, 'nutrients_imported') || 0,
     nullableNumber(run.food_nutrients_imported || run.foodNutrientsImported, 'food_nutrients_imported') || 0,
     nullableNumber(run.portions_imported || run.portionsImported, 'portions_imported') || 0,
+    JSON.stringify(run.metadata_json || run.metadataJson || {}),
     run.completed_at || run.completedAt || null,
     nullableString(run.error_message || run.errorMessage),
   ]);
@@ -238,6 +243,7 @@ function normalizeUsdaImportRun(run = {}) {
     nutrients_imported: nullableNumber(run.nutrients_imported || run.nutrientsImported, 'nutrients_imported') || 0,
     food_nutrients_imported: nullableNumber(run.food_nutrients_imported || run.foodNutrientsImported, 'food_nutrients_imported') || 0,
     portions_imported: nullableNumber(run.portions_imported || run.portionsImported, 'portions_imported') || 0,
+    metadata_json: run.metadata_json || run.metadataJson || {},
     started_at: run.started_at || run.startedAt || null,
   };
 }

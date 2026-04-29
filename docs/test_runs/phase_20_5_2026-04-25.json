@@ -1,0 +1,70 @@
+{
+  "phase": "20.5_internal_access_guard",
+  "date": "2026-04-25",
+  "status": "passed",
+  "commands": [
+    {
+      "command": "node tests/phase_20_5_internal_access_guard.test.js",
+      "cwd": "c:/dev/Pricer",
+      "status": "passed",
+      "summary": "9 passed, 0 failed."
+    },
+    {
+      "command": "npm run test:phase20_5",
+      "cwd": "c:/dev/Pricer",
+      "status": "passed",
+      "summary": "9 passed, 0 failed."
+    },
+    {
+      "command": "node tests/phase_20_4_merchant_insight_api.test.js",
+      "cwd": "c:/dev/Pricer",
+      "status": "passed",
+      "summary": "9 passed, 0 failed."
+    },
+    {
+      "command": "node tests/phase_20_3_market_opportunity_reports.test.js",
+      "cwd": "c:/dev/Pricer",
+      "status": "passed",
+      "summary": "11 passed, 0 failed."
+    },
+    {
+      "command": "node tests/phase_20_2_chain_gap.test.js",
+      "cwd": "c:/dev/Pricer",
+      "status": "passed",
+      "summary": "11 passed, 0 failed."
+    },
+    {
+      "command": "node -c functions/src/phase18/internal_access.js; node -c app/functions/src/phase18/internal_access.js; node -c functions/index.js",
+      "cwd": "c:/dev/Pricer",
+      "status": "passed"
+    },
+    {
+      "command": "node -e \"require('./functions/src'); require('./app/functions/src'); console.log('exports ok')\"",
+      "cwd": "c:/dev/Pricer",
+      "status": "passed",
+      "summary": "exports ok"
+    },
+    {
+      "command": "npm run validate:docs",
+      "cwd": "c:/dev/Pricer",
+      "status": "passed",
+      "summary": "JSON docs parse successfully."
+    }
+  ],
+  "coverage": [
+    "missing token denied",
+    "wrong token denied",
+    "admin role allowed",
+    "analyst role allowed",
+    "merchant role denied",
+    "missing env token denies by default",
+    "consumer endpoints unguarded by protected path list",
+    "all Phase 20 internal endpoint paths protected",
+    "forbidden responses do not leak token values"
+  ],
+  "notes": [
+    "This is a temporary internal guard, not production auth or billing.",
+    "No analytics computation changed.",
+    "No consumer endpoints were guarded by this phase."
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "phase": "18.3",
+  "name": "Home Search + Add-to-Basket Entry",
+  "date": "2026-04-24",
+  "status": "passed",
+  "commands": [
+    {
+      "command": "dart format app/mobile/lib/features/search/home_screen.dart app/mobile/lib/core/navigation/app_routes.dart app/mobile/test/widget_smoke_test.dart",
+      "status": "passed"
+    },
+    {
+      "command": "flutter analyze",
+      "cwd": "app/mobile",
+      "status": "passed",
+      "summary": "No issues found"
+    },
+    {
+      "command": "flutter test test/widget_test.dart test/widget_smoke_test.dart",
+      "cwd": "app/mobile",
+      "status": "passed",
+      "summary": "27 tests passed"
+    },
+    {
+      "command": "node tests/phase_5_flutter_app.test.js",
+      "status": "passed",
+      "summary": "4 tests passed"
+    },
+    {
+      "command": "node tests/phase_5_5_ui_and_growth.test.js",
+      "status": "passed",
+      "summary": "4 tests passed"
+    },
+    {
+      "command": "node tests/phase_5_6_localization.test.js",
+      "status": "passed",
+      "summary": "4 tests passed"
+    }
+  ],
+  "notes": [
+    "Home search and add-to-basket are route-entry only. No basket persistence, resolver, planner, optimizer, backend, or external-service behavior was added.",
+    "/search and /optimize remain lightweight placeholders, now with safe argument display for query and draft items."
+  ]
+}

@@ -205,10 +205,10 @@ test('list and search canonical product views support deterministic enrichment f
   const searchResults = searchCanonicalProductViews({
     state,
     layerSelection: LAYER_SELECTIONS.CANONICAL_WITH_ENRICHMENT,
-    queryText: 'lemon sparkling',
+    queryText: 'chocolate low fat',
     filters: {
-      flavor: 'lemon',
-      attributes: 'sparkling',
+      flavor: 'chocolate',
+      attributes: 'low_fat',
     },
   });
 
@@ -217,7 +217,7 @@ test('list and search canonical product views support deterministic enrichment f
   assert.equal(beverageViews.length, 1);
   assert.equal(beverageViews[0].enrichment.base_product, 'water');
   assert.equal(searchResults.length, 1);
-  assert.equal(searchResults[0].enrichment.flavor[0], 'lemon');
+  assert.equal(searchResults[0].enrichment.base_product, 'milk');
 });
 
 test('enrichment analytics return rollups and ingest-run summaries', async () => {

@@ -1,0 +1,5 @@
+"fdc_id","data_type","description","food_category_id","publication_date"
+"100001","foundation_food","Milk, whole","1","2025-12-18"
+"100002","branded_food","Example Cereal","Breakfast Cereals","2025-12-18"
+"100003","foundation_food","","1","2025-12-18"
+"","foundation_food","Missing fdc id","1","2025-12-18"

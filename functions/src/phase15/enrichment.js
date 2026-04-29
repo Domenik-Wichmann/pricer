@@ -6,6 +6,11 @@ const {
   getEnrichmentByFingerprint,
   storeEnrichment,
 } = require('../phase1/store');
+const {
+  extractExplicitDietAndAttributeTags,
+  mergeDietAndAttributeClaims,
+  normalizeDietAndAttributeTags,
+} = require('./diet_attribute_normalization');
 
 const ENRICHMENT_PROMPT_VERSION = 'v1';
 const DEFAULT_ENRICHMENT_SAMPLE_LIMIT = 100;
@@ -184,6 +189,7 @@ function buildEnrichmentPrompt(productName, tokens = [], markers = {}) {
       'Choose category_l1, category_l2, category_l3, and category_l4 only from the allowed lists; use null for unknown optional category levels.',
       'Use deterministic markers only as read-only context. Do not override or restate volume, count, age band, or reserve markers.',
       'Infer base_product, category hierarchy, flavor, attributes, and usage_context from the product name and tokens.',
+      'Only include diet_tags and diet or attribute claims such as organic, vegan, gluten free, lactose free, sugar free, low fat, or high protein when they are explicitly present in the product name or tokens.',
       'Use null for unknown nullable string fields and [] for unknown arrays.',
     ],
     response_schema: Object.fromEntries(ENRICHMENT_SCHEMA_KEYS.map((key) => [key, schemaHintForKey(key)])),
@@ -264,8 +270,12 @@ function validateEnrichmentResponse(response) {
     brand: normalizeNullableString(payload.brand, 'brand'),
     product_line: normalizeNullableString(payload.product_line, 'product_line'),
     flavor: normalizeArrayField(payload.flavor, 'flavor'),
-    attributes: normalizeArrayField(payload.attributes, 'attributes'),
-    diet_tags: normalizeArrayField(payload.diet_tags, 'diet_tags'),
+    attributes: normalizeDietAndAttributeTags({
+      attributes: normalizeArrayField(payload.attributes, 'attributes'),
+    }).attributes,
+    diet_tags: normalizeDietAndAttributeTags({
+      dietTags: normalizeArrayField(payload.diet_tags, 'diet_tags'),
+    }).diet_tags,
     allergens: normalizeArrayField(payload.allergens, 'allergens'),
     product_form: normalizeNullableControlledValue(payload.product_form, ALLOWED_PRODUCT_FORMS, 'product_form'),
     packaging: normalizeNullableControlledValue(payload.packaging, ALLOWED_PACKAGING, 'packaging'),
@@ -357,11 +367,16 @@ async function syncCanonicalEnrichmentArtifacts({
           endpoint,
           modelName,
         });
-      const enrichment = validateEnrichmentResponse(response);
+      const explicitClaims = extractExplicitDietAndAttributeTags(getExplicitClaimSourceText(product));
+      const enrichment = mergeDietAndAttributeClaims(
+        validateEnrichmentResponse(response),
+        explicitClaims
+      );
       const record = storeEnrichment(state, canonicalFingerprint, enrichment, {
         modelName,
         promptVersion,
         createdAt: mappedAt,
+        explicitClaimEvidence: explicitClaims.evidence,
       });
       enrichmentByFingerprint.set(canonicalFingerprint, record);
       metrics.created_count += 1;
@@ -382,6 +397,13 @@ async function syncCanonicalEnrichmentArtifacts({
   metrics.sample = samples;
 
   return metrics;
+}
+
+function getExplicitClaimSourceText(product) {
+  return [
+    product?.canonical_display_name,
+    product?.source_example_name,
+  ].filter(Boolean).join(' ');
 }
 
 async function requestCanonicalEnrichment({
@@ -610,4 +632,6 @@ module.exports = {
   requestCanonicalEnrichment,
   syncCanonicalEnrichmentArtifacts,
   validateEnrichmentResponse,
+  extractExplicitDietAndAttributeTags,
+  normalizeDietAndAttributeTags,
 };

@@ -66,16 +66,16 @@ test('migration runner applies SQL files once and tracks checksums', async () =>
   const result = await runPostgresMigrations({ client });
 
   assert.equal(result.total >= 1, true);
-  assert.deepEqual(result.applied, ['001_db1_import_metadata.sql']);
+  assert.equal(result.applied.includes('001_db1_import_metadata.sql'), true);
   assert.deepEqual(result.skipped, []);
-  assert.equal(client.transactions.commits, 1);
+  assert.equal(client.transactions.commits, result.applied.length);
   assert.equal(client.transactions.rollbacks, 0);
-  assert.equal(client.executedMigrationSql.length, 1);
+  assert.equal(client.executedMigrationSql.length, result.applied.length);
 
   const second = await runPostgresMigrations({ client });
   assert.deepEqual(second.applied, []);
-  assert.deepEqual(second.skipped, ['001_db1_import_metadata.sql']);
-  assert.equal(client.executedMigrationSql.length, 1);
+  assert.equal(second.skipped.includes('001_db1_import_metadata.sql'), true);
+  assert.equal(client.executedMigrationSql.length, result.applied.length);
 });
 
 test('migration files are deterministic and include DB1 import metadata schema', () => {
@@ -234,7 +234,48 @@ class FakeMigrationClient {
       return { rows: [] };
     }
 
-    if (normalized.includes('source_datasets') && normalized.includes('source_files') && normalized.includes('import_batches')) {
+    if (
+      (normalized.includes('source_datasets') && normalized.includes('source_files') && normalized.includes('import_batches'))
+      || normalized.includes('usda_foods')
+      || normalized.includes('usda_food_clusters')
+      || normalized.includes('usda_food_cluster_review_history')
+      || normalized.includes('CREATE TABLE IF NOT EXISTS ingredients')
+      || normalized.includes('CREATE TABLE IF NOT EXISTS ingredient_nutrition_profile_candidates')
+      || normalized.includes('CREATE TABLE IF NOT EXISTS ingredient_nutrition_profiles')
+      || normalized.includes('CREATE TABLE IF NOT EXISTS ingredient_product_candidates')
+      || normalized.includes('CREATE TABLE IF NOT EXISTS recipes')
+      || normalized.includes('CREATE TABLE IF NOT EXISTS recipe_nutrition_profile_candidates')
+      || normalized.includes('CREATE TABLE IF NOT EXISTS recipe_nutrition_profiles')
+      || normalized.includes('CREATE TABLE IF NOT EXISTS recipe_ingest_jobs')
+      || normalized.includes('CREATE TABLE IF NOT EXISTS ingredient_gap_candidates')
+      || normalized.includes('CREATE TABLE IF NOT EXISTS recipe_promotion_history')
+      || normalized.includes('CREATE TABLE IF NOT EXISTS user_food_profiles')
+      || normalized.includes('CREATE TABLE IF NOT EXISTS user_food_constraints')
+      || normalized.includes('CREATE TABLE IF NOT EXISTS user_food_preferences')
+      || normalized.includes('CREATE TABLE IF NOT EXISTS user_equipment')
+      || normalized.includes('CREATE TABLE IF NOT EXISTS recipe_feedback_events')
+      || normalized.includes('CREATE TABLE IF NOT EXISTS recipe_feedback_note_signals')
+      || normalized.includes('CREATE TABLE IF NOT EXISTS user_taste_profile_snapshots')
+      || normalized.includes('CREATE TABLE IF NOT EXISTS user_taste_profile_signal_sources')
+      || normalized.includes('CREATE TABLE IF NOT EXISTS meal_plans')
+      || normalized.includes('CREATE TABLE IF NOT EXISTS meal_plan_items')
+      || normalized.includes('CREATE TABLE IF NOT EXISTS meal_plan_requirements')
+      || normalized.includes('CREATE TABLE IF NOT EXISTS meal_plan_requirement_items')
+      || normalized.includes('CREATE TABLE IF NOT EXISTS meal_plan_net_requirements')
+      || normalized.includes('CREATE TABLE IF NOT EXISTS meal_plan_net_requirement_items')
+      || normalized.includes('CREATE TABLE IF NOT EXISTS meal_plan_product_candidate_sets')
+      || normalized.includes('CREATE TABLE IF NOT EXISTS meal_plan_product_candidates')
+      || normalized.includes('CREATE TABLE IF NOT EXISTS meal_plan_optimized_baskets')
+      || normalized.includes('CREATE TABLE IF NOT EXISTS meal_plan_optimized_basket_items')
+      || normalized.includes('CREATE TABLE IF NOT EXISTS meal_plan_shopping_runs')
+      || normalized.includes('CREATE TABLE IF NOT EXISTS user_inventories')
+      || normalized.includes('CREATE TABLE IF NOT EXISTS inventory_items')
+      || normalized.includes('ALTER TABLE recipe_ingest_jobs')
+      || normalized.includes('ALTER TABLE recipes')
+      || normalized.includes('ALTER TABLE recipe_ingredients')
+      || normalized.includes('ALTER TABLE usda_import_runs')
+      || normalized.includes('DROP INDEX IF EXISTS usda_food_nutrients_food_macro_idx')
+    ) {
       this.executedMigrationSql.push(normalized);
       return { rows: [] };
     }

@@ -1,0 +1,77 @@
+{
+  "phase": "20.4_merchant_insight_api",
+  "date": "2026-04-25",
+  "status": "passed",
+  "commands": [
+    {
+      "command": "node tests/phase_20_4_merchant_insight_api.test.js",
+      "cwd": "c:/dev/Pricer",
+      "status": "passed",
+      "summary": "9 passed, 0 failed."
+    },
+    {
+      "command": "node tests/phase_20_3_market_opportunity_reports.test.js",
+      "cwd": "c:/dev/Pricer",
+      "status": "passed",
+      "summary": "11 passed, 0 failed."
+    },
+    {
+      "command": "npm run test:phase20_4",
+      "cwd": "c:/dev/Pricer",
+      "status": "passed",
+      "summary": "9 passed, 0 failed."
+    },
+    {
+      "command": "node tests/phase_18_7_market_gap_detection.test.js",
+      "cwd": "c:/dev/Pricer",
+      "status": "passed",
+      "summary": "9 passed, 0 failed."
+    },
+    {
+      "command": "node tests/phase_20_1_local_gap.test.js",
+      "cwd": "c:/dev/Pricer",
+      "status": "passed",
+      "summary": "9 passed, 0 failed."
+    },
+    {
+      "command": "node tests/phase_20_2_chain_gap.test.js",
+      "cwd": "c:/dev/Pricer",
+      "status": "passed",
+      "summary": "11 passed, 0 failed."
+    },
+    {
+      "command": "node -e \"require('./functions/src'); require('./app/functions/src'); console.log('exports ok')\"",
+      "cwd": "c:/dev/Pricer",
+      "status": "passed",
+      "summary": "exports ok"
+    },
+    {
+      "command": "node -c functions/index.js",
+      "cwd": "c:/dev/Pricer",
+      "status": "passed"
+    },
+    {
+      "command": "npm run validate:docs",
+      "cwd": "c:/dev/Pricer",
+      "status": "passed",
+      "summary": "JSON docs parse successfully."
+    }
+  ],
+  "coverage": [
+    "overview aggregation",
+    "opportunities wrapper filters and limits",
+    "category aggregation",
+    "locality aggregation",
+    "chain aggregation",
+    "filter preservation",
+    "empty dataset safety",
+    "no mutation",
+    "deterministic output and endpoint validation"
+  ],
+  "notes": [
+    "No existing low-level analytics endpoints were changed.",
+    "No LLM calls.",
+    "No external service calls.",
+    "No mutation of gap signals or runtime data."
+  ]
+}

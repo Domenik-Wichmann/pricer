@@ -10,9 +10,10 @@
 7. Meal-domain bridge helpers can project recipe quantities into edible quantities, purchasable quantities, and ingredient-level price estimates using mapped retailer products plus fallback provenance.
 8. Phase DB0 defines the transition architecture for large relational datasets: Postgres is introduced as an additive sidecar for raw external source truth, normalized imports, joins, dedupe, and heavy canonical processing; Firestore remains the existing app-facing runtime and user-state store.
 9. Phase DB1 adds the first sidecar Postgres foundation: local/dev connection support, migration tooling, health checks, and import metadata tables only.
-10. User-entered shopping text is parsed in later phases against canonical products built on top of the Phase 1 backbone.
-11. Low-confidence matching can escalate to AI in later phases.
-12. Basket optimization, watchlists, notifications, monetization, and later recipe or planning layers sit on top of the matching layer and the explicit meal bridge.
+10. Phase DB2 adds a USDA/FoodData Central macro-only sidecar import into Postgres for future ingredient nutrition mapping, without publishing app-facing nutrition or changing live product runtime paths.
+11. User-entered shopping text is parsed in later phases against canonical products built on top of the Phase 1 backbone.
+12. Low-confidence matching can escalate to AI in later phases.
+13. Basket optimization, watchlists, notifications, monetization, and later recipe or planning layers sit on top of the matching layer and the explicit meal bridge.
 
 ## Data separation rule
 For every user request preserve:
@@ -53,6 +54,7 @@ No helper should silently blur those layers.
 - Firestore/flat store remains the current production runtime contract for compact product, meal, user, shopping-list, watchlist, and app-facing documents.
 - Postgres is a sidecar in DB1 and early DB phases, not a replacement for the existing runtime.
 - DB1 Postgres code is limited to sidecar connection, migrations, health checks, and general import metadata tables.
+- DB2 Postgres code is limited to USDA macro lookup/fact tables, import-run tracking, and a batch importer that reads raw USDA CSV files into normalized sidecar tables.
 - Postgres is the required target for USDA/FoodData Central, Open Food Facts, future recipe-source imports, relational nutrition joins, large import batches, source dedupe, mapping-review staging, historical price aggregation, trends, and analytics.
 - The existing `kolkostruva.bg -> Firestore -> App` flow remains unchanged and authoritative for current app behavior until an explicit later migration phase proves parity, performance, fallback safety, and no pricing/basket regressions.
 - DB1 must not rewrite `phase1/store.js`, change product ingest behavior, remove Firestore usage, move canonical products, or switch current product/shopping/basket read paths to Postgres.

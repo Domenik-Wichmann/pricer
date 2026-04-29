@@ -1,0 +1,31 @@
+{
+  "phase": "16.7",
+  "name": "basket_health_alerts",
+  "date": "2026-04-24",
+  "commands": [
+    "node tests/phase_16_7_basket_health.test.js",
+    "node tests/phase_16_6_basket_analytics.test.js",
+    "node tests/phase_16_5_basket_quality.test.js",
+    "node tests/phase_16_4_convenience_scoring.test.js",
+    "node tests/phase_16_3_basket_explanation.test.js",
+    "node tests/phase_16_2_multi_store_optimizer.test.js",
+    "node tests/phase_16_1_basket_optimizer.test.js",
+    "node tests/phase_16_0_price_lookup.test.js",
+    "npm run validate:docs",
+    "node -e \"require('./app/functions/src/index.js'); require('./functions/src/index.js'); require('./functions/index.js'); console.log('runtime exports and firebase entry loaded')\"",
+    "npm test"
+  ],
+  "results": {
+    "phase_16_7_basket_health": "passed",
+    "phase_16_6_basket_analytics": "passed",
+    "phase_16_5_basket_quality": "passed",
+    "phase_16_4_convenience_scoring": "passed",
+    "phase_16_3_basket_explanation": "passed",
+    "phase_16_2_multi_store_optimizer": "passed",
+    "phase_16_1_basket_optimizer": "passed",
+    "phase_16_0_price_lookup": "passed",
+    "validate_docs": "passed",
+    "runtime_exports_load": "passed",
+    "full_node_test_suite": "passed"
+  }
+}
