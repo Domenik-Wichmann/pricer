@@ -18,13 +18,13 @@ async function upsertSavedUserLocation({
     return normalized.error;
   }
 
-  const state = await store.load();
+  const state = await loadSavedUserLocationState(store, normalized.value.user_id);
   const record = upsertSavedUserLocationInState({
     state,
     input: normalized.value,
     savedAt: normalized.value.updated_at,
   });
-  await store.save(state);
+  await persistSavedUserLocationState(store, state);
   return {
     status: 200,
     body: {
@@ -151,7 +151,7 @@ async function listSavedUserLocations({
     return normalizedUserId.error;
   }
 
-  const state = await store.load();
+  const state = await loadSavedUserLocationState(store, normalizedUserId.value);
   const locations = listSavedUserLocationsInState({
     state,
     userId: normalizedUserId.value,
@@ -191,7 +191,7 @@ async function deleteSavedUserLocation({
     return normalizedLocationId.error;
   }
 
-  const state = await store.load();
+  const state = await loadSavedUserLocationState(store, normalizedUserId.value);
   const deleted = deleteSavedUserLocationInState({
     state,
     userId: normalizedUserId.value,
@@ -205,7 +205,11 @@ async function deleteSavedUserLocation({
       },
     };
   }
-  await store.save(state);
+  if (typeof store.deleteRecord === 'function') {
+    await store.deleteRecord('saved_user_locations', normalizedLocationId.value);
+  } else {
+    await store.save(state);
+  }
   return {
     status: 200,
     body: {
@@ -227,6 +231,31 @@ function deleteSavedUserLocationInState({
   state.saved_user_locations = (state.saved_user_locations || [])
     .filter((location) => !(location.user_id === userId && location.location_id === locationId));
   return state.saved_user_locations.length < before;
+}
+
+async function loadSavedUserLocationState(store, userId) {
+  if (typeof store.queryCollection === 'function') {
+    return {
+      saved_user_locations: await store.queryCollection('saved_user_locations', {
+        fieldName: 'user_id',
+        value: userId,
+      }),
+    };
+  }
+  if (typeof store.loadCollections === 'function') {
+    return store.loadCollections(['saved_user_locations']);
+  }
+  return store.load();
+}
+
+async function persistSavedUserLocationState(store, state) {
+  if (typeof store.upsertRecord === 'function') {
+    for (const location of state.saved_user_locations || []) {
+      await store.upsertRecord('saved_user_locations', location);
+    }
+    return;
+  }
+  await store.save(state);
 }
 
 function resolveLocationForSearch({

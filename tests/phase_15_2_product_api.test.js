@@ -177,6 +177,27 @@ test('product detail returns expected shape with default canonical_with_enrichme
   assert.equal(response.body.enrichment.base_product, 'milk');
 });
 
+test('product detail uses scoped catalog reads without raw snapshots', async () => {
+  const { store, milkId } = await createApiStore();
+  const scopedStore = createScopedStoreProxy(store);
+  const response = await handleGetCanonicalProductRequest({
+    store: scopedStore,
+    params: { id: milkId },
+  });
+
+  assert.equal(response.status, 200);
+  assert.equal(scopedStore.calls.some((call) => call.type === 'load'), false);
+  assert.equal(scopedStore.loadedCollections.has('canonical_products'), false);
+  assert.equal(scopedStore.loadedCollections.has('canonical_enrichment_store'), false);
+  assert.equal(scopedStore.loadedCollections.has('raw_price_snapshots'), false);
+  assert.equal(scopedStore.loadedCollections.has('product_daily_prices'), false);
+  assert.equal(scopedStore.calls.some((call) =>
+    call.type === 'queryCollection' &&
+    call.collectionName === 'canonical_product_mappings' &&
+    call.fieldName === 'canonical_product_id'
+  ), true);
+});
+
 test('search returns expected default layer and structured results', async () => {
   const { store } = await createApiStore();
   const response = await handleSearchCanonicalProductsRequest({
@@ -197,6 +218,30 @@ test('search returns expected default layer and structured results', async () =>
   assert.equal(response.body.limit, 25);
   assert.equal(response.body.offset, 0);
   assert.equal(response.body.results[0].enrichment.category_l2, 'dairy');
+});
+
+test('search uses scoped catalog reads and gap-signal upsert without raw snapshots', async () => {
+  const { store } = await createApiStore();
+  const scopedStore = createScopedStoreProxy(store);
+  const response = await handleSearchCanonicalProductsRequest({
+    store: scopedStore,
+    body: {
+      query: 'chocolate milk',
+      limit: 5,
+    },
+  });
+
+  assert.equal(response.status, 200);
+  assert.equal(scopedStore.calls.some((call) => call.type === 'load'), false);
+  assert.equal(scopedStore.calls.some((call) =>
+    call.type === 'queryCollectionPrefix' &&
+    call.collectionName === 'canonical_products'
+  ), true);
+  assert.equal(scopedStore.loadedCollections.has('canonical_product_mappings'), false);
+  assert.equal(scopedStore.loadedCollections.has('canonical_enrichment_store'), false);
+  assert.equal(scopedStore.loadedCollections.has('raw_price_snapshots'), false);
+  assert.equal(scopedStore.loadedCollections.has('product_daily_prices'), false);
+  assert.equal(scopedStore.calls.some((call) => call.type === 'upsertRecord' && call.collectionName === 'gap_signal_store'), true);
 });
 
 test('invalid layer mode is rejected safely', async () => {
@@ -323,6 +368,23 @@ test('applied-view layer is only used when explicitly requested', async () => {
   assert.equal(explicitAppliedResponse.body.provenance.applied_view.merged_into_canonical_product_id, milkId);
 });
 
+test('applied-view detail scopes in disambiguation collections only when requested', async () => {
+  const { store, juiceId } = await createApiStore();
+  const scopedStore = createScopedStoreProxy(store);
+  const response = await handleGetCanonicalProductRequest({
+    store: scopedStore,
+    params: { id: juiceId },
+    query: {
+      layer_mode: LAYER_SELECTIONS.CANONICAL_WITH_APPLIED_VIEW_AND_ENRICHMENT,
+    },
+  });
+
+  assert.equal(response.status, 200);
+  assert.equal(scopedStore.loadedCollections.has('canonical_disambiguation_queue'), true);
+  assert.equal(scopedStore.loadedCollections.has('canonical_disambiguation_decisions'), true);
+  assert.equal(scopedStore.loadedCollections.has('raw_price_snapshots'), false);
+});
+
 test('product detail returns bounded not found response', async () => {
   const { store } = await createApiStore();
   const response = await handleGetCanonicalProductRequest({
@@ -334,6 +396,57 @@ test('product detail returns bounded not found response', async () => {
   assert.equal(response.body.error, 'product not found');
   assert.equal(response.body.canonical_product_id, 'missing_product');
 });
+
+function createScopedStoreProxy(store) {
+  const calls = [];
+  const loadedCollections = new Set();
+  return {
+    prefersScopedProductSearch: true,
+    calls,
+    loadedCollections,
+    async load() {
+      calls.push({ type: 'load' });
+      throw new Error('full store load should not be used by scoped product API tests');
+    },
+    async loadCollections(collectionNames) {
+      calls.push({ type: 'loadCollections', collectionNames });
+      collectionNames.forEach((collectionName) => loadedCollections.add(collectionName));
+      return store.loadCollections(collectionNames);
+    },
+    async queryCollection(collectionName, query) {
+      calls.push({
+        type: 'queryCollection',
+        collectionName,
+        fieldName: query?.fieldName,
+        value: query?.value,
+      });
+      return store.queryCollection(collectionName, query);
+    },
+    async queryCollectionByFieldValues(collectionName, query) {
+      calls.push({
+        type: 'queryCollectionByFieldValues',
+        collectionName,
+        fieldName: query?.fieldName,
+        values: query?.values,
+      });
+      return store.queryCollectionByFieldValues(collectionName, query);
+    },
+    async queryCollectionPrefix(collectionName, query) {
+      calls.push({
+        type: 'queryCollectionPrefix',
+        collectionName,
+        fieldName: query?.fieldName,
+        prefix: query?.prefix,
+        limit: query?.limit,
+      });
+      return store.queryCollectionPrefix(collectionName, query);
+    },
+    async upsertRecord(collectionName, record) {
+      calls.push({ type: 'upsertRecord', collectionName });
+      return store.upsertRecord(collectionName, record);
+    },
+  };
+}
 
 async function run() {
   let failed = 0;

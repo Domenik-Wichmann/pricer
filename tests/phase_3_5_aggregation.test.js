@@ -149,6 +149,37 @@ test('product history endpoint returns ordered history rows', async () => {
   assert.equal(history[1].date, '2026-04-22');
 });
 
+test('product history uses scoped product_daily_prices query', async () => {
+  const store = new InMemoryDataBackboneStore(createAggregationState());
+  await runDailyAggregation({ store, date: '2026-04-21' });
+  const calls = [];
+  const scopedStore = {
+    async load() {
+      calls.push({ type: 'load' });
+      throw new Error('full store load should not be used for product history');
+    },
+    async queryCollection(collectionName, options) {
+      calls.push({ type: 'queryCollection', collectionName, options });
+      return store.queryCollection(collectionName, options);
+    },
+  };
+
+  const history = await getProductHistory({
+    store: scopedStore,
+    sourceProductId: 'milk-1',
+  });
+
+  assert.equal(history.length, 1);
+  assert.deepEqual(calls, [{
+    type: 'queryCollection',
+    collectionName: 'product_daily_prices',
+    options: {
+      fieldName: 'source_product_id',
+      value: 'milk-1',
+    },
+  }]);
+});
+
 test('category trends endpoint returns ordered category aggregate rows', async () => {
   const store = new InMemoryDataBackboneStore(createAggregationState());
   await runDailyAggregation({ store, date: '2026-04-21' });

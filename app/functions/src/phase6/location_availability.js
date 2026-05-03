@@ -154,6 +154,15 @@ async function handleNearestProductAvailabilityRequest({
   if (!store || typeof store.load !== 'function') {
     throw new Error('store with load is required');
   }
+  if (store.isFirestoreBackboneStore && !body.state) {
+    return {
+      status: 503,
+      body: {
+        error: 'nearest availability requires a compact production read model',
+        limitation: 'The legacy nearest-availability join needs mappings, latest snapshots, and location geocodes. It is disabled for large Firestore runtime data until a scoped availability read model is published.',
+      },
+    };
+  }
   const state = await store.load();
   const response = findNearestProductAvailability({
     state,

@@ -92,16 +92,14 @@ async function persistGapSignal(store, signalInput) {
     return null;
   }
   try {
-    const state = await store.load();
-    state.gap_signal_store = Array.isArray(state.gap_signal_store) ? state.gap_signal_store : [];
-    const record = attachSignalStoreContext(buildGapSignalRecord(signalInput), state);
-    const existingIndex = state.gap_signal_store.findIndex((entry) => entry.signal_id === record.signal_id);
-    if (existingIndex >= 0) {
-      state.gap_signal_store[existingIndex] = record;
-    } else {
-      state.gap_signal_store.push(record);
+    const record = buildGapSignalRecord(signalInput);
+    if (typeof store.upsertRecord === 'function') {
+      await store.upsertRecord('gap_signal_store', record);
+      return record;
     }
-    state.gap_signal_store.sort(compareSignals);
+
+    const state = await store.load();
+    upsertGapSignalRecord(state, record);
     await store.save(state);
     return record;
   } catch (_error) {
@@ -114,18 +112,16 @@ async function persistGapSignals(store, signalInputs = []) {
     return [];
   }
   try {
-    const state = await store.load();
-    state.gap_signal_store = Array.isArray(state.gap_signal_store) ? state.gap_signal_store : [];
-    const records = signalInputs.map((input) => attachSignalStoreContext(buildGapSignalRecord(input), state));
-    records.forEach((record) => {
-      const existingIndex = state.gap_signal_store.findIndex((entry) => entry.signal_id === record.signal_id);
-      if (existingIndex >= 0) {
-        state.gap_signal_store[existingIndex] = record;
-      } else {
-        state.gap_signal_store.push(record);
+    const records = signalInputs.map((input) => buildGapSignalRecord(input));
+    if (typeof store.upsertRecord === 'function') {
+      for (const record of records) {
+        await store.upsertRecord('gap_signal_store', record);
       }
-    });
-    state.gap_signal_store.sort(compareSignals);
+      return records;
+    }
+
+    const state = await store.load();
+    records.forEach((record) => upsertGapSignalRecord(state, record));
     await store.save(state);
     return records;
   } catch (_error) {
@@ -156,7 +152,7 @@ async function buildGapDetectionSummary({
     throw new Error('invalid window');
   }
 
-  const loadedState = state || await store.load();
+  const loadedState = state || await loadGapSignalState(store);
   const boundedLimit = resolveLimit(limit);
   const scoringConfig = { ...DEFAULT_GAP_SCORING_CONFIG, ...(config || {}) };
   const filters = resolveGapFilters({
@@ -204,7 +200,7 @@ async function buildLocalityGapSummary({
     throw new Error('invalid window');
   }
 
-  const loadedState = state || await store.load();
+  const loadedState = state || await loadGapSignalState(store);
   const filters = resolveGapFilters({
     locality_code: localityCodeSnakeCase || localityCode,
     chain_id: chainIdSnakeCase || chainId,
@@ -281,7 +277,7 @@ async function buildGapCoverageByChain({
     throw new Error('normalized_query or category_l2 is required');
   }
 
-  const loadedState = state || await store.load();
+  const loadedState = state || await loadGapSignalState(store);
   const filters = resolveGapFilters({
     locality_code: localityCodeSnakeCase || localityCode,
   });
@@ -362,7 +358,7 @@ async function buildMarketOpportunityReports({
     throw new Error('invalid window');
   }
 
-  const loadedState = state || await store.load();
+  const loadedState = state || await loadGapSignalState(store);
   const boundedLimit = resolveOpportunityLimit(limit);
   const minimumGapScore = resolveMinimumGapScore(minGapScoreSnakeCase ?? minGapScore);
   const scoringConfig = { ...DEFAULT_GAP_SCORING_CONFIG, ...(config || {}) };
@@ -448,7 +444,7 @@ async function buildMerchantInsightOverview({
   minGapScore,
   config = {},
 } = {}) {
-  const loadedState = state || await store.load();
+  const loadedState = state || await loadGapSignalState(store);
   const filters = resolveInsightFilters({
     locality_code: localityCodeSnakeCase || localityCode,
     category_l1: categoryL1SnakeCase || categoryL1,
@@ -513,7 +509,7 @@ async function buildMerchantInsightOpportunities({
   minGapScore,
   config = {},
 } = {}) {
-  const loadedState = state || await store.load();
+  const loadedState = state || await loadGapSignalState(store);
   const filters = resolveInsightFilters({
     locality_code: localityCodeSnakeCase || localityCode,
     category_l1: categoryL1SnakeCase || categoryL1,
@@ -567,7 +563,7 @@ async function buildMerchantCategoryInsights({
   minGapScore,
   config = {},
 } = {}) {
-  const loadedState = state || await store.load();
+  const loadedState = state || await loadGapSignalState(store);
   const filters = resolveInsightFilters({
     locality_code: localityCodeSnakeCase || localityCode,
     category_l1: categoryL1SnakeCase || categoryL1,
@@ -621,7 +617,7 @@ async function buildMerchantLocalityInsights({
   minGapScore,
   config = {},
 } = {}) {
-  const loadedState = state || await store.load();
+  const loadedState = state || await loadGapSignalState(store);
   const filters = resolveInsightFilters({
     locality_code: localityCodeSnakeCase || localityCode,
     category_l1: categoryL1SnakeCase || categoryL1,
@@ -675,7 +671,7 @@ async function buildMerchantChainInsights({
   minGapScore,
   config = {},
 } = {}) {
-  const loadedState = state || await store.load();
+  const loadedState = state || await loadGapSignalState(store);
   const filters = resolveInsightFilters({
     locality_code: localityCodeSnakeCase || localityCode,
     category_l1: categoryL1SnakeCase || categoryL1,
@@ -748,6 +744,13 @@ const handleGetMerchantInsightOpportunitiesRequest = createMerchantInsightHandle
 const handleGetMerchantCategoryInsightsRequest = createMerchantInsightHandler(buildMerchantCategoryInsights);
 const handleGetMerchantLocalityInsightsRequest = createMerchantInsightHandler(buildMerchantLocalityInsights);
 const handleGetMerchantChainInsightsRequest = createMerchantInsightHandler(buildMerchantChainInsights);
+
+async function loadGapSignalState(store) {
+  if (typeof store?.loadCollections === 'function') {
+    return store.loadCollections(['gap_signal_store']);
+  }
+  return store.load();
+}
 
 async function handleGetGapDetectionRequest({
   store,
@@ -968,6 +971,17 @@ function buildGapSignalFromWatchlist({
     source: 'watchlist',
     timestamp,
   };
+}
+
+function upsertGapSignalRecord(state, record) {
+  state.gap_signal_store = Array.isArray(state.gap_signal_store) ? state.gap_signal_store : [];
+  const existingIndex = state.gap_signal_store.findIndex((entry) => entry.signal_id === record.signal_id);
+  if (existingIndex >= 0) {
+    state.gap_signal_store[existingIndex] = record;
+  } else {
+    state.gap_signal_store.push(record);
+  }
+  state.gap_signal_store.sort(compareSignals);
 }
 
 function filterSignalsByWindow(signals, window) {

@@ -31,6 +31,14 @@ const MARKER_KEYS = Object.freeze([
   'age_band_marker',
   'reserve_marker',
 ]);
+const PRODUCT_CATALOG_BASE_COLLECTIONS = Object.freeze([
+  'canonical_products',
+  'canonical_enrichment_store',
+]);
+const PRODUCT_CATALOG_APPLIED_VIEW_COLLECTIONS = Object.freeze([
+  'canonical_disambiguation_queue',
+  'canonical_disambiguation_decisions',
+]);
 
 async function handleGetCanonicalProductRequest({
   store,
@@ -52,7 +60,11 @@ async function handleGetCanonicalProductRequest({
     return layerMode.response;
   }
 
-  const state = await store.load();
+  const state = await loadProductDetailState({
+    store,
+    canonicalProductId,
+    layerMode: layerMode.layerMode,
+  });
   const view = getCanonicalProductViewById({
     state,
     canonicalProductId,
@@ -101,11 +113,10 @@ async function handleSearchCanonicalProductsRequest({
     return filters.error;
   }
 
-  const state = await store.load();
   let responseBody;
   try {
-    responseBody = searchCanonicalProductCatalog({
-      state,
+    responseBody = await searchCanonicalProductCatalogForRequest({
+      store,
       queryText: body.query,
       layerMode: layerMode.layerMode,
       filters: filters.value,
@@ -162,7 +173,7 @@ async function handleCanonicalProductFilterFacetsRequest({
     return filters.error;
   }
 
-  const state = await store.load();
+  const state = await loadProductCatalogState(store, layerMode.layerMode);
   let views;
   try {
     views = typeof body?.query === 'string' && body.query.trim()
@@ -208,7 +219,9 @@ async function handleGetEnrichmentAnalyticsSummaryRequest({
     return filters.error;
   }
 
-  const state = await store.load();
+  const state = await loadProductCatalogState(store, layerMode.layerMode, {
+    extraCollections: ['ingest_runs'],
+  });
   let analytics;
   try {
     analytics = buildCanonicalEnrichmentAnalytics({
@@ -287,6 +300,217 @@ function searchCanonicalProductCatalog({
       .slice(boundedOffset, boundedOffset + boundedLimit)
       .map((view) => buildProductListItem(view)),
   };
+}
+
+async function loadProductCatalogState(store, layerMode = DEFAULT_PRODUCT_LAYER_MODE, {
+  extraCollections = [],
+} = {}) {
+  const collectionNames = productCatalogCollectionNames(layerMode, {
+    extraCollections,
+  });
+  if (typeof store.loadCollections === 'function') {
+    return store.loadCollections(collectionNames);
+  }
+  return store.load();
+}
+
+async function loadProductDetailState({
+  store,
+  canonicalProductId,
+  layerMode = DEFAULT_PRODUCT_LAYER_MODE,
+}) {
+  if (store?.prefersScopedProductSearch && typeof store.queryCollection === 'function') {
+    const [canonicalProducts, canonicalProductMappings, canonicalEnrichmentStore, appliedState] = await Promise.all([
+      store.queryCollection('canonical_products', {
+        fieldName: 'canonical_product_id',
+        value: canonicalProductId,
+      }),
+      loadCanonicalProductMappingsForDetail({
+        store,
+        canonicalProductId,
+      }),
+      store.queryCollection('canonical_enrichment_store', {
+        fieldName: 'canonical_fingerprint',
+        value: canonicalProductId,
+      }),
+      loadAppliedViewStateIfNeeded(store, layerMode),
+    ]);
+
+    return {
+      canonical_products: canonicalProducts,
+      canonical_product_mappings: canonicalProductMappings,
+      canonical_enrichment_store: canonicalEnrichmentStore,
+      ...appliedState,
+    };
+  }
+
+  const state = await loadProductCatalogState(store, layerMode);
+  state.canonical_product_mappings = await loadCanonicalProductMappingsForDetail({
+    store,
+    canonicalProductId,
+  });
+  return state;
+}
+
+async function searchCanonicalProductCatalogForRequest({
+  store,
+  queryText,
+  layerMode = DEFAULT_PRODUCT_LAYER_MODE,
+  filters = {},
+  limit = DEFAULT_SEARCH_LIMIT,
+  offset = 0,
+}) {
+  const state = await loadProductSearchState({
+    store,
+    queryText,
+    layerMode,
+  });
+  return searchCanonicalProductCatalog({
+    state,
+    queryText,
+    layerMode,
+    filters,
+    limit,
+    offset,
+  });
+}
+
+async function loadProductSearchState({
+  store,
+  queryText,
+  layerMode = DEFAULT_PRODUCT_LAYER_MODE,
+}) {
+  if (!store?.prefersScopedProductSearch || typeof store.queryCollectionPrefix !== 'function') {
+    return loadProductCatalogState(store, layerMode);
+  }
+
+  const prefixes = searchTokens(queryText).slice(0, 3);
+  if (prefixes.length === 0) {
+    return {
+      canonical_products: [],
+      canonical_enrichment_store: [],
+      ...await loadAppliedViewStateIfNeeded(store, layerMode),
+    };
+  }
+
+  const prefixLimit = MAX_SEARCH_LIMIT * 2;
+  const candidateGroups = await Promise.all(prefixes.flatMap((prefix) => [
+    store.queryCollectionPrefix('canonical_products', {
+      fieldName: 'canonical_display_name',
+      prefix,
+      limit: prefixLimit,
+    }),
+    store.queryCollectionPrefix('canonical_products', {
+      fieldName: 'source_example_name',
+      prefix,
+      limit: prefixLimit,
+    }),
+    store.queryCollectionPrefix('canonical_products', {
+      fieldName: 'canonical_product_type',
+      prefix,
+      limit: prefixLimit,
+    }),
+    store.queryCollectionPrefix('canonical_products', {
+      fieldName: 'canonical_brand',
+      prefix,
+      limit: prefixLimit,
+    }),
+  ]));
+  const canonicalProducts = dedupeCanonicalProducts(candidateGroups.flat());
+  const canonicalIds = canonicalProducts
+    .map((product) => product.canonical_product_id)
+    .filter(Boolean);
+  const [canonicalEnrichmentStore, appliedState] = await Promise.all([
+    canonicalIds.length > 0 && typeof store.queryCollectionByFieldValues === 'function'
+      ? store.queryCollectionByFieldValues('canonical_enrichment_store', {
+        fieldName: 'canonical_fingerprint',
+        values: canonicalIds,
+      })
+      : Promise.resolve([]),
+    loadAppliedViewStateIfNeeded(store, layerMode),
+  ]);
+
+  return {
+    canonical_products: canonicalProducts,
+    canonical_product_mappings: [],
+    canonical_enrichment_store: canonicalEnrichmentStore,
+    ...appliedState,
+  };
+}
+
+async function loadAppliedViewStateIfNeeded(store, layerMode) {
+  if (
+    layerMode !== LAYER_SELECTIONS.CANONICAL_WITH_APPLIED_VIEW &&
+    layerMode !== LAYER_SELECTIONS.CANONICAL_WITH_APPLIED_VIEW_AND_ENRICHMENT
+  ) {
+    return {
+      canonical_disambiguation_queue: [],
+      canonical_disambiguation_decisions: [],
+    };
+  }
+  if (typeof store.loadCollections === 'function') {
+    const state = await store.loadCollections(PRODUCT_CATALOG_APPLIED_VIEW_COLLECTIONS);
+    return {
+      canonical_disambiguation_queue: state.canonical_disambiguation_queue || [],
+      canonical_disambiguation_decisions: state.canonical_disambiguation_decisions || [],
+    };
+  }
+  const state = await store.load();
+  return {
+    canonical_disambiguation_queue: state.canonical_disambiguation_queue || [],
+    canonical_disambiguation_decisions: state.canonical_disambiguation_decisions || [],
+  };
+}
+
+async function loadCanonicalProductMappingsForDetail({
+  store,
+  canonicalProductId,
+}) {
+  if (typeof store.queryCollection === 'function') {
+    return store.queryCollection('canonical_product_mappings', {
+      fieldName: 'canonical_product_id',
+      value: canonicalProductId,
+    });
+  }
+
+  const state = await store.load();
+  return (state.canonical_product_mappings || []).filter(
+    (mapping) => mapping.canonical_product_id === canonicalProductId
+  );
+}
+
+function productCatalogCollectionNames(layerMode = DEFAULT_PRODUCT_LAYER_MODE, {
+  extraCollections = [],
+} = {}) {
+  const collections = [...PRODUCT_CATALOG_BASE_COLLECTIONS];
+  if (
+    layerMode === LAYER_SELECTIONS.CANONICAL_WITH_APPLIED_VIEW ||
+    layerMode === LAYER_SELECTIONS.CANONICAL_WITH_APPLIED_VIEW_AND_ENRICHMENT
+  ) {
+    collections.push(...PRODUCT_CATALOG_APPLIED_VIEW_COLLECTIONS);
+  }
+  collections.push(...extraCollections);
+  return [...new Set(collections)];
+}
+
+function searchTokens(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .split(/[^a-z0-9\u00c0-\u024f\u0400-\u04ff%]+/u)
+    .filter(Boolean);
+}
+
+function dedupeCanonicalProducts(products) {
+  const byId = new Map();
+  (products || []).forEach((product) => {
+    if (product?.canonical_product_id && !byId.has(product.canonical_product_id)) {
+      byId.set(product.canonical_product_id, product);
+    }
+  });
+  return [...byId.values()].sort(
+    (left, right) => String(left.canonical_product_id).localeCompare(String(right.canonical_product_id))
+  );
 }
 
 function extractCanonicalMarkers(canonicalTruth) {
@@ -431,6 +655,12 @@ module.exports = {
   handleGetCanonicalProductRequest,
   handleGetEnrichmentAnalyticsSummaryRequest,
   handleSearchCanonicalProductsRequest,
+  loadProductCatalogState,
+  loadCanonicalProductMappingsForDetail,
+  loadProductDetailState,
+  loadProductSearchState,
+  productCatalogCollectionNames,
   resolveRequestedLayerMode,
   searchCanonicalProductCatalog,
+  searchCanonicalProductCatalogForRequest,
 };

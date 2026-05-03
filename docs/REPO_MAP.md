@@ -22,6 +22,7 @@ This map is the first stop for feature work. Use it to find the smallest correct
 | `docs/DATA_MODEL.md` | Flat runtime collections, Firestore notes, Postgres sidecar schema notes | You are changing persistence, API payloads, imports, or app-facing records. |
 | `functions/` | Deployable Firebase Functions backend package | You are changing backend runtime code used by Firebase deploys. |
 | `app/functions/` | Mirrored backend source tree used by app/backend development history | You are changing backend modules; mirror relevant changes with `functions/` unless a phase says otherwise. |
+| `app/admin-web/` | Private Vite/React Admin/Test Web Console | You need to validate backend Functions API behavior through a local or hosted web workbench. |
 | `app/mobile/` | Flutter app | You are changing user-facing mobile screens, client repositories, localization, or app dependencies. |
 | `db/migrations/` | Postgres sidecar SQL migrations | You are adding or changing relational source-truth / import / nutrition / review tables. |
 | `scripts/` | Node CLIs for verification, migrations, imports, and batch jobs | You need an operator/dev command or testable entrypoint outside HTTP handlers. |
@@ -140,6 +141,18 @@ Postgres local defaults are in `docker-compose.yml`: database `pricer_dev`, user
 | `app/mobile/lib/src/generated/l10n/` | Generated localization code; do not hand-edit except as an emergency with a documented follow-up. |
 | `app/mobile/test/` | Flutter widget tests. |
 
+## Admin Web App Map
+
+| Path | Owns |
+| --- | --- |
+| `app/admin-web/package.json` | Admin console dependencies and Vite scripts. |
+| `app/admin-web/src/App.tsx` | Tabbed admin/test console, API base URL override, request forms, raw API workbench, and response rendering. |
+| `app/admin-web/src/styles.css` | Admin console operational layout and responsive styling. |
+| `app/admin-web/.env.example` | Local emulator API base URL example for Vite. |
+| `docs/ADMIN_WEB_CONSOLE.md` | Local dev, Hosting deploy, and API URL runbook. |
+
+Admin Console V0 is private developer tooling. It must not change mobile UI or backend business logic. Future admin auth/protection belongs here or in Firebase Hosting/Functions access control, not in consumer mobile flows.
+
 ## Scripts and Commands
 
 Repo-level scripts live in `package.json`.
@@ -203,6 +216,7 @@ When adding a feature, add or update the narrowest test file that owns the behav
 | `docs/PROF1_TASTE_PROFILE_ENGINE.md` | PROF1 taste profile engine scope, scoring rules, CLI, and boundaries. |
 | `docs/implementation/PHASE_*.md` | Implementation contracts for phases. |
 | `docs/ARCHITECTURE.md` | System architecture and boundaries. |
+| `docs/PRODUCTION_FIRESTORE_RUNTIME_AUDIT.md` | Production Firestore route risk map, scoped-read rules, safe/unsafe runtime route status, and compact read-model follow-ups. |
 | `docs/SCHEMA_MAP.md` | Schema relationships, document IDs, Postgres constraints, and source-of-truth boundaries. |
 | `docs/CURRENT_STATE.md`, `docs/current_state.json` | Current repo/product state. |
 | `docs/FEATURE_REGISTRY.md`, `docs/feature_registry.json` | Feature inventory. |

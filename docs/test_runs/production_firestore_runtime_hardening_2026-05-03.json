@@ -1,0 +1,83 @@
+{
+  "id": "production_firestore_runtime_hardening_2026-05-03",
+  "date": "2026-05-03",
+  "scope": "Production Firestore runtime hardening",
+  "results": [
+    {
+      "command": "node tests/phase_15_2_product_api.test.js",
+      "status": "passed",
+      "summary": "12 passed, 0 failed, 12 total"
+    },
+    {
+      "command": "node tests/phase_15_3_shopping_list_resolution.test.js",
+      "status": "passed",
+      "summary": "9 passed, 0 failed, 9 total"
+    },
+    {
+      "command": "node tests/phase_16_0_price_lookup.test.js",
+      "status": "passed",
+      "summary": "9 passed, 0 failed, 9 total"
+    },
+    {
+      "command": "node tests/phase_16_1_basket_optimizer.test.js",
+      "status": "passed",
+      "summary": "13 passed, 0 failed, 13 total"
+    },
+    {
+      "command": "node tests/phase_3_5_aggregation.test.js",
+      "status": "passed",
+      "summary": "5 passed, 0 failed, 5 total"
+    },
+    {
+      "command": "node tests/phase_11_production_persistence.test.js",
+      "status": "passed",
+      "summary": "4 passed, 0 failed, 4 total"
+    },
+    {
+      "command": "node tests/phase_17_1_persistent_lists.test.js",
+      "status": "passed",
+      "summary": "10 passed, 0 failed, 10 total"
+    },
+    {
+      "command": "node tests/phase_17_2_watchlist_tracker.test.js",
+      "status": "passed",
+      "summary": "10 passed, 0 failed, 10 total"
+    },
+    {
+      "command": "node tests/phase_17_4_market_trends.test.js",
+      "status": "passed",
+      "summary": "9 passed, 0 failed, 9 total"
+    },
+    {
+      "command": "node tests/phase_17_5_home_summary.test.js",
+      "status": "passed",
+      "summary": "10 passed, 0 failed, 10 total"
+    },
+    {
+      "command": "node tests/phase_18_7_market_gap_detection.test.js",
+      "status": "passed",
+      "summary": "10 passed, 0 failed, 10 total"
+    },
+    {
+      "command": "node tests/phase_6_location_availability.test.js",
+      "status": "passed",
+      "summary": "20 passed, 0 failed, 20 total"
+    },
+    {
+      "command": "npx -y firebase-tools@latest deploy --only functions --project pricer-ee440",
+      "status": "passed",
+      "summary": "api(europe-west1) deployed successfully; final live revision api-00006-xud"
+    },
+    {
+      "command": "live smoke: GET /, POST /products/search for milk/bread/kashkaval, GET /products/:id, GET /home/summary",
+      "status": "passed",
+      "summary": "health 200 in 0.213s; search milk 200 in 1.579s with 5 results; search bread 200 in 0.530s with 5 results; search kashkaval 200 in 0.456s with 5 results; product detail 200 in 0.359s; home summary 200 in 0.276s"
+    }
+  ],
+  "notes": [
+    "No heavy Firestore publish or ingest job was run.",
+    "Production Firestore full load/save is now rejected by default.",
+    "Home summary skips top deals and market highlights on Firestore until compact read models are available.",
+    "Market trends and nearest availability return controlled limitations until compact read models are available."
+  ]
+}

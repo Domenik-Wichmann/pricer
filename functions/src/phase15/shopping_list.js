@@ -10,8 +10,10 @@ const {
 const { LAYER_SELECTIONS } = require('./readers');
 const {
   DEFAULT_PRODUCT_LAYER_MODE,
+  loadProductCatalogState,
   resolveRequestedLayerMode,
   searchCanonicalProductCatalog,
+  searchCanonicalProductCatalogForRequest,
 } = require('./service');
 
 const DEFAULT_LIMIT_PER_ITEM = 5;
@@ -111,14 +113,20 @@ async function resolveShoppingListItems({
     throw new Error(resolvedLayerMode.response?.body?.error || 'invalid layer_mode');
   }
 
-  const state = await store.load();
   const boundedLimitPerItem = resolveLimitPerItem(limitPerItem);
-  const resolvedItems = normalizedItems.value.map((item) => resolveOneShoppingListItem({
-    state,
-    item,
-    layerMode: resolvedLayerMode.layerMode,
-    limitPerItem: boundedLimitPerItem,
-  }));
+  const state = store?.prefersScopedProductSearch
+    ? null
+    : await loadProductCatalogState(store, resolvedLayerMode.layerMode);
+  const resolvedItems = [];
+  for (const item of normalizedItems.value) {
+    resolvedItems.push(await resolveOneShoppingListItem({
+      store,
+      state,
+      item,
+      layerMode: resolvedLayerMode.layerMode,
+      limitPerItem: boundedLimitPerItem,
+    }));
+  }
 
   return {
     layer_mode: resolvedLayerMode.layerMode,
@@ -127,7 +135,8 @@ async function resolveShoppingListItems({
   };
 }
 
-function resolveOneShoppingListItem({
+async function resolveOneShoppingListItem({
+  store,
   state,
   item,
   layerMode,
@@ -145,13 +154,21 @@ function resolveOneShoppingListItem({
     };
   }
 
-  const catalogResponse = searchCanonicalProductCatalog({
-    state,
-    queryText: parsed.normalized_query,
-    layerMode,
-    limit: INTERNAL_SEARCH_LIMIT,
-    offset: 0,
-  });
+  const catalogResponse = state
+    ? searchCanonicalProductCatalog({
+      state,
+      queryText: parsed.normalized_query,
+      layerMode,
+      limit: INTERNAL_SEARCH_LIMIT,
+      offset: 0,
+    })
+    : await searchCanonicalProductCatalogForRequest({
+      store,
+      queryText: parsed.normalized_query,
+      layerMode,
+      limit: INTERNAL_SEARCH_LIMIT,
+      offset: 0,
+    });
   const rankedCandidates = rankShoppingListCandidates({
     parsed,
     candidates: catalogResponse.results,

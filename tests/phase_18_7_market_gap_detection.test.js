@@ -7,6 +7,7 @@ const {
   handleGetGapDetectionRequest,
   handleResolveShoppingListItemsRequest,
   handleSearchCanonicalProductsRequest,
+  persistGapSignal,
 } = require('../app/functions/src');
 
 const tests = [];
@@ -174,6 +175,37 @@ test('search and resolver handlers capture gap signals without changing response
   assert.equal(state.gap_signal_store.length, 2);
   assert.equal(state.gap_signal_store.some((entry) => entry.source === 'search'), true);
   assert.equal(state.gap_signal_store.some((entry) => entry.status === 'unresolved'), true);
+});
+
+test('gap signal persistence upserts only gap_signal_store when scoped write is available', async () => {
+  const calls = [];
+  const store = {
+    async load() {
+      calls.push({ type: 'load' });
+      throw new Error('full store load should not be used for gap signal persistence');
+    },
+    async save() {
+      calls.push({ type: 'save' });
+      throw new Error('full store save should not be used for gap signal persistence');
+    },
+    async upsertRecord(collectionName, record) {
+      calls.push({ type: 'upsertRecord', collectionName, record });
+      return record;
+    },
+  };
+
+  const record = await persistGapSignal(store, {
+    query: 'missing fruit',
+    normalized_query: 'missing fruit',
+    status: 'unresolved',
+    source: 'search',
+    timestamp: '2026-04-24T00:00:00.000Z',
+  });
+
+  assert.equal(record.source, 'search');
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].type, 'upsertRecord');
+  assert.equal(calls[0].collectionName, 'gap_signal_store');
 });
 
 test('gap endpoint validates options and applies limit', async () => {

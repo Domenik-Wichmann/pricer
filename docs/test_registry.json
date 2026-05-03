@@ -4325,6 +4325,66 @@
       "description": "Reviewed-coordinate rollout diagnostics API requires explicit admin/operator identity.",
       "phase": 6,
       "status": "passed"
+    },
+    {
+      "id": "ADMIN-WEB-V0-001",
+      "description": "Admin Console V0 Vite/React/TypeScript app builds successfully with npm run admin-web:build.",
+      "phase": "ADMIN-WEB-V0",
+      "status": "passed"
+    },
+    {
+      "id": "ADMIN-WEB-V0-002",
+      "description": "Firebase Hosting config serves app/admin-web/dist while preserving existing Functions and emulator configuration.",
+      "phase": "ADMIN-WEB-V0",
+      "status": "passed"
+    },
+    {
+      "id": "ADMIN-WEB-V0-003",
+      "description": "Admin Console V0 exposes Health, Product Search, Product Detail, Price History, Basket Test, and Raw API workbench tabs without mobile UI or backend business-logic changes.",
+      "phase": "ADMIN-WEB-V0",
+      "status": "passed"
+    },
+    {
+      "id": "PROD-FIRESTORE-RUNTIME-001",
+      "description": "Product search and detail use scoped Firestore-style reads and avoid canonical mapping/raw snapshot full loads.",
+      "phase": "PROD-FIRESTORE-RUNTIME",
+      "status": "passed"
+    },
+    {
+      "id": "PROD-FIRESTORE-RUNTIME-002",
+      "description": "Product history queries product_daily_prices by source_product_id instead of loading the full store.",
+      "phase": "PROD-FIRESTORE-RUNTIME",
+      "status": "passed"
+    },
+    {
+      "id": "PROD-FIRESTORE-RUNTIME-003",
+      "description": "Price lookup and basket optimization scope Firestore-style reads to requested canonical and source ids.",
+      "phase": "PROD-FIRESTORE-RUNTIME",
+      "status": "passed"
+    },
+    {
+      "id": "PROD-FIRESTORE-RUNTIME-004",
+      "description": "Gap-signal persistence writes only gap_signal_store when scoped upsertRecord is available.",
+      "phase": "PROD-FIRESTORE-RUNTIME",
+      "status": "passed"
+    },
+    {
+      "id": "PROD-FIRESTORE-RUNTIME-005",
+      "description": "Home summary avoids full Firestore runtime load and skips top deals and market highlights when compact read models are unavailable.",
+      "phase": "PROD-FIRESTORE-RUNTIME",
+      "status": "passed"
+    },
+    {
+      "id": "PROD-FIRESTORE-RUNTIME-006",
+      "description": "Market trends and nearest availability return controlled Firestore limitations instead of full-loading production runtime data.",
+      "phase": "PROD-FIRESTORE-RUNTIME",
+      "status": "passed"
+    },
+    {
+      "id": "PROD-FIRESTORE-RUNTIME-007",
+      "description": "Production Firestore runtime rejects legacy full load and save by default.",
+      "phase": "PROD-FIRESTORE-RUNTIME",
+      "status": "passed"
     }
   ]
 }

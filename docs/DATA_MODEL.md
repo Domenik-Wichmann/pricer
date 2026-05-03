@@ -6,6 +6,7 @@
 - Tests can still use the in-memory backbone store.
 - The backend keeps the same flat record shapes across all store backends.
 - Phase DB0 does not change the active runtime store. It defines the next persistence boundary: Postgres will own relational source truth, large external imports, nutrition joins, dedupe staging, and mapping-review processing; Firestore/flat store remains the app-facing cache and user-state runtime.
+- Production Firestore runtime reads must be scoped. Legacy full `store.load()` / `store.save()` is local/offline only for large `prod_` data, and normal user-facing routes must not load million-row collections such as `raw_price_snapshots`, `canonical_product_mappings`, `source_products`, or `product_daily_prices`.
 
 ## Phase 1 source collections
 

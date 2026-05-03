@@ -1,5 +1,23 @@
 # Changelog
 
+## 2026-05-03 - Production Firestore Runtime Hardening
+
+- Added scoped Firestore runtime helpers, route-aware read diagnostics, and production guards for legacy full `store.load()` / `store.save()`.
+- Hardened product search/detail, shopping-list resolution, basket planning/optimization, product history, saved lists, watchlist, saved user locations, gap-signal persistence, and home summary against million-row full-collection loads.
+- Disabled slow Firestore home top-deals and market-highlight scans until compact read models exist.
+- Added controlled `503` limitations for Firestore market trends and nearest availability until compact production read models exist.
+- Added `docs/PRODUCTION_FIRESTORE_RUNTIME_AUDIT.md` with route risk map, production-safe routes, remaining unsafe legacy routes, and next read-model work.
+- Expanded regression tests for scoped search/detail/history/price/gap/home/location behavior and the production full-load/full-save guard.
+
+## 2026-05-03 - Admin Console V0
+
+- Added private Vite/React/TypeScript Admin/Test Web Console under `app/admin-web`.
+- Added tabs for backend health, product search, product detail, price history, basket optimization, and raw API calls.
+- Added configurable API base URL support through `VITE_PRICER_API_BASE_URL` and an in-app localStorage override.
+- Added Firebase Hosting config pointing at `app/admin-web/dist` while preserving the existing Functions, Firestore, Hosting, and UI emulator ports.
+- Added root admin web scripts and documentation in `docs/ADMIN_WEB_CONSOLE.md`.
+- Left mobile UI and backend business logic unchanged; admin auth/protection remains an explicit next-phase TODO.
+
 ## 2026-04-29 - APP1 Meal Planning And Meal-Plan Shopping Backend API
 
 - Added thin backend API wrappers in `functions/src/api/meal_planning_api.js` and `app/functions/src/api/meal_planning_api.js` for PLAN1 generation, stored meal-plan reads, PLAN2D shopping-run invocation, stored shopping-run reads, and stored optimized-basket reads.

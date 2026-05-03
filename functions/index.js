@@ -72,6 +72,7 @@ const {
   handleWatchlistSummaryRequest,
   createPostgresPool,
   runPostgresMigrations,
+  withRuntimeReadContext,
 } = require("./src");
 
 setGlobalOptions({
@@ -83,6 +84,13 @@ const app = express();
 app.disable("x-powered-by");
 app.use(express.json({limit: "1mb"}));
 app.use(express.urlencoded({extended: false}));
+app.use((req, res, next) => {
+  withRuntimeReadContext({
+    route: `${req.method} ${req.path}`,
+    method: req.method,
+    path: req.path,
+  }, () => next());
+});
 
 let runtimeStorePromise = null;
 let postgresPoolPromise = null;
@@ -1214,6 +1222,14 @@ app.use((error, req, res, next) => {
 
   if (res.headersSent) {
     next(error);
+    return;
+  }
+
+  if (error.code === "UNSAFE_FIRESTORE_FULL_STORE_OPERATION") {
+    res.status(error.status || 503).json({
+      error: "unsafe Firestore full-store operation disabled",
+      message: error.message,
+    });
     return;
   }
 

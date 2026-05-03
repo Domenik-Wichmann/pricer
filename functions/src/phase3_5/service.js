@@ -2,9 +2,13 @@ async function getProductHistory({
   store,
   sourceProductId,
 }) {
-  const state = await store.load();
-  return state.product_daily_prices
-    .filter((row) => row.source_product_id === sourceProductId)
+  const rows = typeof store.queryCollection === 'function'
+    ? await store.queryCollection('product_daily_prices', {
+      fieldName: 'source_product_id',
+      value: sourceProductId,
+    })
+    : (await store.load()).product_daily_prices.filter((row) => row.source_product_id === sourceProductId);
+  return rows
     .sort((left, right) => left.date.localeCompare(right.date));
 }
 

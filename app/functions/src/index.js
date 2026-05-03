@@ -8,13 +8,18 @@ const {
 } = require('./phase1/importer');
 const {
   FirestoreDataBackboneStore,
+  COLLECTION_DOCUMENT_IDS,
+  DATA_BACKBONE_COLLECTIONS,
   JsonFileDataBackboneStore,
   InMemoryDataBackboneStore,
+  buildDocumentId,
   createEmptyDataBackbone,
   createRuntimeDataBackboneStore,
   getEnrichmentByFingerprint,
+  resolveCollectionName,
   resolveStoreBackend,
   storeEnrichment,
+  withRuntimeReadContext,
 } = require('./phase1/store');
 const { buildCanonicalEn } = require('./phase1_5/canonical_en');
 const { buildDisplayEn, buildEnglishMetadata } = require('./phase1_5/display_builder');
@@ -1119,6 +1124,7 @@ module.exports = {
   createFakeGeocodingProvider,
   createFcmNotifier,
   createPipelineLog,
+  COLLECTION_DOCUMENT_IDS,
   ATTRIBUTE_VOCABULARY,
   CATEGORY_TREE,
   CONFIDENCE_LEVELS,
@@ -1173,6 +1179,7 @@ module.exports = {
   fetchClusterMaterializationCandidates,
   fetchUsdaClusterFoodPage,
   FirestoreDataBackboneStore,
+  DATA_BACKBONE_COLLECTIONS,
   filterCandidates,
   generateDemandEmbedding,
   generateDeterministicEmbedding,
@@ -1352,6 +1359,8 @@ module.exports = {
   runCanonicalDisambiguationDryRun,
   runDailyAggregation,
   runDailyProductionPipeline,
+  buildDocumentId,
+  resolveCollectionName,
   runDailyWatchlistIntelligence,
   runDemandIntelligenceJobs,
   runEmbeddingGenerationJob,
@@ -1413,6 +1422,7 @@ module.exports = {
   upsertUnit,
   upsertUnitConversion,
   createRuntimeDataBackboneStore,
+  withRuntimeReadContext,
   addWatchlistItem,
   annotateOptimizerResultWithDeals,
   classifyProductDeal,

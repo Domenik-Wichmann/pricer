@@ -1,6 +1,15 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('node:crypto');
+const { AsyncLocalStorage } = require('node:async_hooks');
+
+const runtimeReadContext = new AsyncLocalStorage();
+const LARGE_COLLECTION_NAMES = Object.freeze([
+  'raw_price_snapshots',
+  'canonical_product_mappings',
+  'source_products',
+  'product_daily_prices',
+]);
 
 function createEmptyDataBackbone() {
   return {
@@ -123,6 +132,84 @@ class InMemoryDataBackboneStore {
     return cloneState(this.state);
   }
 
+  async loadCollections(collectionNames) {
+    return normalizeState(
+      Object.fromEntries(resolveCollectionNames(collectionNames).map((collectionName) => [
+        collectionName,
+        cloneState(this.state[collectionName] || []),
+      ]))
+    );
+  }
+
+  async queryCollection(collectionName, {
+    fieldName,
+    value,
+  } = {}) {
+    validateCollectionName(collectionName);
+    if (!fieldName) {
+      throw new Error('fieldName is required for scoped collection queries.');
+    }
+    return cloneState((this.state[collectionName] || []).filter((row) => row?.[fieldName] === value));
+  }
+
+  async queryCollectionByFieldValues(collectionName, {
+    fieldName,
+    values,
+  } = {}) {
+    validateCollectionName(collectionName);
+    if (!fieldName) {
+      throw new Error('fieldName is required for scoped collection queries.');
+    }
+    const valueSet = new Set(normalizeQueryValues(values));
+    if (valueSet.size === 0) {
+      return [];
+    }
+    return cloneState((this.state[collectionName] || []).filter((row) => valueSet.has(row?.[fieldName])));
+  }
+
+  async queryCollectionPrefix(collectionName, {
+    fieldName,
+    prefix,
+    limit = 50,
+  } = {}) {
+    validateCollectionName(collectionName);
+    if (!fieldName) {
+      throw new Error('fieldName is required for scoped prefix collection queries.');
+    }
+    const normalizedPrefix = String(prefix || '');
+    const boundedLimit = resolveQueryLimit(limit);
+    if (!normalizedPrefix) {
+      return [];
+    }
+    return cloneState((this.state[collectionName] || [])
+      .filter((row) => String(row?.[fieldName] || '').startsWith(normalizedPrefix))
+      .slice(0, boundedLimit));
+  }
+
+  async upsertRecord(collectionName, record) {
+    validateCollectionName(collectionName);
+    const documentId = buildDocumentId(collectionName, record);
+    const nextRecords = this.state[collectionName] || [];
+    const existingIndex = nextRecords.findIndex((entry) => buildDocumentId(collectionName, entry) === documentId);
+    if (existingIndex >= 0) {
+      nextRecords[existingIndex] = cloneState(record);
+    } else {
+      nextRecords.push(cloneState(record));
+    }
+    this.state[collectionName] = sortCollectionRecords(collectionName, nextRecords);
+    return cloneState(record);
+  }
+
+  async deleteRecord(collectionName, recordOrId) {
+    validateCollectionName(collectionName);
+    const documentId = typeof recordOrId === 'string'
+      ? recordOrId
+      : buildDocumentId(collectionName, recordOrId);
+    this.state[collectionName] = (this.state[collectionName] || [])
+      .filter((entry) => buildDocumentId(collectionName, entry) !== documentId);
+    return { deleted: true };
+  }
+
   async save(nextState) {
     this.state = cloneState(normalizeState(nextState));
   }
@@ -141,6 +228,92 @@ class JsonFileDataBackboneStore {
     return normalizeState(JSON.parse(fs.readFileSync(this.filePath, 'utf8')));
   }
 
+  async loadCollections(collectionNames) {
+    const state = await this.load();
+    return normalizeState(
+      Object.fromEntries(resolveCollectionNames(collectionNames).map((collectionName) => [
+        collectionName,
+        state[collectionName] || [],
+      ]))
+    );
+  }
+
+  async queryCollection(collectionName, {
+    fieldName,
+    value,
+  } = {}) {
+    validateCollectionName(collectionName);
+    if (!fieldName) {
+      throw new Error('fieldName is required for scoped collection queries.');
+    }
+    const state = await this.loadCollections([collectionName]);
+    return (state[collectionName] || []).filter((row) => row?.[fieldName] === value);
+  }
+
+  async queryCollectionByFieldValues(collectionName, {
+    fieldName,
+    values,
+  } = {}) {
+    validateCollectionName(collectionName);
+    if (!fieldName) {
+      throw new Error('fieldName is required for scoped collection queries.');
+    }
+    const valueSet = new Set(normalizeQueryValues(values));
+    if (valueSet.size === 0) {
+      return [];
+    }
+    const state = await this.loadCollections([collectionName]);
+    return (state[collectionName] || []).filter((row) => valueSet.has(row?.[fieldName]));
+  }
+
+  async queryCollectionPrefix(collectionName, {
+    fieldName,
+    prefix,
+    limit = 50,
+  } = {}) {
+    validateCollectionName(collectionName);
+    if (!fieldName) {
+      throw new Error('fieldName is required for scoped prefix collection queries.');
+    }
+    const normalizedPrefix = String(prefix || '');
+    const boundedLimit = resolveQueryLimit(limit);
+    if (!normalizedPrefix) {
+      return [];
+    }
+    const state = await this.loadCollections([collectionName]);
+    return (state[collectionName] || [])
+      .filter((row) => String(row?.[fieldName] || '').startsWith(normalizedPrefix))
+      .slice(0, boundedLimit);
+  }
+
+  async upsertRecord(collectionName, record) {
+    validateCollectionName(collectionName);
+    const state = await this.load();
+    const documentId = buildDocumentId(collectionName, record);
+    const records = state[collectionName] || [];
+    const existingIndex = records.findIndex((entry) => buildDocumentId(collectionName, entry) === documentId);
+    if (existingIndex >= 0) {
+      records[existingIndex] = record;
+    } else {
+      records.push(record);
+    }
+    state[collectionName] = sortCollectionRecords(collectionName, records);
+    await this.save(state);
+    return cloneState(record);
+  }
+
+  async deleteRecord(collectionName, recordOrId) {
+    validateCollectionName(collectionName);
+    const state = await this.load();
+    const documentId = typeof recordOrId === 'string'
+      ? recordOrId
+      : buildDocumentId(collectionName, recordOrId);
+    state[collectionName] = (state[collectionName] || [])
+      .filter((entry) => buildDocumentId(collectionName, entry) !== documentId);
+    await this.save(state);
+    return { deleted: true };
+  }
+
   async save(nextState) {
     fs.mkdirSync(path.dirname(this.filePath), { recursive: true });
     fs.writeFileSync(this.filePath, JSON.stringify(normalizeState(nextState), null, 2));
@@ -151,6 +324,8 @@ class FirestoreDataBackboneStore {
   constructor({
     firestore,
     collectionPrefix = '',
+    allowFullLoad = true,
+    allowFullSave = true,
   }) {
     if (!firestore) {
       throw new Error('FirestoreDataBackboneStore requires a firestore instance.');
@@ -158,31 +333,181 @@ class FirestoreDataBackboneStore {
 
     this.firestore = firestore;
     this.collectionPrefix = collectionPrefix;
+    this.allowFullLoad = allowFullLoad;
+    this.allowFullSave = allowFullSave;
+    this.prefersScopedProductSearch = true;
+    this.isFirestoreBackboneStore = true;
   }
 
   async load() {
+    logRuntimeReadEvent('warn', {
+      operation: 'full_load_attempt',
+      collection: '*',
+      message: 'Full Firestore runtime load was attempted.',
+    });
+    if (!this.allowFullLoad) {
+      throw buildUnsafeFirestoreOperationError('Full Firestore runtime load is disabled in production.');
+    }
+    return this.loadCollections(DATA_BACKBONE_COLLECTIONS);
+  }
+
+  async loadCollections(collectionNames) {
     const collections = await Promise.all(
-      DATA_BACKBONE_COLLECTIONS.map(async (collectionName) => {
-        const snapshot = await this.firestore
-          .collection(resolveCollectionName(this.collectionPrefix, collectionName))
-          .get();
-        const rows = snapshot.docs
-          .map((doc) => sanitizeLoadedRecord(doc.data()))
-          .sort((left, right) => {
-            const leftId = buildDocumentId(collectionName, left);
-            const rightId = buildDocumentId(collectionName, right);
-            return leftId.localeCompare(rightId);
-          });
+      resolveCollectionNames(collectionNames).map(async (collectionName) => {
+        const startedAt = Date.now();
+        const rows = await this.loadCollectionRows(collectionName);
+        logRuntimeReadEvent('info', {
+          operation: 'loadCollections',
+          collection: collectionName,
+          row_count: rows.length,
+          duration_ms: Date.now() - startedAt,
+        });
         return [collectionName, rows];
       })
     );
 
-    return normalizeState(Object.fromEntries(collections));
+    return normalizeState(Object.fromEntries(collections), {
+      cloneCollections: false,
+    });
+  }
+
+  async queryCollection(collectionName, {
+    fieldName,
+    value,
+  } = {}) {
+    validateCollectionName(collectionName);
+    if (!fieldName) {
+      throw new Error('fieldName is required for scoped collection queries.');
+    }
+    const snapshot = await this.firestore
+      .collection(resolveCollectionName(this.collectionPrefix, collectionName))
+      .where(fieldName, '==', value)
+      .get();
+    const rows = sortCollectionRecords(collectionName, snapshot.docs.map((doc) => sanitizeLoadedRecord(doc.data())));
+    logRuntimeReadEvent('info', {
+      operation: 'queryCollection',
+      collection: collectionName,
+      field: fieldName,
+      row_count: rows.length,
+    });
+    return rows;
+  }
+
+  async queryCollectionByFieldValues(collectionName, {
+    fieldName,
+    values,
+  } = {}) {
+    validateCollectionName(collectionName);
+    if (!fieldName) {
+      throw new Error('fieldName is required for scoped collection queries.');
+    }
+    const normalizedValues = normalizeQueryValues(values);
+    if (normalizedValues.length === 0) {
+      return [];
+    }
+
+    const rows = [];
+    for (let index = 0; index < normalizedValues.length; index += 30) {
+      const chunk = normalizedValues.slice(index, index + 30);
+      const snapshot = await this.firestore
+        .collection(resolveCollectionName(this.collectionPrefix, collectionName))
+        .where(fieldName, 'in', chunk)
+        .get();
+      rows.push(...snapshot.docs.map((doc) => sanitizeLoadedRecord(doc.data())));
+    }
+
+    const sortedRows = sortCollectionRecords(collectionName, rows);
+    logRuntimeReadEvent('info', {
+      operation: 'queryCollectionByFieldValues',
+      collection: collectionName,
+      field: fieldName,
+      value_count: normalizedValues.length,
+      row_count: sortedRows.length,
+    });
+    return sortedRows;
+  }
+
+  async queryCollectionPrefix(collectionName, {
+    fieldName,
+    prefix,
+    limit = 50,
+  } = {}) {
+    validateCollectionName(collectionName);
+    if (!fieldName) {
+      throw new Error('fieldName is required for scoped prefix collection queries.');
+    }
+    const normalizedPrefix = String(prefix || '');
+    const boundedLimit = resolveQueryLimit(limit);
+    if (!normalizedPrefix) {
+      return [];
+    }
+
+    const startedAt = Date.now();
+    const snapshot = await this.firestore
+      .collection(resolveCollectionName(this.collectionPrefix, collectionName))
+      .where(fieldName, '>=', normalizedPrefix)
+      .where(fieldName, '<=', `${normalizedPrefix}\uf8ff`)
+      .limit(boundedLimit)
+      .get();
+    const rows = sortCollectionRecords(collectionName, snapshot.docs.map((doc) => sanitizeLoadedRecord(doc.data())));
+    logRuntimeReadEvent('info', {
+      operation: 'queryCollectionPrefix',
+      collection: collectionName,
+      field: fieldName,
+      prefix_length: normalizedPrefix.length,
+      limit: boundedLimit,
+      row_count: rows.length,
+      duration_ms: Date.now() - startedAt,
+    });
+    return rows;
+  }
+
+  async upsertRecord(collectionName, record) {
+    validateCollectionName(collectionName);
+    await this.firestore
+      .collection(resolveCollectionName(this.collectionPrefix, collectionName))
+      .doc(buildDocumentId(collectionName, record))
+      .set(sanitizeStoredRecord(record));
+    return sanitizeLoadedRecord(record);
+  }
+
+  async deleteRecord(collectionName, recordOrId) {
+    validateCollectionName(collectionName);
+    const documentId = typeof recordOrId === 'string'
+      ? recordOrId
+      : buildDocumentId(collectionName, recordOrId);
+    await this.firestore
+      .collection(resolveCollectionName(this.collectionPrefix, collectionName))
+      .doc(documentId)
+      .delete();
+    logRuntimeReadEvent('info', {
+      operation: 'deleteRecord',
+      collection: collectionName,
+      row_count: 1,
+    });
+    return { deleted: true };
+  }
+
+  async loadCollectionRows(collectionName) {
+    validateCollectionName(collectionName);
+    const snapshot = await this.firestore
+      .collection(resolveCollectionName(this.collectionPrefix, collectionName))
+      .get();
+    return sortCollectionRecords(collectionName, snapshot.docs.map((doc) => sanitizeLoadedRecord(doc.data())));
   }
 
   async save(nextState) {
-    const state = normalizeState(nextState);
-    const operations = [];
+    logRuntimeReadEvent('warn', {
+      operation: 'full_save_attempt',
+      collection: '*',
+      message: 'Full Firestore runtime save was attempted.',
+    });
+    if (!this.allowFullSave) {
+      throw buildUnsafeFirestoreOperationError('Full Firestore runtime save is disabled in production.');
+    }
+    const state = normalizeState(nextState, {
+      cloneCollections: false,
+    });
 
     for (const collectionName of DATA_BACKBONE_COLLECTIONS) {
       const collectionRef = this.firestore.collection(
@@ -192,8 +517,18 @@ class FirestoreDataBackboneStore {
       const existingIds = new Set(snapshot.docs.map((doc) => doc.id));
       const nextRecords = state[collectionName];
       const nextIds = new Set();
+      let operations = [];
+      const commitPendingOperations = async () => {
+        if (operations.length === 0) {
+          return;
+        }
 
-      nextRecords.forEach((record) => {
+        const pending = operations;
+        operations = [];
+        await commitFirestoreOperations(this.firestore, pending);
+      };
+
+      for (const record of nextRecords) {
         const documentId = buildDocumentId(collectionName, record);
         nextIds.add(documentId);
         operations.push({
@@ -201,19 +536,25 @@ class FirestoreDataBackboneStore {
           ref: collectionRef.doc(documentId),
           data: sanitizeStoredRecord(record),
         });
-      });
+        if (operations.length >= 400) {
+          await commitPendingOperations();
+        }
+      }
 
-      existingIds.forEach((documentId) => {
+      for (const documentId of existingIds) {
         if (!nextIds.has(documentId)) {
           operations.push({
             type: 'delete',
             ref: collectionRef.doc(documentId),
           });
+          if (operations.length >= 400) {
+            await commitPendingOperations();
+          }
         }
-      });
-    }
+      }
 
-    await commitFirestoreOperations(this.firestore, operations);
+      await commitPendingOperations();
+    }
   }
 }
 
@@ -238,6 +579,8 @@ async function createRuntimeDataBackboneStore({
     return new FirestoreDataBackboneStore({
       firestore: firestore || createFirestoreClientFromEnv(env),
       collectionPrefix: env.PRICER_FIRESTORE_COLLECTION_PREFIX || '',
+      allowFullLoad: env.PRICER_ALLOW_FIRESTORE_FULL_LOAD === 'true',
+      allowFullSave: env.PRICER_ALLOW_FIRESTORE_FULL_SAVE === 'true',
     });
   }
 
@@ -290,6 +633,19 @@ function resolveCollectionName(prefix, collectionName) {
   return prefix ? `${prefix}_${collectionName}` : collectionName;
 }
 
+function validateCollectionName(collectionName) {
+  if (!DATA_BACKBONE_COLLECTIONS.includes(collectionName)) {
+    throw new Error(`Unknown data backbone collection "${collectionName}".`);
+  }
+}
+
+function resolveCollectionNames(collectionNames) {
+  const names = Array.isArray(collectionNames) ? collectionNames : [];
+  const uniqueNames = [...new Set(names)];
+  uniqueNames.forEach(validateCollectionName);
+  return uniqueNames;
+}
+
 function buildDocumentId(collectionName, record) {
   const fields = COLLECTION_DOCUMENT_IDS[collectionName];
   if (!fields) {
@@ -336,13 +692,85 @@ async function commitFirestoreOperations(firestore, operations) {
   }
 }
 
-function normalizeState(state = {}) {
+function sortCollectionRecords(collectionName, rows) {
+  return [...rows].sort((left, right) => {
+    const leftId = buildDocumentId(collectionName, left);
+    const rightId = buildDocumentId(collectionName, right);
+    return leftId.localeCompare(rightId);
+  });
+}
+
+function normalizeQueryValues(values) {
+  if (!Array.isArray(values)) {
+    return [];
+  }
+  return [...new Set(values.filter((value) => value !== undefined && value !== null && value !== ''))];
+}
+
+function resolveQueryLimit(value) {
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return 50;
+  }
+  return Math.min(parsed, 500);
+}
+
+function withRuntimeReadContext(context, callback) {
+  return runtimeReadContext.run(context || {}, callback);
+}
+
+function getRuntimeReadContext() {
+  return runtimeReadContext.getStore() || {};
+}
+
+function buildUnsafeFirestoreOperationError(message) {
+  const error = new Error(message);
+  error.code = 'UNSAFE_FIRESTORE_FULL_STORE_OPERATION';
+  error.status = 503;
+  return error;
+}
+
+function logRuntimeReadEvent(level, payload) {
+  const context = getRuntimeReadContext();
+  const entry = {
+    route: context.route || 'unknown',
+    method: context.method || null,
+    path: context.path || null,
+    backend: 'FirestoreDataBackboneStore',
+    ...payload,
+  };
+  if (LARGE_COLLECTION_NAMES.includes(payload.collection)) {
+    entry.large_collection = true;
+  }
+
+  const logger = getRuntimeLogger();
+  const method = typeof logger[level] === 'function' ? level : 'log';
+  logger[method]('Firestore runtime read', entry);
+}
+
+function getRuntimeLogger() {
+  try {
+    // eslint-disable-next-line global-require
+    return require('firebase-functions/logger');
+  } catch (_error) {
+    return console;
+  }
+}
+
+function normalizeState(state = {}, {
+  cloneCollections = true,
+} = {}) {
   const empty = createEmptyDataBackbone();
   const nextState = {};
 
   DATA_BACKBONE_COLLECTIONS.forEach((collectionName) => {
     const value = state[collectionName];
-    nextState[collectionName] = Array.isArray(value) ? cloneState(value) : empty[collectionName];
+    if (Array.isArray(value)) {
+      nextState[collectionName] = cloneCollections ? cloneState(value) : value;
+      return;
+    }
+
+    nextState[collectionName] = cloneCollections ? cloneState(empty[collectionName]) : [];
   });
 
   return nextState;
@@ -379,6 +807,10 @@ function sanitizeLoadedRecord(value) {
 }
 
 function cloneState(state) {
+  if (typeof structuredClone === 'function') {
+    return structuredClone(state);
+  }
+
   return JSON.parse(JSON.stringify(state));
 }
 
@@ -434,11 +866,16 @@ module.exports = {
   COLLECTION_DOCUMENT_IDS,
   DATA_BACKBONE_COLLECTIONS,
   FirestoreDataBackboneStore,
+  COLLECTION_DOCUMENT_IDS,
+  DATA_BACKBONE_COLLECTIONS,
   JsonFileDataBackboneStore,
   InMemoryDataBackboneStore,
+  buildDocumentId,
   createEmptyDataBackbone,
   createRuntimeDataBackboneStore,
   getEnrichmentByFingerprint,
+  resolveCollectionName,
   resolveStoreBackend,
   storeEnrichment,
+  withRuntimeReadContext,
 };

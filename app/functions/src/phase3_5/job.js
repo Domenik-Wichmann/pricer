@@ -19,8 +19,12 @@ async function runDailyAggregation({
     targetDate: date,
   });
 
-  state.product_daily_prices.push(...aggregation.product_daily_prices);
-  state.category_daily_aggregates.push(...aggregation.category_daily_aggregates);
+  aggregation.product_daily_prices.forEach((row) => {
+    state.product_daily_prices.push(row);
+  });
+  aggregation.category_daily_aggregates.forEach((row) => {
+    state.category_daily_aggregates.push(row);
+  });
   await store.save(state);
 
   return {

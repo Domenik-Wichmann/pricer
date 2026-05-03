@@ -38,7 +38,7 @@ async function handleMarketTrendsRequest({
     };
   } catch (error) {
     return {
-      status: 400,
+      status: error.status || 400,
       body: {
         error: error.message,
       },
@@ -62,7 +62,7 @@ async function handleMarketOverviewRequest({
     };
   } catch (error) {
     return {
-      status: 400,
+      status: error.status || 400,
       body: {
         error: error.message,
       },
@@ -84,6 +84,13 @@ async function buildMarketTrendSummary({
   }
   if (!ALLOWED_MARKET_TREND_WINDOWS.includes(window)) {
     throw new Error('invalid window');
+  }
+
+  if (!state && store?.isFirestoreBackboneStore) {
+    const error = new Error('market trend summaries require a compact production read model');
+    error.code = 'COMPACT_MARKET_TRENDS_READ_MODEL_REQUIRED';
+    error.status = 503;
+    throw error;
   }
 
   const loadedState = state || await store.load();

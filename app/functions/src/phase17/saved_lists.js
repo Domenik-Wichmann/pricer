@@ -37,12 +37,7 @@ async function createSavedList({
     created_at: timestamp,
     updated_at: timestamp,
   };
-  const state = await store.load();
-  state.saved_lists_store = Array.isArray(state.saved_lists_store)
-    ? state.saved_lists_store
-    : [];
-  state.saved_lists_store.push(record);
-  await store.save(state);
+  await upsertSavedListRecord(store, record);
   return {
     status: 201,
     body: {
@@ -58,8 +53,7 @@ async function getSavedList({
 }) {
   requireStore(store);
   const owner = normalizeOwnerContext(ownerContext);
-  const state = await store.load();
-  const list = findOwnedSavedList(state, listId, owner);
+  const list = await loadOwnedSavedList(store, listId, owner);
   if (!list) {
     return notFound();
   }
@@ -77,8 +71,7 @@ async function listSavedLists({
 }) {
   requireStore(store);
   const owner = normalizeOwnerContext(ownerContext);
-  const state = await store.load();
-  const lists = (state.saved_lists_store || [])
+  const lists = (await loadSavedListsForOwner(store, owner))
     .filter((list) => canAccessSavedList(owner, list))
     .slice()
     .sort((left, right) => right.updated_at.localeCompare(left.updated_at))
@@ -110,18 +103,11 @@ async function updateSavedList({
     };
   }
 
-  const state = await store.load();
-  state.saved_lists_store = Array.isArray(state.saved_lists_store)
-    ? state.saved_lists_store
-    : [];
-  const index = state.saved_lists_store.findIndex(
-    (list) => list.list_id === listId && canAccessSavedList(owner, list)
-  );
-  if (index < 0) {
+  const current = await loadOwnedSavedList(store, listId, owner);
+  if (!current) {
     return notFound();
   }
 
-  const current = state.saved_lists_store[index];
   const next = {
     ...current,
   };
@@ -140,8 +126,7 @@ async function updateSavedList({
     next.items = normalizedItems.value;
   }
   next.updated_at = normalizeTimestamp(updatedAt);
-  state.saved_lists_store[index] = next;
-  await store.save(state);
+  await upsertSavedListRecord(store, next);
   return {
     status: 200,
     body: {
@@ -157,18 +142,11 @@ async function deleteSavedList({
 }) {
   requireStore(store);
   const owner = normalizeOwnerContext(ownerContext);
-  const state = await store.load();
-  state.saved_lists_store = Array.isArray(state.saved_lists_store)
-    ? state.saved_lists_store
-    : [];
-  const existing = findOwnedSavedList(state, listId, owner);
+  const existing = await loadOwnedSavedList(store, listId, owner);
   if (!existing) {
     return notFound();
   }
-  state.saved_lists_store = state.saved_lists_store.filter((list) => {
-    return !(list.list_id === listId && canAccessSavedList(owner, list));
-  });
-  await store.save(state);
+  await deleteSavedListRecord(store, existing);
   return {
     status: 200,
     body: {
@@ -186,8 +164,7 @@ async function optimizeSavedList({
 }) {
   requireStore(store);
   const owner = normalizeOwnerContext(ownerContext);
-  const state = await store.load();
-  const list = findOwnedSavedList(state, listId, owner);
+  const list = await loadOwnedSavedList(store, listId, owner);
   if (!list) {
     return notFound();
   }
@@ -368,6 +345,64 @@ function findOwnedSavedList(state, listId, ownerContext) {
     return null;
   }
   return list;
+}
+
+async function loadSavedListsForOwner(store, owner) {
+  if (typeof store.queryCollection === 'function' && owner.owner_type !== 'system') {
+    return store.queryCollection('saved_lists_store', {
+      fieldName: 'owner_id',
+      value: owner.owner_id,
+    });
+  }
+  if (typeof store.loadCollections === 'function') {
+    const state = await store.loadCollections(['saved_lists_store']);
+    return state.saved_lists_store || [];
+  }
+  const state = await store.load();
+  return state.saved_lists_store || [];
+}
+
+async function loadOwnedSavedList(store, listId, owner) {
+  if (typeof listId !== 'string' || !listId.trim()) {
+    return null;
+  }
+  if (typeof store.queryCollection === 'function') {
+    const rows = await store.queryCollection('saved_lists_store', {
+      fieldName: 'list_id',
+      value: listId,
+    });
+    return rows.find((list) => canAccessSavedList(owner, list)) || null;
+  }
+  const state = await store.load();
+  return findOwnedSavedList(state, listId, owner);
+}
+
+async function upsertSavedListRecord(store, record) {
+  if (typeof store.upsertRecord === 'function') {
+    await store.upsertRecord('saved_lists_store', record);
+    return;
+  }
+  const state = await store.load();
+  state.saved_lists_store = Array.isArray(state.saved_lists_store)
+    ? state.saved_lists_store
+    : [];
+  const index = state.saved_lists_store.findIndex((list) => list.list_id === record.list_id);
+  if (index >= 0) {
+    state.saved_lists_store[index] = record;
+  } else {
+    state.saved_lists_store.push(record);
+  }
+  await store.save(state);
+}
+
+async function deleteSavedListRecord(store, record) {
+  if (typeof store.deleteRecord === 'function') {
+    await store.deleteRecord('saved_lists_store', record);
+    return;
+  }
+  const state = await store.load();
+  state.saved_lists_store = (state.saved_lists_store || []).filter((list) => list.list_id !== record.list_id);
+  await store.save(state);
 }
 
 function canAccessSavedList(ownerContext, list) {

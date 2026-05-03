@@ -183,6 +183,38 @@ test('latest price lookup by canonical product id returns priced records and det
   assert.equal(result.items[0].best_price.chain_id, 'lidl');
 });
 
+test('price lookup scopes Firestore-style reads to requested canonical and source ids', async () => {
+  const { store, canonicalIds } = await createPriceLookupStore();
+  const calls = [];
+  const scopedStore = {
+    async load() {
+      calls.push({ type: 'load' });
+      throw new Error('full store load should not be used for price lookup');
+    },
+    async queryCollectionByFieldValues(collectionName, options) {
+      calls.push({ type: 'queryCollectionByFieldValues', collectionName, options });
+      return store.queryCollectionByFieldValues(collectionName, options);
+    },
+  };
+
+  const result = await lookupCanonicalProductPrices({
+    store: scopedStore,
+    canonicalProductIds: [canonicalIds.chocolateMilkId],
+  });
+
+  assert.equal(result.items[0].price_status, 'priced');
+  assert.deepEqual(calls.map((call) => call.collectionName), [
+    'canonical_product_mappings',
+    'source_products',
+    'raw_price_snapshots',
+  ]);
+  assert.equal(calls.some((call) => call.collectionName === 'product_daily_prices'), false);
+  assert.deepEqual(calls[0].options, {
+    fieldName: 'canonical_product_id',
+    values: [canonicalIds.chocolateMilkId],
+  });
+});
+
 test('missing canonical product prices return missing status', async () => {
   const { store } = await createPriceLookupStore();
   const result = await lookupCanonicalProductPrices({

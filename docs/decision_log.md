@@ -1,6 +1,12 @@
 # Decision Log
 
+- 2026-05-03: Production Firestore runtime must use scoped reads/writes for app-facing routes. Full flat-store `load()` / `save()` remains local/offline legacy behavior and is disabled by default for production Firestore runtime because `prod_raw_price_snapshots` and `prod_canonical_product_mappings` are KolkoStruva-scale collections.
+- 2026-05-03: Product search should use bounded canonical-product prefix queries plus enrichment lookups for returned ids. It must not load `canonical_product_mappings`, `raw_price_snapshots`, `source_products`, or `product_daily_prices` in the normal search path.
+- 2026-05-03: Market trends and nearest availability should fail fast with controlled Firestore limitations until compact read models exist, rather than attempting large joins over production Firestore collections.
+
 ## Latest additions
+- Admin Console V0 lives as a separate Vite/React app under `app/admin-web` and talks to the existing Functions Express API through a configurable base URL; it intentionally avoids mobile UI changes and backend business-logic changes.
+- Admin Console V0 is private developer tooling only. It may be deployed through Firebase Hosting for trusted testing, but public exposure requires a later Firebase Auth/admin-claims or equivalent access-control phase.
 - APP1 exposes meal planning only as thin backend API wrappers over the existing PLAN1 and PLAN2D modules; request handlers may read Postgres sidecar tables directly for detail views, but they must not re-implement planner, requirement, candidate, or optimizer logic.
 - APP1 meal-plan shopping runs still depend on the existing runtime store during explicit invocation because PLAN2B and PLAN2C intentionally reuse the current canonical product and price backbone while persisting adapter outputs in Postgres sidecar tables.
 - Phase 2L allows `DEFAULT_COORDINATE_MODE` to change nearest-availability defaults only through explicit config; unset or invalid config falls back to `provider_only`, and request `coordinate_mode` remains the strongest override.

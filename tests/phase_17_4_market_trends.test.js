@@ -245,6 +245,25 @@ test('market overview returns top-level category trends', async () => {
   assert.equal(response.body.groups[0].key, 'Food & Beverage');
 });
 
+test('market trends return a controlled Firestore limitation instead of full-loading production data', async () => {
+  const store = {
+    isFirestoreBackboneStore: true,
+    async load() {
+      throw new Error('full store load should not be used by market trends on Firestore');
+    },
+  };
+  const response = await handleMarketTrendsRequest({
+    store,
+    body: {
+      group_by: 'category_l2',
+      window: 'last_7d',
+    },
+  });
+
+  assert.equal(response.status, 503);
+  assert.match(response.body.error, /compact production read model/);
+});
+
 async function run() {
   let failed = 0;
 

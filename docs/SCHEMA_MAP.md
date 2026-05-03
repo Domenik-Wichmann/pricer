@@ -23,6 +23,8 @@ Pricer currently has two persistence worlds:
 
 The important boundary: **Firestore/flat store is app-facing runtime truth today. Postgres is source/import/review truth for heavy external data.** Do not silently move a runtime read path from one world to the other.
 
+Production runtime note: Firestore-backed routes must read and write this flat schema through scoped collection/query helpers. Full flat-store `load()` and `save()` remain legacy local/offline operations and are unsafe for large `prod_` runtime collections.
+
 ## Schema Owners
 
 | Schema area | Runtime? | Source of truth | Code owner | Primary docs |

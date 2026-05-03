@@ -1,0 +1,25 @@
+{
+  "id": "ADMIN-WEB-V0-2026-05-03",
+  "date": "2026-05-03",
+  "scope": "Admin Console V0",
+  "commands": [
+    {
+      "command": "npm install",
+      "cwd": "app/admin-web",
+      "result": "passed",
+      "notes": "Installed Vite/React/TypeScript admin web dependencies; 0 vulnerabilities reported for the admin app package."
+    },
+    {
+      "command": "npm install --package-lock-only",
+      "cwd": ".",
+      "result": "passed",
+      "notes": "Updated root package lock for new admin-web scripts; existing root audit report remains 10 vulnerabilities (2 low, 8 moderate)."
+    },
+    {
+      "command": "npm run admin-web:build",
+      "cwd": ".",
+      "result": "passed",
+      "notes": "TypeScript no-emit check and Vite production build completed successfully after adding the Vite env type shim."
+    }
+  ]
+}

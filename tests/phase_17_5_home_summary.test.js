@@ -277,6 +277,55 @@ test('home summary respects limits', async () => {
   assert.equal(summary.market_highlights.length, 1);
 });
 
+test('home summary uses scoped reads for Firestore-style runtime stores', async () => {
+  const backingStore = createStore();
+  const calls = [];
+  const scopedStore = {
+    prefersScopedProductSearch: true,
+    isFirestoreBackboneStore: true,
+    async load() {
+      calls.push({ type: 'load' });
+      throw new Error('full store load should not be used by home summary');
+    },
+    async loadCollections(collectionNames) {
+      calls.push({ type: 'loadCollections', collectionNames });
+      return backingStore.loadCollections(collectionNames);
+    },
+    async queryCollection(collectionName, query) {
+      calls.push({ type: 'queryCollection', collectionName, query });
+      return backingStore.queryCollection(collectionName, query);
+    },
+    async queryCollectionByFieldValues(collectionName, query) {
+      calls.push({ type: 'queryCollectionByFieldValues', collectionName, query });
+      return backingStore.queryCollectionByFieldValues(collectionName, query);
+    },
+    async upsertRecord(collectionName, record) {
+      calls.push({ type: 'upsertRecord', collectionName });
+      return backingStore.upsertRecord(collectionName, record);
+    },
+  };
+
+  const summary = await buildHomeSummary({
+    store: scopedStore,
+    owner_context: owner('user-1'),
+    options: {
+      market_limit: 5,
+    },
+  });
+
+  assert.equal(calls.some((call) => call.type === 'load'), false);
+  assert.equal(calls.some((call) =>
+    call.type === 'loadCollections' &&
+    call.collectionNames.includes('raw_price_snapshots')
+  ), false);
+  assert.equal(calls.some((call) =>
+    call.type === 'loadCollections' &&
+    call.collectionNames.includes('canonical_product_mappings')
+  ), false);
+  assert.deepEqual(summary.market_highlights, []);
+  assert.equal(Array.isArray(summary.top_deals), true);
+});
+
 test('home summary includes quick actions', async () => {
   const summary = await buildHomeSummary({
     store: createStore(),

@@ -27,12 +27,8 @@ async function addWatchlistItem({
     return normalized.error;
   }
 
-  const state = await store.load();
-  state.watchlist_store = Array.isArray(state.watchlist_store)
-    ? state.watchlist_store
-    : [];
-
-  const existing = state.watchlist_store.find((item) => {
+  const ownerItems = await loadWatchlistItemsForOwner(store, owner);
+  const existing = ownerItems.find((item) => {
     return canAccessWatchlistItem(owner, item) &&
       item.canonical_product_id === normalized.value.canonical_product_id;
   });
@@ -67,14 +63,9 @@ async function addWatchlistItem({
     record.notes = normalized.value.notes;
   }
 
-  state.watchlist_store.push(record);
-  const product = (state.canonical_products || []).find(
-    (entry) => entry.canonical_product_id === record.canonical_product_id
-  ) || null;
-  const enrichment = (state.canonical_enrichment_store || []).find(
-    (entry) => entry.canonical_fingerprint === record.canonical_product_id
-  )?.enrichment || null;
-  await store.save(state);
+  await upsertWatchlistRecord(store, record);
+  const product = await loadCanonicalProductForWatchlist(store, record.canonical_product_id);
+  const enrichment = await loadCanonicalEnrichmentForWatchlist(store, record.canonical_product_id);
   await persistGapSignal(store, buildGapSignalFromWatchlist({
     input: normalized.value,
     product,
@@ -97,8 +88,7 @@ async function listWatchlistItems({
 }) {
   requireStore(store);
   const owner = normalizeOwnerContext(ownerContext);
-  const state = await store.load();
-  const items = (state.watchlist_store || [])
+  const items = (await loadWatchlistItemsForOwner(store, owner))
     .filter((item) => canAccessWatchlistItem(owner, item))
     .slice()
     .sort(compareWatchlistItems)
@@ -118,8 +108,7 @@ async function getWatchlistItem({
   watchId,
 }) {
   requireStore(store);
-  const state = await store.load();
-  const item = findOwnedWatchlistItem(state, watchId, ownerContext);
+  const item = await loadOwnedWatchlistItem(store, watchId, ownerContext);
   if (!item) {
     return notFound();
   }
@@ -145,24 +134,17 @@ async function updateWatchlistItem({
     return normalized.error;
   }
 
-  const state = await store.load();
-  state.watchlist_store = Array.isArray(state.watchlist_store)
-    ? state.watchlist_store
-    : [];
-  const index = state.watchlist_store.findIndex((item) => {
-    return item.watch_id === watchId && canAccessWatchlistItem(owner, item);
-  });
-  if (index < 0) {
+  const current = await loadOwnedWatchlistItem(store, watchId, owner);
+  if (!current) {
     return notFound();
   }
 
   const next = {
-    ...state.watchlist_store[index],
+    ...current,
     ...normalized.value,
     updated_at: normalizeTimestamp(updatedAt),
   };
-  state.watchlist_store[index] = next;
-  await store.save(state);
+  await upsertWatchlistRecord(store, next);
   return {
     status: 200,
     body: {
@@ -178,18 +160,11 @@ async function removeWatchlistItem({
 }) {
   requireStore(store);
   const owner = normalizeOwnerContext(ownerContext);
-  const state = await store.load();
-  state.watchlist_store = Array.isArray(state.watchlist_store)
-    ? state.watchlist_store
-    : [];
-  const existing = findOwnedWatchlistItem(state, watchId, owner);
+  const existing = await loadOwnedWatchlistItem(store, watchId, owner);
   if (!existing) {
     return notFound();
   }
-  state.watchlist_store = state.watchlist_store.filter((item) => {
-    return !(item.watch_id === watchId && canAccessWatchlistItem(owner, item));
-  });
-  await store.save(state);
+  await deleteWatchlistRecord(store, existing);
   return {
     status: 200,
     body: {
@@ -206,8 +181,7 @@ async function buildWatchlistPriceView({
 }) {
   requireStore(store);
   const owner = normalizeOwnerContext(ownerContext);
-  const state = await store.load();
-  const items = (state.watchlist_store || [])
+  const items = (await loadWatchlistItemsForOwner(store, owner))
     .filter((item) => canAccessWatchlistItem(owner, item))
     .slice()
     .sort(compareWatchlistItems);
@@ -231,7 +205,7 @@ async function buildWatchlistPriceView({
   const priceByCanonicalId = new Map(
     priceLookup.items.map((item) => [item.canonical_product_id, item])
   );
-  const productByCanonicalId = buildProductIndex(state);
+  const productByCanonicalId = await buildProductIndexForIds(store, canonicalProductIds);
 
   return {
     status: 200,
@@ -487,6 +461,103 @@ function buildProductIndex(state) {
       canonical_name: product.canonical_display_name || product.display_name || product.name || null,
     },
   ]));
+}
+
+async function loadWatchlistItemsForOwner(store, owner) {
+  if (typeof store.queryCollection === 'function' && owner.owner_type !== 'system') {
+    return store.queryCollection('watchlist_store', {
+      fieldName: 'owner_id',
+      value: owner.owner_id,
+    });
+  }
+  if (typeof store.loadCollections === 'function') {
+    const state = await store.loadCollections(['watchlist_store']);
+    return state.watchlist_store || [];
+  }
+  const state = await store.load();
+  return state.watchlist_store || [];
+}
+
+async function loadOwnedWatchlistItem(store, watchId, ownerContext) {
+  if (typeof watchId !== 'string' || !watchId.trim()) {
+    return null;
+  }
+  if (typeof store.queryCollection === 'function') {
+    const rows = await store.queryCollection('watchlist_store', {
+      fieldName: 'watch_id',
+      value: watchId,
+    });
+    return rows.find((item) => canAccessWatchlistItem(ownerContext, item)) || null;
+  }
+  const state = await store.load();
+  return findOwnedWatchlistItem(state, watchId, ownerContext);
+}
+
+async function upsertWatchlistRecord(store, record) {
+  if (typeof store.upsertRecord === 'function') {
+    await store.upsertRecord('watchlist_store', record);
+    return;
+  }
+  const state = await store.load();
+  state.watchlist_store = Array.isArray(state.watchlist_store) ? state.watchlist_store : [];
+  const index = state.watchlist_store.findIndex((item) => item.watch_id === record.watch_id);
+  if (index >= 0) {
+    state.watchlist_store[index] = record;
+  } else {
+    state.watchlist_store.push(record);
+  }
+  await store.save(state);
+}
+
+async function deleteWatchlistRecord(store, record) {
+  if (typeof store.deleteRecord === 'function') {
+    await store.deleteRecord('watchlist_store', record);
+    return;
+  }
+  const state = await store.load();
+  state.watchlist_store = (state.watchlist_store || []).filter((item) => item.watch_id !== record.watch_id);
+  await store.save(state);
+}
+
+async function loadCanonicalProductForWatchlist(store, canonicalProductId) {
+  if (typeof store.queryCollection === 'function') {
+    const rows = await store.queryCollection('canonical_products', {
+      fieldName: 'canonical_product_id',
+      value: canonicalProductId,
+    });
+    return rows[0] || null;
+  }
+  const state = await store.load();
+  return (state.canonical_products || []).find((entry) => entry.canonical_product_id === canonicalProductId) || null;
+}
+
+async function loadCanonicalEnrichmentForWatchlist(store, canonicalProductId) {
+  if (typeof store.queryCollection === 'function') {
+    const rows = await store.queryCollection('canonical_enrichment_store', {
+      fieldName: 'canonical_fingerprint',
+      value: canonicalProductId,
+    });
+    return rows[0]?.enrichment || null;
+  }
+  const state = await store.load();
+  return (state.canonical_enrichment_store || []).find(
+    (entry) => entry.canonical_fingerprint === canonicalProductId
+  )?.enrichment || null;
+}
+
+async function buildProductIndexForIds(store, canonicalProductIds) {
+  if (canonicalProductIds.length === 0) {
+    return new Map();
+  }
+  if (typeof store.queryCollectionByFieldValues === 'function') {
+    const products = await store.queryCollectionByFieldValues('canonical_products', {
+      fieldName: 'canonical_product_id',
+      values: canonicalProductIds,
+    });
+    return buildProductIndex({ canonical_products: products });
+  }
+  const state = await store.load();
+  return buildProductIndex(state);
 }
 
 function buildWatchId({

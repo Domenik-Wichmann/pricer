@@ -2,6 +2,21 @@
 
 The machine-readable registry lives in [docs/test_registry.json](/c:/Users/domwi/OneDrive/Documents/Dev/Pricer/docs/test_registry.json:1).
 
+## Production Firestore runtime hardening coverage
+- Product search uses scoped canonical-product prefix reads and does not request mappings, raw snapshots, or daily prices.
+- Product detail queries canonical mappings by requested canonical product id.
+- Product history queries `product_daily_prices` by `source_product_id`.
+- Price lookup scopes reads to requested canonical and source ids.
+- Gap-signal persistence upserts only `gap_signal_store` when scoped writes are available.
+- Home summary uses scoped Firestore-style reads and omits top deals/market highlights when compact read models are unavailable.
+- Market trends and nearest availability return controlled Firestore limitations instead of full-loading production runtime data.
+- Production Firestore runtime rejects legacy full load/save by default.
+
+## Admin Console V0 coverage
+- Vite/React/TypeScript admin app builds successfully with `npm run admin-web:build`
+- Firebase Hosting config points to `app/admin-web/dist` and keeps existing emulator ports
+- Admin console exposes Health, Product Search, Product Detail, Price History, Basket Test, and Raw API tabs without changing mobile UI or backend business logic
+
 ## Phase 1 coverage
 - snapshot key stability
 - source product key stability across dates

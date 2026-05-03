@@ -63,7 +63,7 @@ async function buildHomeSummary({
   requireStore(store);
   const owner = normalizeOwnerContext(ownerContextSnakeCase || ownerContext);
   const limits = normalizeHomeSummaryOptions(options);
-  const state = await store.load();
+  const state = store.isFirestoreBackboneStore ? { canonical_products: [] } : await loadHomeDealState(store);
   const [
     topDeals,
     watchlistHighlights,
@@ -92,6 +92,9 @@ async function buildTopDeals({
   state,
   limit,
 }) {
+  if (store?.isFirestoreBackboneStore) {
+    return [];
+  }
   const productById = buildCanonicalProductIndex(state);
   const canonicalProductIds = [...productById.keys()].slice(0, HOME_TOP_DEAL_SCAN_LIMIT);
   if (canonicalProductIds.length === 0 || limit <= 0) {
@@ -224,11 +227,19 @@ async function buildMarketHighlights({
   if (limit <= 0) {
     return [];
   }
-  const summary = await buildMarketTrendSummary({
-    store,
-    group_by: 'category_l2',
-    window: 'last_30d',
-  });
+  let summary;
+  try {
+    summary = await buildMarketTrendSummary({
+      store,
+      group_by: 'category_l2',
+      window: 'last_30d',
+    });
+  } catch (error) {
+    if (error.code === 'COMPACT_MARKET_TRENDS_READ_MODEL_REQUIRED') {
+      return [];
+    }
+    throw error;
+  }
 
   return (summary.groups || [])
     .filter((group) => group.trend === 'up' || group.trend === 'down')
@@ -282,6 +293,13 @@ function buildCanonicalProductIndex(state) {
     product.canonical_product_id,
     product,
   ]));
+}
+
+async function loadHomeDealState(store) {
+  if (typeof store.loadCollections === 'function') {
+    return store.loadCollections(['canonical_products']);
+  }
+  return store.load();
 }
 
 function formatPercent(value) {

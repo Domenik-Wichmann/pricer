@@ -50,7 +50,11 @@ async function lookupCanonicalProductPrices({
     throw new Error(normalizedOptions.error.body.error);
   }
 
-  const state = await store.load();
+  const state = await loadPriceLookupState({
+    store,
+    canonicalProductIds: normalizedIds.value,
+    options: normalizedOptions.value,
+  });
   return buildCanonicalPriceLookup({
     state,
     canonicalProductIds: normalizedIds.value,
@@ -123,6 +127,54 @@ async function lookupPricesForBasketPlan({
   return {
     basket_plan: cloneValue(basketPlan),
     price_lookup: priceLookup,
+  };
+}
+
+async function loadPriceLookupState({
+  store,
+  canonicalProductIds,
+  options,
+}) {
+  if (typeof store.queryCollectionByFieldValues !== 'function') {
+    return store.load();
+  }
+
+  const mappings = await store.queryCollectionByFieldValues('canonical_product_mappings', {
+    fieldName: 'canonical_product_id',
+    values: canonicalProductIds,
+  });
+  const sourceProductIds = [...new Set(mappings.map((mapping) => mapping.source_product_id).filter(Boolean))].sort();
+  if (sourceProductIds.length === 0) {
+    return {
+      canonical_product_mappings: mappings,
+      source_products: [],
+      raw_price_snapshots: [],
+      product_daily_prices: [],
+    };
+  }
+
+  const [sourceProducts, rawPriceSnapshots, productDailyPrices] = await Promise.all([
+    store.queryCollectionByFieldValues('source_products', {
+      fieldName: 'source_product_id',
+      values: sourceProductIds,
+    }),
+    store.queryCollectionByFieldValues('raw_price_snapshots', {
+      fieldName: 'source_product_id',
+      values: sourceProductIds,
+    }),
+    options.include_history
+      ? store.queryCollectionByFieldValues('product_daily_prices', {
+        fieldName: 'source_product_id',
+        values: sourceProductIds,
+      })
+      : Promise.resolve([]),
+  ]);
+
+  return {
+    canonical_product_mappings: mappings,
+    source_products: sourceProducts,
+    raw_price_snapshots: rawPriceSnapshots,
+    product_daily_prices: productDailyPrices,
   };
 }
 
@@ -572,6 +624,7 @@ module.exports = {
   DEFAULT_LOOKUP_OPTIONS,
   MAX_LOOKUP_IDS,
   handleLookupCanonicalProductPricesRequest,
+  loadPriceLookupState,
   lookupCanonicalProductPrices,
   lookupPricesForBasketPlan,
 };

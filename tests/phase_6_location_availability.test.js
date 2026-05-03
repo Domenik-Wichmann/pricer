@@ -548,6 +548,25 @@ test('nearest availability explicit request coordinate mode overrides config', a
   });
 });
 
+test('nearest availability returns controlled Firestore limitation instead of full-loading runtime data', async () => {
+  const response = await handleNearestProductAvailabilityRequest({
+    store: {
+      isFirestoreBackboneStore: true,
+      async load() {
+        throw new Error('full store load should not be used by nearest availability on Firestore');
+      },
+    },
+    body: {
+      canonical_product_id: 'cp_milk',
+      latitude: 42.6977,
+      longitude: 23.3219,
+    },
+  });
+
+  assert.equal(response.status, 503);
+  assert.match(response.body.error, /compact production read model/);
+});
+
 async function run() {
   let failed = 0;
 

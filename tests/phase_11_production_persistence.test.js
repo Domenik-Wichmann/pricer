@@ -203,6 +203,26 @@ test('runtime store selection keeps test and dev local while allowing explicit F
   assert.equal(firestoreStore.collectionPrefix, 'prod');
 });
 
+test('production Firestore runtime rejects legacy full load and save by default', async () => {
+  const store = await createRuntimeDataBackboneStore({
+    env: {
+      NODE_ENV: 'production',
+      PRICER_STORE_BACKEND: 'firestore',
+      PRICER_FIRESTORE_COLLECTION_PREFIX: 'prod',
+    },
+    firestore: new FakeFirestore(),
+  });
+
+  await assert.rejects(
+    () => store.load(),
+    /Full Firestore runtime load is disabled/
+  );
+  await assert.rejects(
+    () => store.save(createEmptyDataBackbone()),
+    /Full Firestore runtime save is disabled/
+  );
+});
+
 test('Firestore-backed runtime keeps existing ingest, aggregation, and entitlement flows idempotent', async () => {
   const store = new FirestoreDataBackboneStore({
     firestore: new FakeFirestore(),
