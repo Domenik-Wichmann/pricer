@@ -22,6 +22,7 @@ const GENERIC_PRODUCT_TERMS = new Set([
   '\u0442\u0438\u043f\u043e\u0432',
   '\u043f\u0440\u044f\u0441\u043d\u043e',
   '\u043c\u043b\u044f\u043a\u043e',
+  '\u0441\u043e\u043a',
   '\u0442\u043e\u0447\u0435\u043d\u0438',
   '\u043a\u043e\u0440\u0438',
   '\u0444\u0438\u043d\u0438',
@@ -32,12 +33,41 @@ const GENERIC_PRODUCT_TERMS = new Set([
   '\u0447\u0443\u0434\u043d\u043e',
 ]);
 
+const NEVER_BRAND_TERMS = new Set([
+  'g',
+  'gr',
+  'gram',
+  'grams',
+  'kg',
+  'ml',
+  'l',
+  'br',
+  'бр',
+  'брой',
+  'броя',
+  '\u0433',
+  '\u0433\u0440',
+  '\u0433\u0440\u0430\u043c',
+  '\u0433\u0440\u0430\u043c\u0430',
+  '\u043a\u0433',
+  '\u043c\u043b',
+  '\u043b',
+]);
+
 const UNIT_MAP = Object.freeze({
   '\u0433\u0440': 'g',
   '\u0433': 'g',
+  '\u0433\u0440\u0430\u043c': 'g',
+  '\u0433\u0440\u0430\u043c\u0430': 'g',
   '\u043a\u0433': 'kg',
+  '\u043a\u0438\u043b\u043e\u0433\u0440\u0430\u043c': 'kg',
+  '\u043a\u0438\u043b\u043e\u0433\u0440\u0430\u043c\u0430': 'kg',
   '\u043c\u043b': 'ml',
+  '\u043c\u0438\u043b\u0438\u043b\u0438\u0442\u044a\u0440': 'ml',
+  '\u043c\u0438\u043b\u0438\u043b\u0438\u0442\u0440\u0430': 'ml',
   '\u043b': 'l',
+  '\u043b\u0438\u0442\u044a\u0440': 'l',
+  '\u043b\u0438\u0442\u0440\u0430': 'l',
 });
 
 const PRODUCT_TYPE_PATTERNS = Object.freeze({
@@ -45,14 +75,30 @@ const PRODUCT_TYPE_PATTERNS = Object.freeze({
   pastrySheets: '\u0442\u043e\u0447\u0435\u043d\u0438 \u043a\u043e\u0440\u0438',
   pastrySheetsToken: '\u043a\u043e\u0440\u0438',
   bread: '\u0445\u043b\u044f\u0431',
+  babyFormula: /\b(aptamil|\u0430\u043f\u0442\u0430\u043c\u0438\u043b|pronutra|nan|humana|\u0445\u0443\u043c\u0430\u043d\u0430|formula|\u0444\u043e\u0440\u043c\u0443\u043b\u0430|\u0430\u0434\u0430\u043f\u0442\u0438\u0440\u0430\u043d\u043e \u043c\u043b\u044f\u043a\u043e|\u0431\u0435\u0431\u0435\u0448\u043a\u043e \u043c\u043b\u044f\u043a\u043e|follow-on milk|toddler milk)\b/u,
 });
 
-const BULGARIAN_SIZE_UNITS_PATTERN = '\u0433\u0440|\u0433|\u043a\u0433|\u043c\u043b|\u043b';
+const BULGARIAN_SIZE_UNITS_PATTERN = [
+  '\u043c\u0438\u043b\u0438\u043b\u0438\u0442\u044a\u0440',
+  '\u043c\u0438\u043b\u0438\u043b\u0438\u0442\u0440\u0430',
+  '\u043a\u0438\u043b\u043e\u0433\u0440\u0430\u043c',
+  '\u043a\u0438\u043b\u043e\u0433\u0440\u0430\u043c\u0430',
+  '\u043b\u0438\u0442\u044a\u0440',
+  '\u043b\u0438\u0442\u0440\u0430',
+  '\u0433\u0440\u0430\u043c',
+  '\u0433\u0440\u0430\u043c\u0430',
+  '\u0433\u0440',
+  '\u043a\u0433',
+  '\u043c\u043b',
+  '\u0433',
+  '\u043b',
+].join('|');
 
 module.exports = {
   BULGARIAN_SIZE_UNITS_PATTERN,
   CATEGORY_SEARCH_MAP,
   GENERIC_PRODUCT_TERMS,
+  NEVER_BRAND_TERMS,
   PRODUCT_TYPE_PATTERNS,
   SOURCE_HEADERS,
   UNIT_MAP,

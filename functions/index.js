@@ -22,6 +22,10 @@ const {
   handleGetMerchantInsightOverviewRequest,
   handleGetMerchantLocalityInsightsRequest,
   handleInternalInsightsDashboardRequest,
+  handleCreateAdminIngestJobRequest,
+  handleGetAdminIngestJobRequest,
+  handleListAdminIngestJobsRequest,
+  handlePlanAdminIngestRequest,
   requireInternalAnalyticsAccess,
   handleAddWatchlistItemRequest,
   handleCreateSavedListRequest,
@@ -54,6 +58,7 @@ const {
   handleOptimizeBasketRequest,
   handleOptimizeSavedListRequest,
   handleQueryEngineRequest,
+  handleResolveShoppingIntentRequest,
   handleResolveShoppingListItemsRequest,
   handleSearchCanonicalProductsRequest,
   handleRemoveWatchlistItemRequest,
@@ -238,6 +243,7 @@ app.get("/", async (req, res) => {
       "GET /home/summary",
       "POST /market/trends",
       "GET /market/overview",
+      "POST /shopping-intent/resolve",
       "POST /shopping-list/resolve",
       "POST /basket/plan",
       "POST /basket/optimize",
@@ -270,6 +276,10 @@ app.get("/", async (req, res) => {
       "GET /analytics/insights/localities",
       "GET /analytics/insights/chains",
       "GET /internal/insights/dashboard",
+      "GET /internal/ingest/jobs",
+      "GET /internal/ingest/jobs/:id",
+      "POST /internal/ingest/plan",
+      "POST /internal/ingest/jobs",
       "GET /internal/location-review/candidates",
       "GET /internal/location-review/candidates/:id",
       "POST /internal/location-review/candidates/:id/approve",
@@ -458,6 +468,20 @@ app.post("/shopping-list/resolve", async (req, res, next) => {
   try {
     const store = await getStore();
     const response = await handleResolveShoppingListItemsRequest({
+      store,
+      body: req.body || {},
+      req,
+    });
+    sendEnvelope(res, response);
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/shopping-intent/resolve", async (req, res, next) => {
+  try {
+    const store = await getStore();
+    const response = await handleResolveShoppingIntentRequest({
       store,
       body: req.body || {},
       req,
@@ -949,6 +973,60 @@ app.get("/internal/insights/dashboard", async (req, res, next) => {
       .status(response.status)
       .set(response.headers || {})
       .send(response.body);
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/internal/ingest/jobs", async (req, res, next) => {
+  try {
+    const store = await getStore();
+    const response = await handleListAdminIngestJobsRequest({
+      store,
+      body: req.query || {},
+      req,
+    });
+    sendEnvelope(res, response);
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/internal/ingest/jobs/:id", async (req, res, next) => {
+  try {
+    const store = await getStore();
+    const response = await handleGetAdminIngestJobRequest({
+      store,
+      params: req.params || {},
+      req,
+    });
+    sendEnvelope(res, response);
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/internal/ingest/plan", async (req, res, next) => {
+  try {
+    const response = handlePlanAdminIngestRequest({
+      body: req.body || {},
+      req,
+    });
+    sendEnvelope(res, response);
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/internal/ingest/jobs", async (req, res, next) => {
+  try {
+    const store = await getStore();
+    const response = await handleCreateAdminIngestJobRequest({
+      store,
+      body: req.body || {},
+      req,
+    });
+    sendEnvelope(res, response);
   } catch (error) {
     next(error);
   }

@@ -2,11 +2,21 @@
 
 The machine-readable registry lives in [docs/test_registry.json](/c:/Users/domwi/OneDrive/Documents/Dev/Pricer/docs/test_registry.json:1).
 
+## Phase 6 bad product ingest guardrail coverage
+- `npm run test:phase6` verifies malformed multi-row CSV chunks and embedded newline product names are rejected before source, canonical, mapping, or current-offer records are created.
+- `npm run test:phase6` verifies normal long Bulgarian product names are still accepted, quote-only brand names are warning-level and not quarantinable, and validation is deterministic without Firestore reads/writes.
+- `npm run test:phase6` verifies the audit output separates `warning_count`, `suspicious_count`, `invalid_count`, and `quarantinable_count`, reports affected current-offer read models, writes nothing in dry-run, and marks only invalid multi-row products in explicit quarantine mode.
+- `npm run test:phase15_2` verifies invalid existing canonical products and `data_quality_status = "invalid"` quarantine markers are excluded from product search and enrichment pilot selection while quote-only warning products remain searchable.
+- `npm run test:phase16_0` verifies current-offer price lookup remains bounded after unsafe current-offer filtering and current-offer generation excludes quarantined canonical products.
+
 ## Production Firestore runtime hardening coverage
 - Product search uses scoped canonical-product prefix reads and does not request mappings, raw snapshots, or daily prices.
+- Product search attaches `current_offer_summary` from scoped `canonical_current_offer_summary` lookups for bounded search candidate ids, returns `null` when missing, and keeps legacy result fields.
 - Product detail queries canonical mappings by requested canonical product id.
 - Product history queries `product_daily_prices` by `source_product_id`.
 - Price lookup scopes reads to requested canonical and source ids.
+- Current offer read model generation creates deterministic offer ids and canonical summaries from fixture state, excluding invalid/quarantined source or canonical product records.
+- Product detail and price lookup prefer compact current offers when they are populated and keep raw snapshot fallback bounded.
 - Gap-signal persistence upserts only `gap_signal_store` when scoped writes are available.
 - Home summary uses scoped Firestore-style reads and omits top deals/market highlights when compact read models are unavailable.
 - Market trends and nearest availability return controlled Firestore limitations instead of full-loading production runtime data.
@@ -15,7 +25,63 @@ The machine-readable registry lives in [docs/test_registry.json](/c:/Users/domwi
 ## Admin Console V0 coverage
 - Vite/React/TypeScript admin app builds successfully with `npm run admin-web:build`
 - Firebase Hosting config points to `app/admin-web/dist` and keeps existing emulator ports
-- Admin console exposes Health, Product Search, Product Detail, Price History, Basket Test, and Raw API tabs without changing mobile UI or backend business logic
+- Admin console exposes Health, Home Summary, Product Search, Product Detail, Price History, Price Lookup, Basket Test, and Raw API tabs without changing mobile UI or backend business logic
+- Product Detail renders canonical fields, legacy marker fields, structured `size_marker` display/totals, bounded current offers, bounded source-product mappings, copy buttons, and a direct Price History launch
+- Ingest / Data Jobs renders historical snapshot inputs, dry-run target selection, PowerShell command preview, and job plan/list/create actions without running ZIP ingest in the browser.
+
+## Historical ingest/admin coverage
+- `npm run test:phase6_historical_ingest` verifies historical dry-run writes nothing.
+- Historical snapshot IDs and product daily price IDs are deterministic for the same date/source rows.
+- Historical publication respects the Firestore collection prefix, performs no deletes, and skips existing deterministic document IDs.
+- Admin ingest endpoints create `planned` job metadata only and leave raw snapshot collections untouched.
+- Admin planning warns when current read-model collections are selected for historical ingest.
+
+## Incremental ingest/diff coverage
+- `npm run test:phase6_incremental_ingest` verifies unchanged current-offer fingerprints are skipped.
+- Price, promo, metadata, new, and missing/removed offers are categorized deterministically.
+- Missing/removed offers are reported without default deletes or current-offer writes.
+- Affected canonical summaries are limited to canonical ids touched by new/changed/missing offers.
+- Historical append mode still avoids current read-model publication by default.
+- Incremental dry-run produces a manifest from a local baseline and writes nothing.
+- Fingerprint, event, and manifest identifiers are deterministic for idempotent reruns.
+- Diff write estimates count changed offers instead of full current-offer rewrites.
+- Compact baseline rows expose `offer_fingerprint`, price, promo flags, snapshot dates, and source/canonical ids without bulky offer display payloads.
+- Baseline JSONL files load into the diff command without Firestore reads.
+- Baseline export pages through current offers and writes only a local JSONL file by default.
+- Recorded run: `docs/test_runs/phase_6_incremental_ingest_diff_2026-05-05.json`.
+
+## Bulgarian product marker coverage
+- Phase 6 ingest extracts full-word Bulgarian volume and weight markers including decimal comma and decimal point values.
+- Phase 6 ingest extracts Bulgarian count/package markers for `бр`/`брой`/`броя` and simple `2x500 г`, `2 х 500 г`, and `6 бр x 330 мл` patterns.
+- Phase 15 shopping-list and basket planner quantity parsing accepts Bulgarian Cyrillic unit forms while preserving conservative marker semantics.
+- Scoped product search issues bounded lower/upper/title-case prefix variants, then falls back to the compact catalog only when prefix candidates are empty, so lowercase Bulgarian queries can match uppercase or mid-name Cyrillic canonical names without loading mappings/raw prices.
+
+## Semantic enrichment pilot coverage
+- Phase 15 product search has 101 deterministic BG/EN grocery synonym concepts for query expansion only.
+- English `cookies`, `snacks`, `Coca-Cola`, and `coke` expand to deterministic BG/EN retrieval aliases for biscuits/snacks and cola/soft drinks.
+- Product search ranks optional canonical enrichment fields including product type, family, category, BG/EN aliases, beverage flags, and personal-care flags.
+- Cola beverage intent does not rank enriched shampoo/personal-care products above enriched cola beverage products.
+- The focused enrichment pilot selector finds bounded snacks/beverage/personal-care/baby-food candidates, dry-run writes nothing, and explicitly opted-in real runs write only `canonical_enrichment_store`.
+- Rich v2 enrichment prompts list exact `product_form` enum values, normalize unsupported `semi-solid` / `semi solid` near-misses to `null` with validation warnings, reject invalid per-item enum values without writing them, and still write valid siblings in the same batch.
+- Admin Product Search summarizes current price ranges, offer count, cheapest retailer/chain, and search debug category/product-type/alias/demotion fields for QA while preserving the raw JSON response.
+
+## Grocery synonym and Admin QA search coverage
+- Phase 15 product search has 101 deterministic BG/EN grocery synonym concepts for query expansion only.
+- English `milk`, `yogurt`, `butter`, `olive oil`, and `baby formula` expand to their Bulgarian equivalents without expanding related-but-distinct products such as `зехтин` into butter.
+- `сирене` and `кашкавал` are kept related but not equivalent.
+- Multi-token `краве масло` ranks exact/all-token butter matches above `масло`-only matches.
+- Generic `мляко` does not rank baby formula above ordinary milk/yogurt when ordinary milk candidates exist, while explicit baby-formula terms rank baby formula highly.
+- Phase 6 parsing keeps `ГР` out of `canonical_brand`, detects `APTAMIL`, extracts `800g`, `24+m`, and `stage_4`, and marks the Aptamil QA example as `baby_formula`.
+- Canonical marker backfill dry-runs write nothing, honor limit mode, avoid raw/source/offer/history/mapping collections, patch only changed canonical/enrichment docs in real-run tests, and populate structured `size_marker` fields for grams, kilograms, liters, package counts, and package totals.
+- Product detail and product search expose structured canonical `markers.size_marker` when present while preserving legacy `volume_marker`, `count_marker`, `age_band_marker`, and `reserve_marker` response fields.
+
+## Shopping intent preference coverage
+- Phase 15.8 seeds deterministic BG/EN product-family definitions for yogurt, milk, bread, sirene, kashkaval, juice, coffee, rice, pasta, oil, eggs, and chicken.
+- Broad `yogurt`, `juice`, `cheese`, and `bread` examples return deterministic family and attribute clarification surfaces before canonical product selection.
+- Owner-scoped high-confidence family preferences return suggested defaults, while low-confidence inferred preferences still require clarification.
+- `POST /shopping-intent/resolve` accepts admin preview inputs, returns preference records when available, and reads only `user_product_family_preferences` on scoped stores.
+- The opt-in `intent_first` shopping-list/basket adapter returns `clarification_needed` for ambiguous yogurt without preference and broad cheese family ambiguity instead of guessing.
+- High-confidence yogurt preferences let the opt-in adapter continue into canonical product candidates, while disabled flags preserve the previous basket planning path.
 
 ## Phase 1 coverage
 - snapshot key stability
@@ -938,3 +1004,14 @@ The machine-readable registry lives in [docs/test_registry.json](/c:/Users/domwi
 - dashboard shell route stays outside the protected path list while data endpoints remain guarded
 - dashboard handler returns no-store HTML response headers
 - dashboard copy avoids merchant billing or polished product positioning
+
+## Phase 15.9 rich semantic enrichment v2 coverage
+- rich `canonical_semantic_v2` schema validates optional product identity, grocery, package, dairy, beverage, baby, search, shopping-intent, and quality fields
+- milk, milk shampoo, Milka chocolate, cola beverage, and collagen shampoo examples keep product semantics distinct
+- batch prompt and validator require exactly one result per requested `canonical_product_id`
+- dry-run writes nothing and reports cost estimates
+- real-run guard prevents accidental LLM calls without `PRICER_ENRICHMENT_RUN_LLM=true`
+- same canonical id/name hash/version cache hits are skipped before prompting
+- explicitly opted-in real pilot writes only `canonical_enrichment_store`
+- provider config healthcheck runs without Firestore writes or live LLM calls by default, and provider failures expose network cause and HTTP status/body details
+- enrichment-backed search continues to pass deterministic cookies/snacks/cola guardrail coverage

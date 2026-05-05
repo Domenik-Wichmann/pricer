@@ -53,6 +53,11 @@
 - `source_file_numeric_id`
 - `created_at`
 - `updated_at`
+- `data_quality_status`
+- `data_quality_reasons[]`
+- `data_quality_sample`
+- `quarantined_at`
+- `quarantine_source`
 - `last_enriched_at`
 
 ### `source_product_enrichment`
@@ -67,6 +72,7 @@
 - `size_text`
 - `size_value`
 - `size_unit`
+- Bulgarian explicit units normalize into `g`, `kg`, `ml`, or `l` for supported abbreviations and full-word forms such as `грама`, `килограма`, `милилитра`, and `литра`.
 - `fat_percent`
 - `canonical_search_category`
 - `alias_candidates`
@@ -157,6 +163,161 @@
 - `store_count`
 - `snapshot_count`
 
+### `current_product_offers`
+- `offer_id`
+- `canonical_product_id`
+- `source_product_id`
+- `source_name`
+- `source_product_name_raw`
+- `canonical_name`
+- `chain_id`
+- `chain_name`
+- `retailer`
+- `store_id`
+- `store_name`
+- `locality_code`
+- `region`
+- `current_price`
+- `currency`
+- `retail_price`
+- `promo_price`
+- `unit_price`
+- `is_sale`
+- `is_promotion`
+- `observed_at`
+- `snapshot_date`
+- `snapshot_id`
+- `category_code`
+- `canonical_product_type`
+- `canonical_brand`
+- `source_file_name`
+- `source_file_name_raw`
+- `source_file_stem`
+- `source_chain_name_normalized`
+- `volume_marker`
+- `count_marker`
+- `provenance`
+- `updated_at`
+- `rules_version`
+
+`current_product_offers` is a compact runtime read model with one latest/current offer per `source_product_id`. It is derived from existing Phase 6 local runtime state, using latest `raw_price_snapshots`, `source_products`, `canonical_product_mappings`, and `canonical_products`; live routes query it by `canonical_product_id` or `source_product_id` and must not full-load it.
+
+### `current_offer_fingerprints`
+- `source_product_id`
+- `canonical_product_id`
+- `offer_id`
+- `snapshot_date`
+- `current_price`
+- `retail_price`
+- `promo_price`
+- `unit_price`
+- `is_sale`
+- `is_promotion`
+- `is_available`
+- `chain_id`
+- `chain_name`
+- `retailer`
+- `store_id`
+- `store_name`
+- `locality_code`
+- `source_file_name`
+- `source_file_name_raw`
+- `source_file_stem`
+- `source_chain_name_normalized`
+- `fingerprint_payload`
+- `fingerprint_hash`
+- `first_seen_snapshot_date`
+- `last_seen_snapshot_date`
+- `updated_at`
+- `rules_version`
+
+`current_offer_fingerprints` is the planned incremental latest-update baseline. One row is keyed by `source_product_id` and carries a stable hash over the fields that determine whether a current offer needs to be rewritten. Daily diff jobs should compare new snapshot fingerprints to this collection or to a local exported baseline before writing current read models.
+
+The local baseline export format is JSONL, one compact row per current offer:
+
+```json
+{"source_product_id":"...","canonical_product_id":"...","offer_fingerprint":"sha256...","price":1.23,"current_price":1.23,"retail_price":1.49,"promo_price":1.23,"unit_price":null,"is_sale":true,"is_promotion":true,"snapshot_date":"2026-05-05","first_seen_snapshot_date":"2026-05-05","last_seen_snapshot_date":"2026-05-05","updated_at":"...","rules_version":"phase6_incremental_ingest_v1"}
+```
+
+The local file intentionally omits bulky `fingerprint_payload` and offer display metadata. It is a comparison/cache artifact, not app-facing runtime state.
+
+### `offer_change_events`
+- `event_id`
+- `event_type`
+- `source_product_id`
+- `canonical_product_id`
+- `offer_id`
+- `snapshot_date`
+- `current_price`
+- `retail_price`
+- `promo_price`
+- `unit_price`
+- `is_sale`
+- `is_promotion`
+- `fingerprint_hash`
+- `previous_fingerprint_hash`
+- `previous_snapshot_date`
+- `created_at`
+- `rules_version`
+
+`offer_change_events` is an append-only planned audit/event stream for incremental latest updates. The dry-run diff can estimate these events, but the real writer is deferred until the fingerprint baseline is backfilled and operator-reviewed.
+
+### `snapshot_manifests`
+- `manifest_id`
+- `snapshot_date`
+- `snapshot_url`
+- `mode`
+- `comparison_mode`
+- `collection_prefix`
+- `scanned_rows`
+- `unique_rows`
+- `new_offers`
+- `changed_offers`
+- `unchanged_offers`
+- `removed_missing_offers`
+- `affected_canonical_product_ids`
+- `summaries_to_update`
+- `estimated_writes`
+- `destructive_deletes`
+- `created_at`
+- `updated_at`
+- `rules_version`
+
+`snapshot_manifests` records per-run incremental diff summaries and future committed-update reports. Dry-runs currently print the manifest shape without writing it.
+
+### `canonical_current_offer_summary`
+- `canonical_product_id`
+- `canonical_name`
+- `min_current_price`
+- `max_current_price`
+- `avg_current_price`
+- `offer_count`
+- `chain_count`
+- `retailer_count`
+- `cheapest_offer_id`
+- `cheapest_source_product_id`
+- `cheapest_chain_id`
+- `cheapest_chain`
+- `cheapest_retailer`
+- `cheapest_price`
+- `currency`
+- `snapshot_date`
+- `updated_at`
+- `available_chains[]`
+- `rules_version`
+
+`canonical_current_offer_summary` is keyed by `canonical_product_id` and gives product detail, price lookup, watchlist, and basket routes a bounded summary over current offers.
+
+### Phase 6 incremental ingest modes
+
+- Phase 6 source-row validation now runs before `raw_price_snapshots`, `source_products`, `source_product_enrichment`, `canonical_products`, `canonical_product_mappings`, or current read models can be created from a row. Rows with invalid source identity fields or invalid product-name quality, such as embedded product-name newlines, multi-row CSV fragments, store/address fragments, excessive delimiter plus length evidence, or repeated code/category/price fragments, are counted as malformed and logged with reasons/samples. Quote-only brand-style names are warnings rather than malformed rows.
+- Existing product records can be reported with `npm run phase6:audit-bad-products`. The command defaults to dry-run/report-only and separates `valid`, `warning`, `suspicious`, and `invalid` product quality; only `invalid` records are quarantinable candidates. With reviewed approval, the same command can mark invalid records with additive no-delete quarantine fields; warning-only records are not marked.
+- Initial latest snapshot load may write many current/catalog records once. It is an operator backfill path, not the normal daily path.
+- Daily latest update should diff the new snapshot against `current_offer_fingerprints` or an exported fingerprint baseline, then write only new/changed `current_product_offers`, updated fingerprints, append-only change events, affected canonical summaries, and one manifest/report.
+- Missing offers are reported as removed/missing by default and are not deleted. Mark-unavailable behavior requires an explicit later policy.
+- Historical backfill should append date-specific `raw_price_snapshots`, `product_daily_prices`, `ingest_runs`, and `pipeline_logs` only. It must not publish `current_product_offers` or `canonical_current_offer_summary` unless explicitly requested.
+- Canonical parser/enrichment backfills should touch canonical/enrichment documents only and must not rewrite raw/history/current offer collections.
+
 ### `category_daily_aggregates`
 - `category_code`
 - `date`
@@ -216,10 +377,23 @@
 - `canonical_attributes_json`
 - `source_example_name`
 - `source_product_count`
+- `canonical_marker_backfill_version`
+- `canonical_marker_backfilled_at`
 - `created_at`
 - `updated_at`
+- `data_quality_status`
+- `data_quality_reasons[]`
+- `data_quality_sample`
+- `quarantined_at`
+- `quarantine_source`
 
-`canonical_attributes_json` currently carries deterministic canonicalization markers such as `stage_marker`, `count_marker`, `age_band_marker`, `reserve_marker`, `year_marker`, `age_statement_marker`, `volume_marker`, `flavor_marker`, `color_marker`, `pack_variant_marker`, `range_marker`, and `core_tokens`.
+`canonical_attributes_json` currently carries deterministic canonicalization markers such as `stage_marker`, `count_marker`, `age_band_marker`, `reserve_marker`, `year_marker`, `age_statement_marker`, `volume_marker`, `size_marker`, `flavor_marker`, `color_marker`, `pack_variant_marker`, `range_marker`, and `core_tokens`.
+
+`size_marker` is an optional structured companion to the compact legacy marker strings. It preserves `raw_text` when a deterministic size/package marker was found and stores normalized, display-safe fields: `quantity`, `unit`, `total_quantity`, `total_unit`, optional `pack_count`, optional `unit_quantity`, optional `unit_quantity_unit`, `display`, and `normalized_display`. Unit variants normalize to `g`, `kg`, `ml`, `l`, or `pcs`; comparable mass/volume quantities are stored in `g` or `ml`. Examples: `100 гр` and `100g` normalize to `display = "100 g"`; `0,5 кг` normalizes to `quantity = 500`, `unit = "g"`; `1.5 л` normalizes to `1500 ml`; `2x500 г` stores `pack_count = 2`, `unit_quantity = 500`, and `total_quantity = 1000`; `6 бр x 330 мл` stores `pack_count = 6`, `unit_quantity = 330`, and `total_quantity = 1980`. Bare decimal volume inference is allowed only in beverage/alcohol context, so price-like decimals are not converted into size markers.
+
+`canonical_marker_backfill_version` / `canonical_marker_backfilled_at` are optional metadata written only when `scripts/backfill_canonical_markers_firestore.js` patches a changed canonical product. The backfill is canonical-only: it recomputes deterministic marker, safe brand cleanup, and deterministic product-type hints from stored canonical display/source-example text without changing `canonical_product_id`, `canonical_product_key`, or `canonical_product_mappings`.
+
+`data_quality_status = "invalid"` is an additive no-delete quarantine marker written only by the reviewed Phase 6 bad-product audit/quarantine command. It does not delete or rewrite source truth. Runtime search, enrichment pilot selection, current-offer generation, and price fallback treat invalid/quarantined records as unsafe. Warning-only quoted-brand records must not receive this marker.
 
 ### `canonical_product_mappings`
 - `source_product_id`
@@ -232,27 +406,123 @@
 ### `canonical_enrichment_store`
 - `canonical_fingerprint`
 - `enrichment.base_product`
+- `enrichment.product_type`
+- `enrichment.product_family`
+- `enrichment.category`
+- `enrichment.subcategory`
 - `enrichment.category_l1`
 - `enrichment.category_l2`
 - `enrichment.category_l3`
 - `enrichment.category_l4`
+- `enrichment.is_food`
+- `enrichment.is_beverage`
+- `enrichment.is_personal_care`
 - `enrichment.brand`
+- `enrichment.brand_normalized`
 - `enrichment.product_line`
 - `enrichment.flavor[]`
+- `enrichment.flavor_terms[]`
 - `enrichment.attributes[]`
 - `enrichment.diet_tags[]`
 - `enrichment.allergens[]`
 - `enrichment.product_form`
 - `enrichment.packaging`
 - `enrichment.usage_context[]`
+- `enrichment.search_aliases_bg[]`
+- `enrichment.search_aliases_en[]`
+- `enrichment.exclusion_terms[]`
 - `enrichment.quality_tier`
 - `enrichment.confidence`
+- `enrichment.enrichment_source`
+- `enrichment.enrichment_version`
+- `enrichment.canonical_name_hash`
+- `enrichment.normalized_display_name_bg`
+- `enrichment.normalized_display_name_en`
+- `enrichment.brand_candidates[]`
+- `enrichment.manufacturer_or_brand_owner`
+- `enrichment.comparable_product_class`
+- `enrichment.variant_group_key`
+- `enrichment.variant_attributes[]`
+- `enrichment.is_alcohol`
+- `enrichment.is_baby_product`
+- `enrichment.is_pet_product`
+- `enrichment.is_household`
+- `enrichment.is_medicine_or_supplement`
+- `enrichment.storage_type`
+- `enrichment.meal_role[]`
+- `enrichment.preparation_required`
+- `enrichment.ready_to_eat`
+- `enrichment.cooking_use[]`
+- `enrichment.pantry_staple_score`
+- `enrichment.likely_dairy`
+- `enrichment.likely_meat`
+- `enrichment.likely_vegetarian`
+- `enrichment.likely_vegan`
+- `enrichment.gluten_related`
+- `enrichment.sugar_free`
+- `enrichment.low_fat`
+- `enrichment.wholegrain`
+- `enrichment.organic_bio`
+- `enrichment.allergen_hints[]`
+- `enrichment.ingredient_hints[]`
+- `enrichment.size_marker`
+- `enrichment.package_quantity`
+- `enrichment.package_unit`
+- `enrichment.total_quantity`
+- `enrichment.total_unit`
+- `enrichment.multipack_count`
+- `enrichment.unit_quantity`
+- `enrichment.unit_quantity_unit`
+- `enrichment.serving_context`
+- `enrichment.dairy_type`
+- `enrichment.milk_source`
+- `enrichment.fat_percent`
+- `enrichment.uht_or_fresh`
+- `enrichment.lactose_free`
+- `enrichment.plain_or_flavored`
+- `enrichment.beverage_type`
+- `enrichment.carbonated`
+- `enrichment.caffeine_related`
+- `enrichment.alcohol_percent`
+- `enrichment.baby_stage`
+- `enrichment.age_min_months`
+- `enrichment.age_max_months`
+- `enrichment.age_band_label`
+- `enrichment.formula_stage`
+- `enrichment.baby_food_type`
+- `enrichment.synonym_terms[]`
+- `enrichment.negative_match_hints[]`
+- `enrichment.do_not_match_queries[]`
+- `enrichment.should_match_queries[]`
+- `enrichment.disambiguation_notes[]`
+- `enrichment.shopping_family_id`
+- `enrichment.clarification_attributes[]`
+- `enrichment.likely_user_choice_attributes[]`
+- `enrichment.brand_preference_relevance`
+- `enrichment.size_preference_relevance`
+- `enrichment.flavor_preference_relevance`
+- `enrichment.data_quality_status`
+- `enrichment.data_quality_reasons[]`
+- `enrichment.ambiguous_fields[]`
+- `enrichment.needs_human_review`
+- `enrichment.llm_uncertainty_reasons[]`
+- `enrichment.explanation_short`
+- `enrichment.reviewed_status`
+- `canonical_product_id`
+- `canonical_name_hash`
+- `enrichment_source`
+- `enrichment_version`
+- `updated_at`
 - `explicit_claim_evidence[]`
 - `model_name`
 - `prompt_version`
 - `created_at`
 
 `canonical_enrichment_store` is additive only. It is keyed by canonical fingerprint, currently aligned with `canonical_product_id`, and must not rewrite deterministic canonical grouping or marker truth.
+
+The canonical marker backfill may read a single enrichment document by `canonical_fingerprint` only after a canonical brand cleanup is planned. In a real run it patches `enrichment.brand` only when the enrichment brand is missing or equal to the stale canonical brand; it does not create enrichment records, call LLMs, or enrich raw/source rows.
+
+Phase 15.9 extends canonical enrichment for a focused semantic-search pilot. The new fields are optional and backward-compatible: existing v1 records without `product_type`, `search_aliases_*`, boolean category flags, or name-hash metadata remain valid. Rich v2 records use `enrichment.enrichment_version = "canonical_semantic_v2"` and cache by `canonical_product_id + canonical_name_hash + enrichment_version`, so unchanged v2 records are skipped by the pilot. The pilot selector reads only `canonical_products` plus existing `canonical_enrichment_store` and real opt-in runs write only `canonical_enrichment_store`; they must never update raw/source/offer rows, prices, mappings, or canonical product grouping.
 
 ### `retailer_locations`
 - `location_id`
@@ -409,6 +679,22 @@ Phase 2G exposes guarded internal review routes for listing, reading, and decidi
 Phase 2I adds guarded diagnostics around this collection. Internal operator reads can list active or superseded reviewed coordinates, fetch coordinate detail, and run a dry-run coordinate resolver. The dry-run precedence policy is: active reviewed coordinate wins, otherwise matched provider coordinate wins, otherwise unavailable.
 
 Phase 2B nearest-store availability is a computed read only, not a persisted schema. It joins canonical mappings, latest source-product snapshots, `retailer_locations`, and matched-only `retailer_location_geocodes` to return distance-bounded offers for explicit coordinate queries. Phase 2J adds an explicit `coordinate_mode`: `provider_only` remains the safe baseline, while `reviewed_first` uses active `reviewed_location_coordinates` before falling back to matched provider geocodes. Offers expose `coordinate_source` as `provider` or `reviewed`. Phase 2K adds guarded rollout diagnostics that compare provider-only and reviewed-first readiness, changed coordinate distance deltas, high-reuse reviewed coverage, and reviewed confidence distribution without changing the default. Phase 2L allows `DEFAULT_COORDINATE_MODE` to set the default to `provider_only` or `reviewed_first`; unset or invalid config falls back to `provider_only`, and explicit request `coordinate_mode` still overrides config. Normal product search remains coordinate-independent.
+
+### `user_product_family_preferences`
+- `preference_id`
+- `owner_id`
+- `owner_type`
+- `family_id`
+- `preferred_attributes`
+- `preferred_brands`
+- `avoided_brands`
+- `confidence`
+- `source`
+- `last_confirmed_at`
+- `created_at`
+- `updated_at`
+
+`user_product_family_preferences` stores owner-scoped shopping defaults by deterministic product family. `preferred_attributes` is keyed by product-family attribute id, such as `style`, `fat_percent`, `flavor`, `type`, `size`, or `count`; values are family-definition value ids. Allowed sources are `explicit_user_choice`, `inferred_repeated_choices`, and `imported_profile`. These rows are preference hints for `phase15/shopping_intent.js`; they do not select exact canonical products, mutate canonical grouping, write offers, or change meal-plan rows.
 
 ### `saved_user_locations`
 - `location_id`
@@ -630,6 +916,33 @@ Phase 14.3 computes this as an applied view only. It reads queue pairs and effec
 - `status`
 - `ingested_at`
 
+Historical snapshot ingest uses `ingest_runs` as archive/run provenance. A historical ZIP for `YYYY-MM-DD` may append or idempotently upsert raw snapshots and daily price rows for that date. It must not publish `current_product_offers` or `canonical_current_offer_summary` unless the operator explicitly targets those current/latest read-model collections.
+
+### `admin_ingest_jobs`
+- `job_id`
+- `snapshot_date`
+- `source_type`
+- `source_url`
+- `storage_path`
+- `local_path`
+- `status`
+- `dry_run`
+- `target_collections`
+- `started_at`
+- `finished_at`
+- `created_by`
+- `counts`
+- `warnings`
+- `errors`
+- `firestore_prefix`
+- `command`
+- `version`
+- `command_hash`
+- `created_at`
+- `updated_at`
+
+`admin_ingest_jobs` is the Admin Console planning/visibility model for historical KolkoStruva ingest. V1 endpoint writes create `planned` records only; long ZIP processing stays in the operator CLI until a queue or Cloud Storage worker exists. Allowed statuses are `planned`, `running`, `succeeded`, `failed`, and `cancelled`; allowed source types are `upload`, `url`, and `local_path`.
+
 ### `pipeline_logs`
 - `log_id`
 - `level`
@@ -637,6 +950,31 @@ Phase 14.3 computes this as an applied view only. It reads queue pairs and effec
 - `message`
 - `context_json`
 - `logged_at`
+
+## Historical KolkoStruva Ingest Semantics
+
+Historical archive collections:
+- `raw_price_snapshots`
+- `product_daily_prices`
+- `ingest_runs`
+- `pipeline_logs`
+
+These collections can grow by `snapshot_date`. `raw_price_snapshots.snapshot_id` is deterministic from `snapshot_date`, locality, store, product code, and category. `product_daily_prices` is keyed by `source_product_id + date`, so the same date is resumable and can skip existing Firestore documents.
+
+Current/latest read models:
+- `current_product_offers`
+- `canonical_current_offer_summary`
+
+These represent current state only. They should be rebuilt from the latest snapshot or an explicit current-state selector, not appended as historical fact rows.
+
+Canonical/catalog collections:
+- `source_products`
+- `canonical_products`
+- `canonical_product_mappings`
+- `source_product_enrichment`
+- `canonical_enrichment_store`
+
+Historical ingest may use these in local planning, but production publication must be explicitly targeted and treated as idempotent upserts. Historical ingest must not delete catalog/canonical/enrichment rows by default.
 
 ### `analytics_events`
 - `analytics_event_id`
@@ -905,6 +1243,7 @@ Gap signals are internal analytics records only. They are captured from product 
   - `manual_location_geocodes`: `geocode_id`
   - `location_review_candidates`: `candidate_id`
   - `reviewed_location_coordinates`: `reviewed_coordinate_id`
+  - `user_product_family_preferences`: `preference_id`
   - `saved_user_locations`: `location_id`
 
 ## Phase DB0 Postgres transition notes
@@ -2103,6 +2442,16 @@ Every DB5C review or promotion decision appends a history row. This remains appe
 - Phase 12 improves deterministic query quality without changing Phase 1 through 11 ingest or identity rules.
 - Canonicalization happens before candidate filtering and scoring.
 - Demand-log-driven learning is conservative and creates only deterministic synonym or typo mappings.
+
+## Notes on Phase 15 Grocery Search QA
+- Phase 15 product search includes a deterministic in-code BG/EN grocery synonym table for query expansion and ranking only. It does not add persistence and does not merge or canonicalize products.
+- Product search results may include backward-compatible `search_debug` metadata with normalized query, expanded terms, matched concepts, match tier, matched tokens, matched enrichment category/product type/aliases, demotion reason, and score for Admin QA visibility.
+- Product search results include backward-compatible `current_offer_summary` metadata when `canonical_current_offer_summary` has a row for a bounded search candidate canonical product id. Missing summaries are returned as `null`, and the search path must not scan `raw_price_snapshots` or `current_product_offers` to invent a fallback.
+- Phase 15.9 adds deterministic cookies/snacks/cola/soft-drink aliases before any LLM enrichment, plus enrichment-backed ranking over optional canonical fields such as `product_type`, `product_family`, `search_aliases_bg`, `search_aliases_en`, `synonym_terms`, `should_match_queries`, `negative_match_hints`, `do_not_match_queries`, `is_beverage`, `is_personal_care`, `dairy_type`, and `beverage_type`.
+- Phase 15.9 adds `npm run phase15:enrichment-pilot`, which defaults to dry-run and selects a bounded pilot set for `milk_dairy_eval`, `bread_bakery_eval`, `cola_beverage_eval`, `cookies_snacks_eval`, `personal_care_false_positive_eval`, `baby_food_eval`, and `search_quality_eval` plus legacy group aliases. Real runs require explicit opt-in and write only `canonical_enrichment_store`.
+- Parser fixes for brand/unit/age markers affect future Phase 6 generated canonical records; existing production records can be refreshed by the canonical-only marker backfill without re-ingesting raw snapshots or rewriting offer/history rows. Phase 15 product detail/search expose structured `markers.size_marker` when the backfill has populated `canonical_attributes_json.size_marker`.
+- Phase 15.8 adds deterministic shopping-intent product-family definitions and owner-scoped family preference hints. This layer clarifies broad grocery terms before exact canonical product/current-offer selection; it does not call LLMs, merge canonical products, or change mobile UI.
+- Phase 15.8 follow-up adds an opt-in `use_shopping_intent: true` / `resolution_mode: "intent_first"` adapter for shopping-list and basket planning. The adapter reads `user_product_family_preferences` only as scoped owner/family defaults, returns transient `clarification_needed` / `clarification_items` response fields when intent is ambiguous, and does not add persistence or mutate canonical products, offers, saved lists, meal plans, inventory, or mobile state.
 
 ## Notes on Phase 18.5
 - Phase 18.5 adds mobile DTOs for the existing `POST /basket/optimize` response but does not add persistent basket records.

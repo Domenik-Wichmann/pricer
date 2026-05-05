@@ -1,6 +1,6 @@
 # Repo Map
 
-Last updated: 2026-04-29
+Last updated: 2026-05-05
 
 This map is the first stop for feature work. Use it to find the smallest correct edit surface before searching broadly.
 
@@ -56,6 +56,8 @@ When changing backend logic, update both trees unless the task is explicitly sco
 | `phase3_5/` | Daily product/category aggregation and product history/category trend services. |
 | `phase4/` | Query parser/planner/executor/ranker and unified query-engine service. |
 | `phase6/` | Production ingest pipeline, KolkoStruva ZIP client, canonicalization state, disambiguation queue, analytics, alerts, FCM, external AI adapters, scheduler/logging. |
+| `phase6/admin_ingest_jobs.js` | Admin Console historical KolkoStruva ingest job metadata, dry-run command planning, and lightweight internal ingest job handlers. |
+| `phase6/incremental_ingest.js` | Deterministic current-offer fingerprints, incremental latest diff categorization, offer-change event builders, and snapshot manifest builders. |
 | `phase6/store_locations.js` | Deterministic retailer/store-location extraction from existing KolkoStruva store text, with provenance and no geocoding. |
 | `phase6/geocoding.js` | Additive retailer-location and manual-address geocoding cache/enrichment helpers, provider abstraction, and fake provider for bounded tests. |
 | `phase6/location_availability.js` | Opt-in nearest-store product availability read helper over matched geocode cache rows, optional reviewed-coordinate precedence, config-controlled coordinate default, and latest source-product offers. |
@@ -66,7 +68,7 @@ When changing backend logic, update both trees unless the task is explicitly sco
 | `phase9/` | Watchlist intelligence, target prices, recurring patterns, daily/weekly watchlist jobs. |
 | `phase10/` | Monetization tiers, RevenueCat entitlement sync, premium gating, entitlement endpoints. |
 | `phase12/` | Search canonicalization, synonym/typo records, conservative feedback loop. |
-| `phase15/` | Canonical enrichment, product catalog readers/API, shopping-list resolution, basket input planner. |
+| `phase15/` | Canonical enrichment, focused enrichment pilot selection, product catalog readers/API, shopping-list resolution, shopping-intent family preferences, basket input planner. |
 | `phase16/` | Canonical price lookup, single/multi-store basket optimization, explanation, convenience scoring, quality metrics, analytics, health diagnostics. |
 | `phase17/` | Saved shopping lists, owner-scoped watchlist tracker, simple deal signals, read-only market/category trend summaries, and user-facing home summary feed. |
 | `phase18/` | Internal analytics helpers, currently the market gap detection signal store, scorer, classifier, opportunity/insight report handlers, temporary internal analytics access guard, and internal dashboard shell. |
@@ -88,7 +90,7 @@ Current backend tests mostly import module helpers from `functions/src/index.js`
 Common request handlers:
 - Query and product history: `phase2/service.js`, `phase3_5/service.js`, `phase4/service.js`.
 - Product catalog/search: `phase15/service.js`.
-- Shopping-list resolution and basket planning: `phase15/shopping_list.js`, `phase15/basket_planner.js`.
+- Shopping intent, shopping-list resolution, and basket planning: `phase15/shopping_intent.js`, `phase15/shopping_list.js`, `phase15/basket_planner.js`.
 - Price lookup and basket optimization: `phase16/price_lookup.js`, `phase16/basket_optimizer.js`.
 - Meal planning and meal-plan shopping: `api/meal_planning_api.js`, backed by `db/planner/meal_planner_engine.js` and `db/planner/meal_plan_shopping_orchestrator.js`.
 - Basket analytics/health: `phase16/basket_analytics.js`, `phase16/basket_health.js`.
@@ -187,6 +189,12 @@ Repo-level scripts live in `package.json`.
 | `npm run prof1:build-user-taste-profiles` | Build append-only PROF1 taste profile snapshots from UX1 preferences, UX2 feedback, and staged recipe metadata. |
 | `npm run inventory1:seed-inventory` | Seed or reset one user's INVENTORY1 sidecar pantry/fridge/freezer stock without planner or basket integration. |
 | `npm run phase6:run`, `npm run phase7:run` | Batch pipeline runners for production ingest/demand. |
+| `npm run phase6:ingest-snapshot` | Safe historical KolkoStruva ZIP/date publisher. Defaults to dry-run and archive/history/log collections; does not delete documents or publish current read models unless explicitly targeted. |
+| `npm run phase6:diff-snapshot`, `npm run phase6:daily-incremental-dry-run` | Daily latest incremental dry-run/diff report over one snapshot. Builds current offers locally and compares to a local fingerprint baseline, a bounded limit sample, or an explicitly opted-in Firestore direct comparison. Writes nothing. |
+| `npm run phase6:export-current-offer-fingerprints` | Paginated read-only export from `current_product_offers` to a compact local JSONL fingerprint baseline for cheap daily diff runs. |
+| `npm run phase6:backfill-current-offer-fingerprints` | Guarded optional current-offer fingerprint collection backfill using the same exporter. Defaults to dry-run unless `PRICER_INCREMENTAL_BASELINE_BACKFILL_DRY_RUN=false`. |
+| `npm run phase6:backfill-canonical-markers` | Canonical-only Firestore marker/brand backfill. Defaults to dry-run, supports limit/progress env vars, scans `canonical_products`, and never touches raw/source/offer/history/mapping collections. |
+| `npm run phase6:audit-bad-products` | Firestore audit for malformed `canonical_products` and `source_products`; defaults to dry-run/no writes, and only marks invalid/quarantinable records when the explicit no-delete quarantine confirmation env var is set. |
 | `npm run test:phaseX` / `npm run test:dbX` | Targeted phase tests. |
 
 ## Test Map
@@ -232,6 +240,8 @@ When adding a feature, add or update the narrowest test file that owns the behav
 | Feature/problem | Start here |
 | --- | --- |
 | New KolkoStruva ingest behavior | `phase6/ingest.js`, `phase6/kolkostruva_client.js`, `phase1/importer.js`, `data_ingest_rules.md`. |
+| Historical KolkoStruva ingest/admin jobs | `scripts/ingest_phase6_snapshot_firestore.js`, `phase6/admin_ingest_jobs.js`, `app/admin-web/src/App.tsx`, `docs/DATA_MODEL.md`, `docs/SCHEMA_MAP.md`; tests live in `tests/phase_6_historical_ingest_admin.test.js`. |
+| Daily latest incremental ingest/diff | `scripts/diff_phase6_snapshot_firestore.js`, `scripts/export_phase6_current_offer_fingerprints.js`, `phase6/incremental_ingest.js`, `phase16/current_offers.js`, `phase1/store.js`, `docs/DATA_MODEL.md`, `docs/SCHEMA_MAP.md`; tests live in `tests/phase_6_incremental_ingest_diff.test.js`. |
 | Store/location extraction from product source data | `phase6/store_locations.js`, `phase6/ingest.js`, `docs/STORE_LOCATION_EXTRACTION.md`; tests live in `tests/phase_6_store_locations.test.js`. |
 | Store/location geocoding cache | `phase6/geocoding.js`, `phase1/store.js`, `docs/STORE_LOCATION_EXTRACTION.md`; tests live in `tests/phase_6_store_geocoding.test.js`. |
 | Nearest-store product availability | `phase6/location_availability.js`, `phase6/geocoding.js`, `phase6/store_locations.js`, `phase6/location_review.js`; tests live in `tests/phase_6_location_availability.test.js`. Config can set `DEFAULT_COORDINATE_MODE`, but invalid/unset config falls back to `provider_only`. |
@@ -241,10 +251,16 @@ When adding a feature, add or update the narrowest test file that owns the behav
 | Source product identity or dedupe | `phase1/ids.js`, `phase6/ingest.js`, `phase2/normalize.js`, `docs/DATA_MODEL.md`. |
 | Product matching/search quality | `phase2/`, `phase4/`, `phase12/`, tests for phases 2, 4, 12. |
 | Canonical product grouping/disambiguation | `phase6/ingest.js`, `phase6/disambiguation.js`, `phase15/readers.js`, phase 13/14 docs. |
+| Malformed multi-row product ingest guardrails | `phase6/csv_stream.js`, `phase6/product_validation.js`, `phase6/ingest.js`, `phase16/current_offers.js`, `phase15/readers.js`, `phase15/enrichment_pilot.js`, `scripts/audit_phase6_bad_products_firestore.js`, docs `PHASE6_BAD_PRODUCT_INGEST_GUARDRAILS.md`; tests live in `tests/phase_6_production_pipeline.test.js`, `tests/phase_15_2_product_api.test.js`, and `tests/phase_16_0_price_lookup.test.js`. |
+| Canonical marker/brand backfill for existing prod catalog | `scripts/backfill_canonical_markers_firestore.js`, `phase6/ingest.js`, `docs/DATA_MODEL.md`, `docs/SCHEMA_MAP.md`; tests live in `tests/phase_6_canonical_marker_backfill.test.js`. |
 | Product catalog API | `phase15/service.js`, `phase15/readers.js`; mobile `/search` consumption lives in `app/mobile/lib/features/search/product_search_screen.dart`, `app_models.dart`, and `api_client.dart`. |
+| Product search grocery synonyms and BG/EN query expansion | `phase15/search_synonyms.js`, `phase15/readers.js`, `phase15/service.js`; docs live in `docs/SEARCH_SYNONYMS_AND_BG_PARSING.md`; tests live in `tests/phase_15_2_product_api.test.js`. |
+| Focused canonical semantic enrichment pilot | `phase15/enrichment_pilot.js`, `scripts/run_canonical_enrichment_pilot.js`, `scripts/run_canonical_enrichment_healthcheck.js`, `phase15/enrichment.js`, `phase15/readers.js`; owns rich canonical semantic v2 schema/prompt validation, bounded pilot groups, cache skipping, additive enrichment-backed search fields, provider config resolution, and xAI health diagnostics. Docs live in `docs/PHASE_15_9_SEMANTIC_ENRICHMENT_PILOT.md`; tests live in `tests/phase_15_hyper_rich_enrichment.test.js` and `tests/phase_15_2_product_api.test.js`. |
+| Shopping intent family preferences | `phase15/shopping_intent.js`, `phase1/store.js`; docs live in `docs/PHASE_15_8_SHOPPING_INTENT_PREFERENCES.md` and `docs/implementation/PHASE_15_8_SHOPPING_INTENT_PREFERENCES.md`; tests live in `tests/phase_15_8_shopping_intent_preferences.test.js`. |
 | Diet/attribute claim normalization | `phase15/diet_attribute_normalization.js` and `phase15/enrichment.js` in both backend trees; tests live in `tests/phase_15_hyper_rich_enrichment.test.js`, `tests/phase_15_6_diet_attribute_normalization.test.js`, and `tests/phase_15_7_expanded_diet_attribute_aliases.test.js`; behavior is documented in `docs/DIET_ATTRIBUTE_NORMALIZATION.md`. |
 | Shopping-list item resolution | `phase15/shopping_list.js`. |
 | Basket planning/optimization | `phase15/basket_planner.js`, `phase16/price_lookup.js`, `phase16/basket_optimizer.js`; mobile `/optimize` consumption lives in `app/mobile/lib/features/basket/optimize_basket_screen.dart`, `app_models.dart`, `api_client.dart`, and `core/navigation/app_routes.dart`. |
+| Current offer/current-price read model | `phase16/current_offers.js`, `phase16/price_lookup.js`, `phase15/service.js`, `scripts/publish_phase6_latest_firestore.js`; tests live in `tests/phase_16_0_price_lookup.test.js` and `tests/phase_15_2_product_api.test.js`. |
 | Basket explanation/convenience/quality/analytics/health | `phase16/basket_explanation.js`, `basket_convenience.js`, `basket_quality.js`, `basket_analytics.js`, `basket_health.js`. |
 | Market gap detection | `phase18/gap_detection.js`, `phase18/internal_access.js`, and `phase18/internal_dashboard.js` in both backend trees; HTTP entry lives in `functions/index.js`; signals are captured from `phase15/service.js`, `phase15/shopping_list.js`, `phase15/basket_planner.js`, `phase16/basket_optimizer.js`, `phase17/saved_lists.js`, and `phase17/watchlist.js`; API now includes global, locality, coverage-by-chain, market-opportunity report reads, merchant/admin insight rollups, a temporary internal analytics token guard, and an internal dashboard shell; tests live in `tests/phase_18_7_market_gap_detection.test.js`, `tests/phase_20_1_local_gap.test.js`, `tests/phase_20_2_chain_gap.test.js`, `tests/phase_20_3_market_opportunity_reports.test.js`, `tests/phase_20_4_merchant_insight_api.test.js`, `tests/phase_20_5_internal_access_guard.test.js`, and `tests/phase_20_6_internal_insights_dashboard.test.js`. |
 | Saved shopping lists | `phase17/saved_lists.js` for backend persistence and owner scoping; mobile Phase 18.7 consumption lives in `app/mobile/lib/features/lists/`, `app_models.dart`, `api_client.dart`, and `core/navigation/app_routes.dart`; `firestore_repositories.dart` remains legacy/local client-list support. |

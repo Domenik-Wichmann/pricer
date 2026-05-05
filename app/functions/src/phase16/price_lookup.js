@@ -11,6 +11,15 @@ const ALLOWED_PRICE_STATUSES = Object.freeze(['priced', 'missing', 'stale']);
 const DEFAULT_CURRENCY = 'EUR';
 const MAX_LOOKUP_IDS = 200;
 
+const {
+  loadCanonicalCurrentOfferSummaries,
+  loadCurrentOffersByCanonicalProductIds,
+} = require('./current_offers');
+const {
+  isRuntimeSafeCanonicalProduct,
+  isRuntimeSafeSourceProduct,
+} = require('../phase6/product_validation');
+
 async function handleLookupCanonicalProductPricesRequest({
   store,
   body = {},
@@ -67,7 +76,17 @@ function buildCanonicalPriceLookup({
   canonicalProductIds,
   options,
 }) {
-  const mappingIndex = buildMappingsByCanonicalId(state?.canonical_product_mappings || []);
+  const unsafeCanonicalProductIds = buildUnsafeCanonicalProductIdSet(state?.canonical_products || []);
+  const mappingIndex = buildMappingsByCanonicalId((state?.canonical_product_mappings || [])
+    .filter((mapping) => !unsafeCanonicalProductIds.has(mapping.canonical_product_id)));
+  const currentOffersByCanonicalId = buildCurrentOffersByCanonicalId((state?.current_product_offers || [])
+    .filter((offer) => !unsafeCanonicalProductIds.has(offer.canonical_product_id)));
+  const summariesByCanonicalId = new Map((state?.canonical_current_offer_summary || [])
+    .filter((row) => !unsafeCanonicalProductIds.has(row.canonical_product_id))
+    .map((row) => [
+    row.canonical_product_id,
+    row,
+  ]));
   const sourceProductIndex = new Map(
     (state?.source_products || []).map((row) => [row.source_product_id, row])
   );
@@ -77,6 +96,8 @@ function buildCanonicalPriceLookup({
   const items = canonicalProductIds.map((canonicalProductId) => buildCanonicalPriceItem({
     canonicalProductId,
     options,
+    currentOffers: currentOffersByCanonicalId.get(canonicalProductId) || [],
+    currentOfferSummary: summariesByCanonicalId.get(canonicalProductId) || null,
     sourceProductIds: mappingIndex.get(canonicalProductId) || [],
     sourceProductIndex,
     latestSnapshotsBySource,
@@ -135,13 +156,31 @@ async function loadPriceLookupState({
   canonicalProductIds,
   options,
 }) {
+  const runtimeSafeCanonicalProductIds = await loadRuntimeSafeCanonicalProductIds({
+    store,
+    canonicalProductIds,
+  });
+  const currentOffersState = await loadCompactCurrentOfferState({
+    store,
+    canonicalProductIds: runtimeSafeCanonicalProductIds,
+  });
+  if (currentOffersState.current_product_offers.length > 0) {
+    return {
+      ...currentOffersState,
+      canonical_product_mappings: [],
+      source_products: [],
+      raw_price_snapshots: [],
+      product_daily_prices: [],
+    };
+  }
+
   if (typeof store.queryCollectionByFieldValues !== 'function') {
     return store.load();
   }
 
   const mappings = await store.queryCollectionByFieldValues('canonical_product_mappings', {
     fieldName: 'canonical_product_id',
-    values: canonicalProductIds,
+    values: runtimeSafeCanonicalProductIds,
   });
   const sourceProductIds = [...new Set(mappings.map((mapping) => mapping.source_product_id).filter(Boolean))].sort();
   if (sourceProductIds.length === 0) {
@@ -178,6 +217,62 @@ async function loadPriceLookupState({
   };
 }
 
+async function loadRuntimeSafeCanonicalProductIds({
+  store,
+  canonicalProductIds,
+}) {
+  if (typeof store?.queryCollectionByFieldValues !== 'function') {
+    return canonicalProductIds;
+  }
+
+  try {
+    const canonicalProducts = await store.queryCollectionByFieldValues('canonical_products', {
+      fieldName: 'canonical_product_id',
+      values: canonicalProductIds,
+    });
+    const unsafeIds = new Set((canonicalProducts || [])
+      .filter((product) => !isRuntimeSafeCanonicalProduct(product))
+      .map((product) => product.canonical_product_id)
+      .filter(Boolean));
+    return canonicalProductIds.filter((canonicalProductId) => !unsafeIds.has(canonicalProductId));
+  } catch (error) {
+    if (/Unknown data backbone collection/u.test(String(error?.message || ''))) {
+      return canonicalProductIds;
+    }
+    throw error;
+  }
+}
+
+async function loadCompactCurrentOfferState({
+  store,
+  canonicalProductIds,
+}) {
+  try {
+    const [currentOffers, summaries] = await Promise.all([
+      loadCurrentOffersByCanonicalProductIds({
+        store,
+        canonicalProductIds,
+      }),
+      loadCanonicalCurrentOfferSummaries({
+        store,
+        canonicalProductIds,
+      }),
+    ]);
+    return {
+      current_product_offers: currentOffers,
+      canonical_current_offer_summary: summaries,
+    };
+  } catch (error) {
+    if (/Unknown data backbone collection/u.test(String(error?.message || ''))) {
+      return {
+        current_product_offers: [],
+        canonical_current_offer_summary: [],
+      };
+    }
+    throw error;
+  }
+}
+
 function collectBasketPlanCanonicalProductIds(basketPlan) {
   const ids = new Set();
 
@@ -201,11 +296,22 @@ function collectBasketPlanCanonicalProductIds(basketPlan) {
 function buildCanonicalPriceItem({
   canonicalProductId,
   options,
+  currentOffers,
+  currentOfferSummary,
   sourceProductIds,
   sourceProductIndex,
   latestSnapshotsBySource,
   historyBySource,
 }) {
+  if (currentOffers.length > 0) {
+    return buildCanonicalPriceItemFromCurrentOffers({
+      canonicalProductId,
+      currentOffers,
+      currentOfferSummary,
+      options,
+    });
+  }
+
   const records = sourceProductIds
     .map((sourceProductId) => buildPriceRecord({
       sourceProductId,
@@ -256,6 +362,49 @@ function buildCanonicalPriceItem({
   return item;
 }
 
+function buildCanonicalPriceItemFromCurrentOffers({
+  canonicalProductId,
+  currentOffers,
+  currentOfferSummary,
+  options,
+}) {
+  const records = currentOffers
+    .map((offer) => buildPriceRecordFromCurrentOffer({
+      offer,
+      maxAgeDays: options.max_age_days,
+    }))
+    .filter(Boolean)
+    .filter((record) => matchesChainFilter(record, options.chain_ids))
+    .filter((record) => matchesStoreFilter(record, options.store_ids))
+    .sort(comparePriceRecords);
+  const pricedRecords = records.filter((record) => !record.is_stale);
+  const priceStatus = records.length === 0
+    ? 'missing'
+    : pricedRecords.length > 0
+      ? 'priced'
+      : 'stale';
+
+  return {
+    canonical_product_id: canonicalProductId,
+    price_records: records.map(stripInternalPriceRecordFields),
+    best_price: priceStatus === 'priced'
+      ? buildBestPrice(pricedRecords[0])
+      : null,
+    price_status: priceStatus,
+    offer_summary: currentOfferSummary ? {
+      min_current_price: currentOfferSummary.min_current_price,
+      max_current_price: currentOfferSummary.max_current_price,
+      avg_current_price: currentOfferSummary.avg_current_price,
+      offer_count: currentOfferSummary.offer_count,
+      chain_count: currentOfferSummary.chain_count,
+      cheapest_offer_id: currentOfferSummary.cheapest_offer_id,
+      cheapest_chain: currentOfferSummary.cheapest_chain,
+      updated_at: currentOfferSummary.updated_at,
+      snapshot_date: currentOfferSummary.snapshot_date,
+    } : null,
+  };
+}
+
 function buildPriceRecord({
   sourceProductId,
   sourceProduct,
@@ -263,6 +412,9 @@ function buildPriceRecord({
   maxAgeDays,
 }) {
   if (!snapshot) {
+    return null;
+  }
+  if (sourceProduct && !isRuntimeSafeSourceProduct(sourceProduct)) {
     return null;
   }
 
@@ -306,6 +458,34 @@ function buildPriceRecord({
   };
 }
 
+function buildPriceRecordFromCurrentOffer({
+  offer,
+  maxAgeDays,
+}) {
+  const price = Number(offer.current_price);
+  if (!Number.isFinite(price) || price <= 0) {
+    return null;
+  }
+  const snapshotDate = typeof offer.snapshot_date === 'string' ? offer.snapshot_date : null;
+  return {
+    source_product_id: offer.source_product_id,
+    offer_id: offer.offer_id || null,
+    chain_id: offer.chain_id || null,
+    chain_name: offer.chain_name || offer.retailer || null,
+    store_id: offer.store_id || null,
+    store_name: offer.store_name || null,
+    price,
+    currency: offer.currency || DEFAULT_CURRENCY,
+    unit_price: offer.unit_price ?? null,
+    is_sale: offer.is_sale === true,
+    is_promotion: offer.is_promotion === true,
+    snapshot_date: snapshotDate,
+    observed_at: offer.observed_at || null,
+    source: offer.offer_id || offer.snapshot_id || offer.source_product_id,
+    is_stale: computeIsStale(snapshotDate, maxAgeDays),
+  };
+}
+
 function buildBestPrice(record) {
   return {
     price: record.price,
@@ -316,16 +496,32 @@ function buildBestPrice(record) {
 
 function stripInternalPriceRecordFields(record) {
   return {
+    offer_id: record.offer_id,
+    source_product_id: record.source_product_id,
     chain_id: record.chain_id,
     chain_name: record.chain_name,
     store_id: record.store_id,
     store_name: record.store_name,
     price: record.price,
     currency: record.currency,
+    unit_price: record.unit_price,
+    is_sale: record.is_sale,
+    is_promotion: record.is_promotion,
     snapshot_date: record.snapshot_date,
+    observed_at: record.observed_at,
     is_stale: record.is_stale,
     source: record.source,
   };
+}
+
+function buildCurrentOffersByCanonicalId(offers) {
+  const index = new Map();
+  (offers || []).forEach((offer) => {
+    const entries = index.get(offer.canonical_product_id) || [];
+    entries.push(offer);
+    index.set(offer.canonical_product_id, entries);
+  });
+  return index;
 }
 
 function buildMappingsByCanonicalId(mappings) {
@@ -341,6 +537,13 @@ function buildMappingsByCanonicalId(mappings) {
       [...new Set(sourceProductIds)].sort(),
     ])
   );
+}
+
+function buildUnsafeCanonicalProductIdSet(canonicalProducts) {
+  return new Set((canonicalProducts || [])
+    .filter((product) => !isRuntimeSafeCanonicalProduct(product))
+    .map((product) => product.canonical_product_id)
+    .filter(Boolean));
 }
 
 function buildLatestSnapshotsBySourceProduct(rawPriceSnapshots) {

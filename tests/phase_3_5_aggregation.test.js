@@ -1,6 +1,8 @@
 const assert = require('node:assert/strict');
 
 const {
+  buildCategoryDailyAggregates,
+  buildProductDailyPrices,
   getCategoryTrends,
   getProductHistory,
   InMemoryDataBackboneStore,
@@ -194,6 +196,58 @@ test('category trends endpoint returns ordered category aggregate rows', async (
   assert.equal(trends[0].category_code, '6');
   assert.equal(trends[0].date, '2026-04-21');
   assert.equal(trends[1].date, '2026-04-22');
+});
+
+test('large product and category groups aggregate without call stack overflow', () => {
+  const rowCount = 200000;
+  const snapshots = [];
+
+  // The publisher can encounter a very large category in one daily snapshot.
+  // This synthetic group is intentionally above V8's practical argument-spread
+  // limit, so old Math.min(...prices) / Math.max(...prices) code would throw.
+  for (let index = 0; index < rowCount; index += 1) {
+    snapshots.push({
+      snapshot_id: `large-${index}`,
+      source_product_id: 'bulk-product-1',
+      snapshot_date: '2026-04-21',
+      locality_code: '65677',
+      store_name_raw: 'Bulk Store',
+      product_name_raw: 'Bulk Product',
+      product_code: 'bulk-1',
+      category_code: 'bulk-category',
+      retail_price: index === rowCount - 1 ? 3 : 2,
+      promo_price: index === 0 ? 1 : 0,
+      ingested_at: '2026-04-21T10:00:00.000Z',
+    });
+  }
+
+  const productRows = buildProductDailyPrices({
+    snapshots,
+    targetDate: '2026-04-21',
+  });
+  const categoryRows = buildCategoryDailyAggregates({
+    snapshots,
+    targetDate: '2026-04-21',
+  });
+
+  assert.deepEqual(productRows, [{
+    source_product_id: 'bulk-product-1',
+    date: '2026-04-21',
+    price_avg: 2,
+    price_min: 1,
+    price_max: 3,
+    store_count: 1,
+    snapshot_count: rowCount,
+  }]);
+  assert.deepEqual(categoryRows, [{
+    category_code: 'bulk-category',
+    date: '2026-04-21',
+    avg_price: 2,
+    min_price: 1,
+    max_price: 3,
+    product_count: 1,
+    snapshot_count: rowCount,
+  }]);
 });
 
 async function run() {

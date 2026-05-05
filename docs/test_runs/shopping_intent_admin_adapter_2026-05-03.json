@@ -1,0 +1,52 @@
+{
+  "id": "shopping_intent_admin_adapter_2026-05-03",
+  "date": "2026-05-03",
+  "scope": "Admin Console shopping-intent tester and opt-in intent-first shopping-list/basket adapter",
+  "commands": [
+    {
+      "command": "npm run test:phase15_8",
+      "status": "passed",
+      "summary": "10 passed, 0 failed, 10 total"
+    },
+    {
+      "command": "npm run test:phase15_3",
+      "status": "passed",
+      "summary": "9 passed, 0 failed, 9 total"
+    },
+    {
+      "command": "npm run test:phase15_4",
+      "status": "passed",
+      "summary": "12 passed, 0 failed, 12 total"
+    },
+    {
+      "command": "npm run admin-web:build",
+      "status": "passed",
+      "summary": "TypeScript compile and Vite production build completed"
+    },
+    {
+      "command": "npx -y firebase-tools@latest deploy --only functions --project pricer-ee440",
+      "status": "passed",
+      "summary": "Updated api(europe-west1) successfully"
+    },
+    {
+      "command": "$env:VITE_PRICER_API_BASE_URL='https://europe-west1-pricer-ee440.cloudfunctions.net/api'; npm run admin-web:build",
+      "status": "passed",
+      "summary": "Rebuilt Hosting artifact against deployed Functions API"
+    },
+    {
+      "command": "npx -y firebase-tools@latest deploy --only hosting --project pricer-ee440",
+      "status": "passed",
+      "summary": "Released Hosting live at https://pricer-ee440.web.app"
+    },
+    {
+      "command": "node live smoke against deployed Hosting and Functions",
+      "status": "passed",
+      "summary": "Hosting returned 200 and bundle contains Shopping Intent; yogurt/style, cheese/family, sirene family, juice/flavor, bread/type, shopping-list opt-in clarification_needed, and basket-plan opt-in clarification all passed"
+    }
+  ],
+  "notes": [
+    "Shopping intent endpoint scoped-store test verifies no full load/save on Firestore-like stores.",
+    "Adapter tests cover yogurt clarification without preference, high-confidence yogurt preference candidate flow, cheese family ambiguity, and disabled-path compatibility.",
+    "The PowerShell console rendered Cyrillic smoke text as question marks in one attempt, so the deployed sirene smoke was rerun with Unicode escapes and resolved to family sirene."
+  ]
+}

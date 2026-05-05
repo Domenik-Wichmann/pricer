@@ -1,0 +1,42 @@
+{
+  "phase": "15.9",
+  "date": "2026-05-05",
+  "commands": [
+    {
+      "command": "npm run test:phase15",
+      "status": "passed",
+      "summary": "33 passed, 0 failed, 33 total"
+    },
+    {
+      "command": "npm run phase15:enrichment-healthcheck",
+      "status": "passed",
+      "summary": "Config-only healthcheck passed with dummy XAI_API_KEY, endpoint https://api.x.ai/v1/chat/completions, model test-model, and live_request_made false. Default model is now grok-4-1-fast-reasoning."
+    },
+    {
+      "command": "npm run test:phase15_2",
+      "status": "passed",
+      "summary": "25 passed, 0 failed, 25 total"
+    },
+    {
+      "command": "npm run test:phase15_1",
+      "status": "passed",
+      "summary": "7 passed, 0 failed, 7 total"
+    },
+    {
+      "command": "npm run test:phase15_8",
+      "status": "passed",
+      "summary": "10 passed, 0 failed, 10 total"
+    },
+    {
+      "command": "npm run validate:docs",
+      "status": "passed",
+      "summary": "JSON docs parse successfully"
+    }
+  ],
+  "notes": [
+    "Covers deterministic cookies/snacks/Coca-Cola/coke synonym expansion.",
+    "Covers enrichment alias/product_type search and cola beverage guardrails against personal-care shampoo.",
+    "Covers rich canonical_semantic_v2 schema validation, exact product_form enum prompting, unsupported semi-solid near-miss normalization to null with warnings, item-level batch rejection with valid sibling writes, batch shape rejection, milk/shampoo/Milka/cola/collagen distinctions, pilot guardrails, cache skipping, dry-run no writes, and explicitly opted-in writes limited to canonical_enrichment_store.",
+    "Covers config-only provider healthcheck, PRICER_ENRICHMENT_MODEL fallback for real pilot calls, provider network cause reporting, and non-2xx status/body reporting."
+  ]
+}

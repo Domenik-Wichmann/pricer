@@ -3,6 +3,7 @@ const { Readable } = require('node:stream');
 
 const {
   InMemoryDataBackboneStore,
+  buildCurrentOfferReadModel,
   buildBasketPlanFromResolvedItems,
   handleLookupCanonicalProductPricesRequest,
   importDailySnapshotCsvStream,
@@ -183,6 +184,95 @@ test('latest price lookup by canonical product id returns priced records and det
   assert.equal(result.items[0].best_price.chain_id, 'lidl');
 });
 
+test('current offer read model builds one deterministic offer per source product and canonical summaries', async () => {
+  const { store, canonicalIds } = await createPriceLookupStore();
+  const state = await store.load();
+  const readModel = buildCurrentOfferReadModel({
+    state,
+    generatedAt: '2026-04-24T12:00:00.000Z',
+  });
+  const milkOffers = readModel.current_product_offers.filter(
+    (offer) => offer.canonical_product_id === canonicalIds.chocolateMilkId
+  );
+  const milkSummary = readModel.canonical_current_offer_summary.find(
+    (summary) => summary.canonical_product_id === canonicalIds.chocolateMilkId
+  );
+
+  assert.equal(milkOffers.length, 2);
+  assert.equal(milkOffers.every((offer) => offer.offer_id === `offer_${offer.source_product_id}`), true);
+  assert.equal(milkSummary.offer_count, 2);
+  assert.equal(milkSummary.min_current_price, 2.39);
+  assert.equal(milkSummary.max_current_price, 2.49);
+  assert.equal(milkSummary.cheapest_offer_id.startsWith('offer_'), true);
+});
+
+test('current offer read model excludes quarantined canonical products', async () => {
+  const { store, canonicalIds } = await createPriceLookupStore();
+  const state = await store.load();
+  const wholeMilk = state.canonical_products.find(
+    (product) => product.canonical_product_id === canonicalIds.wholeMilkId
+  );
+  wholeMilk.data_quality_status = 'invalid';
+  wholeMilk.data_quality_reasons = ['contains_newline'];
+  wholeMilk.quarantine_source = 'phase6_bad_product_audit_v1';
+
+  const readModel = buildCurrentOfferReadModel({
+    state,
+    generatedAt: '2026-04-24T12:05:00.000Z',
+  });
+
+  assert.equal(readModel.current_product_offers.some(
+    (offer) => offer.canonical_product_id === canonicalIds.wholeMilkId
+  ), false);
+  assert.equal(readModel.canonical_current_offer_summary.some(
+    (summary) => summary.canonical_product_id === canonicalIds.wholeMilkId
+  ), false);
+  assert.equal(readModel.current_product_offers.some(
+    (offer) => offer.canonical_product_id === canonicalIds.chocolateMilkId
+  ), true);
+});
+
+test('price lookup prefers compact current offer read model when available', async () => {
+  const { store, canonicalIds } = await createPriceLookupStore();
+  const state = await store.load();
+  const readModel = buildCurrentOfferReadModel({
+    state,
+    generatedAt: '2026-04-24T12:00:00.000Z',
+  });
+  const compactStore = new InMemoryDataBackboneStore({
+    current_product_offers: readModel.current_product_offers,
+    canonical_current_offer_summary: readModel.canonical_current_offer_summary,
+  });
+  const calls = [];
+  const scopedStore = {
+    async load() {
+      calls.push({ type: 'load' });
+      throw new Error('full store load should not be used when compact offers exist');
+    },
+    async queryCollectionByFieldValues(collectionName, options) {
+      calls.push({ type: 'queryCollectionByFieldValues', collectionName, options });
+      if (collectionName === 'canonical_product_mappings' || collectionName === 'source_products' || collectionName === 'raw_price_snapshots') {
+        throw new Error(`${collectionName} should not be queried when compact offers exist`);
+      }
+      return compactStore.queryCollectionByFieldValues(collectionName, options);
+    },
+  };
+
+  const result = await lookupCanonicalProductPrices({
+    store: scopedStore,
+    canonicalProductIds: [canonicalIds.chocolateMilkId],
+  });
+
+  assert.equal(result.items[0].price_status, 'priced');
+  assert.equal(result.items[0].best_price.price, 2.39);
+  assert.equal(result.items[0].price_records[0].offer_id.startsWith('offer_'), true);
+  assert.deepEqual(calls.map((call) => call.collectionName), [
+    'canonical_products',
+    'current_product_offers',
+    'canonical_current_offer_summary',
+  ]);
+});
+
 test('price lookup scopes Firestore-style reads to requested canonical and source ids', async () => {
   const { store, canonicalIds } = await createPriceLookupStore();
   const calls = [];
@@ -204,6 +294,9 @@ test('price lookup scopes Firestore-style reads to requested canonical and sourc
 
   assert.equal(result.items[0].price_status, 'priced');
   assert.deepEqual(calls.map((call) => call.collectionName), [
+    'canonical_products',
+    'current_product_offers',
+    'canonical_current_offer_summary',
     'canonical_product_mappings',
     'source_products',
     'raw_price_snapshots',

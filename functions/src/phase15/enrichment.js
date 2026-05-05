@@ -13,9 +13,44 @@ const {
 } = require('./diet_attribute_normalization');
 
 const ENRICHMENT_PROMPT_VERSION = 'v1';
+const RICH_CANONICAL_ENRICHMENT_VERSION = 'canonical_semantic_v2';
+const RICH_CANONICAL_PROMPT_VERSION = 'canonical_semantic_v2_prompt_v1';
 const DEFAULT_ENRICHMENT_SAMPLE_LIMIT = 100;
 
 const ENRICHMENT_SCHEMA_KEYS = Object.freeze([
+  'base_product',
+  'product_type',
+  'product_family',
+  'category',
+  'subcategory',
+  'category_l1',
+  'category_l2',
+  'category_l3',
+  'category_l4',
+  'is_food',
+  'is_beverage',
+  'is_personal_care',
+  'brand',
+  'brand_normalized',
+  'product_line',
+  'flavor',
+  'flavor_terms',
+  'attributes',
+  'diet_tags',
+  'allergens',
+  'product_form',
+  'packaging',
+  'usage_context',
+  'search_aliases_bg',
+  'search_aliases_en',
+  'exclusion_terms',
+  'quality_tier',
+  'confidence',
+  'enrichment_source',
+  'enrichment_version',
+]);
+
+const REQUIRED_ENRICHMENT_SCHEMA_KEYS = Object.freeze([
   'base_product',
   'category_l1',
   'category_l2',
@@ -36,20 +71,37 @@ const ENRICHMENT_SCHEMA_KEYS = Object.freeze([
 
 const ARRAY_FIELDS = Object.freeze([
   'flavor',
+  'flavor_terms',
   'attributes',
   'diet_tags',
   'allergens',
   'usage_context',
+  'search_aliases_bg',
+  'search_aliases_en',
+  'exclusion_terms',
 ]);
 
 const NULLABLE_STRING_FIELDS = Object.freeze([
   'category_l3',
   'category_l4',
+  'product_type',
+  'product_family',
+  'category',
+  'subcategory',
   'brand',
+  'brand_normalized',
   'product_line',
   'product_form',
   'packaging',
   'quality_tier',
+  'enrichment_source',
+  'enrichment_version',
+]);
+
+const BOOLEAN_FIELDS = Object.freeze([
+  'is_food',
+  'is_beverage',
+  'is_personal_care',
 ]);
 
 const CATEGORY_TREE = Object.freeze({
@@ -160,6 +212,129 @@ const ALLOWED_PRODUCT_FORMS = normalizedSet(PRODUCT_FORMS);
 const ALLOWED_PACKAGING = normalizedSet(PACKAGING_VALUES);
 const ALLOWED_QUALITY_TIERS = normalizedSet(QUALITY_TIERS);
 
+const RICH_STRING_FIELDS = Object.freeze([
+  'normalized_display_name_bg',
+  'normalized_display_name_en',
+  'manufacturer_or_brand_owner',
+  'comparable_product_class',
+  'variant_group_key',
+  'serving_context',
+  'dairy_type',
+  'milk_source',
+  'uht_or_fresh',
+  'plain_or_flavored',
+  'beverage_type',
+  'age_band_label',
+  'formula_stage',
+  'baby_food_type',
+  'shopping_family_id',
+  'data_quality_status',
+  'explanation_short',
+  'reviewed_status',
+  'size_marker',
+]);
+
+const RICH_ARRAY_FIELDS = Object.freeze([
+  'brand_candidates',
+  'category_path',
+  'variant_attributes',
+  'meal_role',
+  'cooking_use',
+  'diet_tags',
+  'allergen_hints',
+  'ingredient_hints',
+  'synonym_terms',
+  'negative_match_hints',
+  'do_not_match_queries',
+  'should_match_queries',
+  'disambiguation_notes',
+  'clarification_attributes',
+  'likely_user_choice_attributes',
+  'data_quality_reasons',
+  'ambiguous_fields',
+  'llm_uncertainty_reasons',
+]);
+
+const RICH_BOOLEAN_FIELDS = Object.freeze([
+  'is_alcohol',
+  'is_baby_product',
+  'is_pet_product',
+  'is_household',
+  'is_medicine_or_supplement',
+  'preparation_required',
+  'ready_to_eat',
+  'likely_dairy',
+  'likely_meat',
+  'likely_vegetarian',
+  'likely_vegan',
+  'gluten_related',
+  'sugar_free',
+  'low_fat',
+  'wholegrain',
+  'organic_bio',
+  'lactose_free',
+  'carbonated',
+  'caffeine_related',
+  'brand_preference_relevance',
+  'size_preference_relevance',
+  'flavor_preference_relevance',
+  'needs_human_review',
+]);
+
+const RICH_NUMBER_FIELDS = Object.freeze([
+  'pantry_staple_score',
+  'package_quantity',
+  'total_quantity',
+  'multipack_count',
+  'unit_quantity',
+  'fat_percent',
+  'alcohol_percent',
+  'age_min_months',
+  'age_max_months',
+]);
+
+const RICH_SCHEMA_KEYS = Object.freeze([
+  'canonical_name_hash',
+  'enrichment_source',
+  'enrichment_version',
+  'confidence',
+  ...RICH_STRING_FIELDS,
+  ...RICH_ARRAY_FIELDS,
+  ...RICH_BOOLEAN_FIELDS,
+  ...RICH_NUMBER_FIELDS,
+  'storage_type',
+  'package_unit',
+  'total_unit',
+  'unit_quantity_unit',
+  'baby_stage',
+]);
+
+const RICH_ALLOWED_KEYS = Object.freeze([...new Set([
+  ...ENRICHMENT_SCHEMA_KEYS,
+  ...RICH_SCHEMA_KEYS,
+])]);
+
+const STORAGE_TYPES = Object.freeze(['shelf_stable', 'refrigerated', 'frozen', 'unknown']);
+const QUANTITY_UNITS = Object.freeze(['g', 'kg', 'ml', 'l', 'pcs', 'unknown']);
+const BABY_STAGES = Object.freeze(['stage_1', 'stage_2', 'stage_3', 'stage_4', 'unknown']);
+const DATA_QUALITY_STATUSES = Object.freeze(['valid', 'warning', 'ambiguous', 'needs_review', 'invalid', 'unknown']);
+const REVIEWED_STATUSES = Object.freeze(['unreviewed', 'reviewed', 'needs_review', 'rejected']);
+const DAIRY_TYPES = Object.freeze(['milk', 'yogurt', 'cheese', 'sirene', 'kashkaval', 'butter', 'cream', 'unknown']);
+const MILK_SOURCES = Object.freeze(['cow', 'sheep', 'goat', 'mixed', 'plant_based', 'unknown']);
+const UHT_OR_FRESH = Object.freeze(['fresh', 'uht', 'unknown']);
+const PLAIN_OR_FLAVORED = Object.freeze(['plain', 'flavored', 'unknown']);
+const BEVERAGE_TYPES = Object.freeze([
+  'water',
+  'soft_drink',
+  'cola',
+  'juice',
+  'energy_drink',
+  'coffee',
+  'tea',
+  'alcohol',
+  'unknown',
+]);
+
 function isLlmEnrichmentEnabled(env = process.env) {
   const raw = String(env.ENABLE_LLM_ENRICHMENT || '').trim().toLowerCase();
   if (!raw) {
@@ -217,6 +392,69 @@ function buildEnrichmentPrompt(productName, tokens = [], markers = {}) {
   };
 }
 
+function buildRichCanonicalEnrichmentBatchPrompt(products = []) {
+  const responseSchema = Object.fromEntries(RICH_ALLOWED_KEYS.map((key) => [key, schemaHintForRichKey(key)]));
+  return {
+    prompt_version: RICH_CANONICAL_PROMPT_VERSION,
+    enrichment_version: RICH_CANONICAL_ENRICHMENT_VERSION,
+    task: 'Classify canonical product semantics for search, shopping intent, meal planning, basket optimization, filtering, and analytics.',
+    scope_rules: [
+      'This is metadata enrichment only.',
+      'Do not merge canonical products.',
+      'Do not change product ids, source rows, offers, prices, mappings, or canonical grouping.',
+      'Return one product result for every input canonical_product_id and no extra products.',
+      'Use null, unknown, false, or [] when the product name and deterministic markers do not strongly support a value.',
+      'Do not invent brands, manufacturers, flavors, ingredients, dietary claims, package quantities, or nutrition claims.',
+      'Distinguish fresh milk from yogurt, baby formula, milk-scented or milk-wording body care/shampoo, and Milka chocolate.',
+      'Distinguish cola beverages from collagen, chocolate/шоколад substring matches, and shampoo/personal-care scent/flavor wording.',
+      'Use validation-friendly enum values exactly where an enum is listed.',
+      'Controlled enum fields must use only the listed values. Do not invent enum values; use null when unsure and null is allowed.',
+    ],
+    allowed_categories: CATEGORY_TREE,
+    allowed_enums: {
+      product_form: PRODUCT_FORMS,
+      storage_type: STORAGE_TYPES,
+      package_unit: QUANTITY_UNITS,
+      total_unit: QUANTITY_UNITS,
+      unit_quantity_unit: QUANTITY_UNITS,
+      baby_stage: BABY_STAGES,
+      data_quality_status: DATA_QUALITY_STATUSES,
+      reviewed_status: REVIEWED_STATUSES,
+      dairy_type: DAIRY_TYPES,
+      milk_source: MILK_SOURCES,
+      uht_or_fresh: UHT_OR_FRESH,
+      plain_or_flavored: PLAIN_OR_FLAVORED,
+      beverage_type: BEVERAGE_TYPES,
+    },
+    response_shape: {
+      products: [{
+        canonical_product_id: 'string; must exactly match one input id',
+        enrichment: responseSchema,
+      }],
+    },
+    products: products.map((product) => {
+      const markers = parseCanonicalAttributes(product.canonical_attributes_json);
+      return {
+        canonical_product_id: product.canonical_product_id,
+        canonical_name: product.canonical_display_name || null,
+        source_example_name: product.source_example_name || null,
+        canonical_brand: product.canonical_brand || null,
+        canonical_product_type: product.canonical_product_type || null,
+        canonical_category_code: product.canonical_category_code || null,
+        deterministic_markers: {
+          volume_marker: markers.volume_marker || null,
+          count_marker: markers.count_marker || null,
+          age_band_marker: markers.age_band_marker || null,
+          reserve_marker: markers.reserve_marker || null,
+          size_marker: markers.size_marker || null,
+          core_tokens: markers.core_tokens || [],
+        },
+        canonical_name_hash: canonicalNameHashForProduct(product),
+      };
+    }),
+  };
+}
+
 function validateEnrichmentResponse(response) {
   const payload = parseEnrichmentPayload(response);
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
@@ -224,7 +462,7 @@ function validateEnrichmentResponse(response) {
   }
 
   const keys = Object.keys(payload).sort();
-  const expectedKeys = [...ENRICHMENT_SCHEMA_KEYS].sort();
+  const expectedKeys = [...REQUIRED_ENRICHMENT_SCHEMA_KEYS].sort();
   const extraKeys = keys.filter((key) => !ENRICHMENT_SCHEMA_KEYS.includes(key));
   const missingKeys = expectedKeys.filter((key) => !Object.prototype.hasOwnProperty.call(payload, key));
   if (extraKeys.length > 0) {
@@ -263,13 +501,22 @@ function validateEnrichmentResponse(response) {
 
   const normalized = {
     base_product: baseProduct,
+    product_type: normalizeNullableString(payload.product_type ?? baseProduct, 'product_type'),
+    product_family: normalizeNullableString(payload.product_family ?? payload.category_l2, 'product_family'),
+    category: normalizeNullableString(payload.category ?? payload.category_l2, 'category'),
+    subcategory: normalizeNullableString(payload.subcategory ?? payload.category_l3, 'subcategory'),
     category_l1: categoryL1,
     category_l2: categoryL2,
     category_l3: categoryL3,
     category_l4: categoryL4,
+    is_food: normalizeBooleanField(payload.is_food, categoryL1 === 'food & beverage'),
+    is_beverage: normalizeBooleanField(payload.is_beverage, categoryL2 === 'beverages'),
+    is_personal_care: normalizeBooleanField(payload.is_personal_care, categoryL1 === 'personal care'),
     brand: normalizeNullableString(payload.brand, 'brand'),
+    brand_normalized: normalizeNullableString(payload.brand_normalized ?? payload.brand, 'brand_normalized'),
     product_line: normalizeNullableString(payload.product_line, 'product_line'),
     flavor: normalizeArrayField(payload.flavor, 'flavor'),
+    flavor_terms: normalizeArrayField(payload.flavor_terms ?? payload.flavor, 'flavor_terms'),
     attributes: normalizeDietAndAttributeTags({
       attributes: normalizeArrayField(payload.attributes, 'attributes'),
     }).attributes,
@@ -280,8 +527,13 @@ function validateEnrichmentResponse(response) {
     product_form: normalizeNullableControlledValue(payload.product_form, ALLOWED_PRODUCT_FORMS, 'product_form'),
     packaging: normalizeNullableControlledValue(payload.packaging, ALLOWED_PACKAGING, 'packaging'),
     usage_context: normalizeArrayField(payload.usage_context, 'usage_context'),
+    search_aliases_bg: normalizeArrayField(payload.search_aliases_bg ?? [], 'search_aliases_bg'),
+    search_aliases_en: normalizeArrayField(payload.search_aliases_en ?? [], 'search_aliases_en'),
+    exclusion_terms: normalizeArrayField(payload.exclusion_terms ?? [], 'exclusion_terms'),
     quality_tier: normalizeNullableControlledValue(payload.quality_tier, ALLOWED_QUALITY_TIERS, 'quality_tier'),
     confidence: Math.round(confidence * 10000) / 10000,
+    enrichment_source: normalizeNullableString(payload.enrichment_source ?? null, 'enrichment_source'),
+    enrichment_version: normalizeNullableString(payload.enrichment_version ?? ENRICHMENT_PROMPT_VERSION, 'enrichment_version'),
   };
 
   NULLABLE_STRING_FIELDS.forEach((field) => {
@@ -295,8 +547,178 @@ function validateEnrichmentResponse(response) {
       throw new Error(`enrichment response field must be an array: ${field}`);
     }
   });
+  BOOLEAN_FIELDS.forEach((field) => {
+    if (typeof normalized[field] !== 'boolean') {
+      throw new Error(`enrichment response field must be boolean: ${field}`);
+    }
+  });
 
   return normalized;
+}
+
+function validateRichCanonicalEnrichmentResponse(response, {
+  canonicalProduct = null,
+  validationWarnings = null,
+} = {}) {
+  const parsedPayload = parseEnrichmentPayload(response);
+  const payload = normalizeRichNearMissPayload(parsedPayload, validationWarnings);
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    throw new Error('rich enrichment response must be an object');
+  }
+
+  const extraKeys = Object.keys(payload).filter((key) => !RICH_ALLOWED_KEYS.includes(key));
+  if (extraKeys.length > 0) {
+    throw new Error(`rich enrichment response has uncontrolled fields: ${extraKeys.join(', ')}`);
+  }
+
+  const legacyPayload = {};
+  ENRICHMENT_SCHEMA_KEYS.forEach((key) => {
+    if (Object.prototype.hasOwnProperty.call(payload, key)) {
+      legacyPayload[key] = payload[key];
+    }
+  });
+  const normalized = validateEnrichmentResponse({
+    ...legacyPayload,
+    enrichment_source: payload.enrichment_source || legacyPayload.enrichment_source || 'llm',
+    enrichment_version: payload.enrichment_version || RICH_CANONICAL_ENRICHMENT_VERSION,
+  });
+
+  normalized.enrichment_version = normalizeNullableString(
+    payload.enrichment_version || RICH_CANONICAL_ENRICHMENT_VERSION,
+    'enrichment_version'
+  );
+  if (normalized.enrichment_version !== RICH_CANONICAL_ENRICHMENT_VERSION) {
+    throw new Error(`invalid enrichment_version: ${payload.enrichment_version}`);
+  }
+  normalized.enrichment_source = normalizeNullableString(payload.enrichment_source || 'llm', 'enrichment_source');
+  normalized.canonical_name_hash = normalizeNullableString(
+    payload.canonical_name_hash || (canonicalProduct ? canonicalNameHashForProduct(canonicalProduct) : null),
+    'canonical_name_hash'
+  );
+
+  RICH_STRING_FIELDS.forEach((field) => {
+    normalized[field] = normalizeRichString(payload[field], field);
+  });
+  RICH_ARRAY_FIELDS.forEach((field) => {
+    normalized[field] = normalizeRichArray(payload[field], field);
+  });
+  RICH_BOOLEAN_FIELDS.forEach((field) => {
+    normalized[field] = normalizeRichBoolean(payload[field], field);
+  });
+  RICH_NUMBER_FIELDS.forEach((field) => {
+    normalized[field] = normalizeRichNumber(payload[field], field);
+  });
+
+  normalized.storage_type = normalizeRichEnum(payload.storage_type, STORAGE_TYPES, 'storage_type');
+  normalized.package_unit = normalizeRichEnum(payload.package_unit, QUANTITY_UNITS, 'package_unit');
+  normalized.total_unit = normalizeRichEnum(payload.total_unit, QUANTITY_UNITS, 'total_unit');
+  normalized.unit_quantity_unit = normalizeRichEnum(payload.unit_quantity_unit, QUANTITY_UNITS, 'unit_quantity_unit');
+  normalized.baby_stage = normalizeRichEnum(payload.baby_stage, BABY_STAGES, 'baby_stage');
+  normalized.data_quality_status = normalizeRichEnum(
+    payload.data_quality_status || 'unknown',
+    DATA_QUALITY_STATUSES,
+    'data_quality_status'
+  );
+  normalized.reviewed_status = normalizeRichEnum(
+    payload.reviewed_status || 'unreviewed',
+    REVIEWED_STATUSES,
+    'reviewed_status'
+  );
+  normalized.dairy_type = normalizeRichEnum(payload.dairy_type, DAIRY_TYPES, 'dairy_type');
+  normalized.milk_source = normalizeRichEnum(payload.milk_source, MILK_SOURCES, 'milk_source');
+  normalized.uht_or_fresh = normalizeRichEnum(payload.uht_or_fresh, UHT_OR_FRESH, 'uht_or_fresh');
+  normalized.plain_or_flavored = normalizeRichEnum(payload.plain_or_flavored, PLAIN_OR_FLAVORED, 'plain_or_flavored');
+  normalized.beverage_type = normalizeRichEnum(payload.beverage_type, BEVERAGE_TYPES, 'beverage_type');
+
+  validateRichSemanticConsistency(normalized);
+  return normalized;
+}
+
+function validateRichCanonicalEnrichmentBatchResponse(response, {
+  products = [],
+} = {}) {
+  const { rows, expectedById } = validateRichCanonicalEnrichmentBatchShape(response, {
+    products,
+  });
+  return rows.map((entry) => {
+    const id = typeof entry?.canonical_product_id === 'string' ? entry.canonical_product_id.trim() : '';
+    const product = expectedById.get(id);
+    return {
+      canonical_product_id: id,
+      enrichment: validateRichCanonicalEnrichmentResponse(entry.enrichment, {
+        canonicalProduct: product,
+      }),
+    };
+  });
+}
+
+function validateRichCanonicalEnrichmentBatchResponseDetailed(response, {
+  products = [],
+} = {}) {
+  const { rows, expectedById } = validateRichCanonicalEnrichmentBatchShape(response, {
+    products,
+  });
+  const valid = [];
+  const rejected = [];
+
+  rows.forEach((entry) => {
+    const id = typeof entry?.canonical_product_id === 'string' ? entry.canonical_product_id.trim() : '';
+    const product = expectedById.get(id);
+    const validationWarnings = [];
+    try {
+      valid.push({
+        canonical_product_id: id,
+        enrichment: validateRichCanonicalEnrichmentResponse(entry.enrichment, {
+          canonicalProduct: product,
+          validationWarnings,
+        }),
+        validation_warnings: validationWarnings,
+      });
+    } catch (error) {
+      rejected.push({
+        canonical_product_id: id,
+        error_type: 'validation_error',
+        message: error.message,
+        ...summarizeRejectedEnrichmentField(error, entry?.enrichment),
+      });
+    }
+  });
+
+  return {
+    valid,
+    rejected,
+  };
+}
+
+function validateRichCanonicalEnrichmentBatchShape(response, {
+  products = [],
+} = {}) {
+  const payload = parseEnrichmentPayload(response);
+  const rows = Array.isArray(payload) ? payload : payload?.products;
+  if (!Array.isArray(rows)) {
+    throw new Error('rich batch enrichment response must contain products[]');
+  }
+  if (rows.length !== products.length) {
+    throw new Error(`rich batch enrichment response count mismatch: expected ${products.length}, got ${rows.length}`);
+  }
+
+  const expectedById = new Map(products.map((product) => [product.canonical_product_id, product]));
+  const seen = new Set();
+  rows.forEach((entry) => {
+    const id = typeof entry?.canonical_product_id === 'string' ? entry.canonical_product_id.trim() : '';
+    if (!expectedById.has(id)) {
+      throw new Error(`rich batch enrichment response returned unexpected product id: ${id || '<missing>'}`);
+    }
+    if (seen.has(id)) {
+      throw new Error(`rich batch enrichment response returned duplicate product id: ${id}`);
+    }
+    seen.add(id);
+  });
+
+  return {
+    rows,
+    expectedById,
+  };
 }
 
 async function syncCanonicalEnrichmentArtifacts({
@@ -479,6 +901,18 @@ function parseCanonicalAttributes(value) {
   }
 }
 
+function canonicalNameHashForProduct(product) {
+  const crypto = require('node:crypto');
+  return crypto
+    .createHash('sha256')
+    .update([
+      product?.canonical_product_id || '',
+      product?.canonical_display_name || '',
+      product?.source_example_name || '',
+    ].join('|'))
+    .digest('hex');
+}
+
 function parseEnrichmentPayload(response) {
   if (typeof response === 'string') {
     return JSON.parse(stripJsonCodeFence(response.trim()));
@@ -576,6 +1010,25 @@ function normalizeArrayField(value, fieldName) {
   return normalizeArray(value);
 }
 
+function normalizeBooleanField(value, defaultValue = false) {
+  if (value === undefined || value === null || value === '') {
+    return Boolean(defaultValue);
+  }
+  if (typeof value === 'boolean') {
+    return value;
+  }
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === 'true') {
+      return true;
+    }
+    if (normalized === 'false') {
+      return false;
+    }
+  }
+  throw new Error('enrichment response boolean fields must be true or false');
+}
+
 function normalizeArray(value) {
   const seen = new Set();
   const normalized = [];
@@ -615,6 +1068,9 @@ function schemaHintForKey(key) {
   if (ARRAY_FIELDS.includes(key)) {
     return 'string[]';
   }
+  if (BOOLEAN_FIELDS.includes(key)) {
+    return 'boolean';
+  }
   if (NULLABLE_STRING_FIELDS.includes(key)) {
     return 'string|null';
   }
@@ -624,13 +1080,227 @@ function schemaHintForKey(key) {
   return 'string';
 }
 
+function schemaHintForRichKey(key) {
+  if (RICH_ARRAY_FIELDS.includes(key) || ARRAY_FIELDS.includes(key)) {
+    return 'bounded string[]';
+  }
+  if (RICH_BOOLEAN_FIELDS.includes(key) || BOOLEAN_FIELDS.includes(key)) {
+    return 'boolean|null for rich optional fields';
+  }
+  if (RICH_NUMBER_FIELDS.includes(key)) {
+    return 'number|null';
+  }
+  if (key === 'confidence') {
+    return 'number 0..1';
+  }
+  if (key === 'product_form') {
+    return `${PRODUCT_FORMS.join('|')}|null`;
+  }
+  if (key === 'storage_type') {
+    return STORAGE_TYPES.join('|');
+  }
+  if (['package_unit', 'total_unit', 'unit_quantity_unit'].includes(key)) {
+    return QUANTITY_UNITS.join('|');
+  }
+  if (key === 'baby_stage') {
+    return BABY_STAGES.join('|');
+  }
+  if (key === 'data_quality_status') {
+    return DATA_QUALITY_STATUSES.join('|');
+  }
+  if (key === 'reviewed_status') {
+    return REVIEWED_STATUSES.join('|');
+  }
+  if (key === 'dairy_type') {
+    return DAIRY_TYPES.join('|');
+  }
+  if (key === 'milk_source') {
+    return MILK_SOURCES.join('|');
+  }
+  if (key === 'uht_or_fresh') {
+    return UHT_OR_FRESH.join('|');
+  }
+  if (key === 'plain_or_flavored') {
+    return PLAIN_OR_FLAVORED.join('|');
+  }
+  if (key === 'beverage_type') {
+    return BEVERAGE_TYPES.join('|');
+  }
+  return schemaHintForKey(key);
+}
+
+function normalizeRichString(value, fieldName) {
+  if (value === undefined || value === null || value === '') {
+    return null;
+  }
+  if (typeof value !== 'string') {
+    throw new Error(`rich enrichment response ${fieldName} must be a string or null`);
+  }
+  const normalized = normalizeScalar(value);
+  if (!normalized || normalized === 'unknown') {
+    return normalized || null;
+  }
+  if (normalized.length > 160) {
+    throw new Error(`rich enrichment response ${fieldName} exceeds max length`);
+  }
+  return normalized;
+}
+
+function normalizeRichArray(value, fieldName) {
+  if (value === undefined || value === null) {
+    return [];
+  }
+  if (!Array.isArray(value)) {
+    throw new Error(`rich enrichment response ${fieldName} must be an array`);
+  }
+  if (value.length > 24) {
+    throw new Error(`rich enrichment response ${fieldName} has too many entries`);
+  }
+  return normalizeArray(value).slice(0, 24).filter((entry) => entry.length <= 120);
+}
+
+function normalizeRichBoolean(value, fieldName) {
+  if (value === undefined || value === null || value === '') {
+    return null;
+  }
+  if (typeof value !== 'boolean') {
+    throw new Error(`rich enrichment response ${fieldName} must be boolean or null`);
+  }
+  return value;
+}
+
+function normalizeRichNumber(value, fieldName) {
+  if (value === undefined || value === null || value === '') {
+    return null;
+  }
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    throw new Error(`rich enrichment response ${fieldName} must be a finite number or null`);
+  }
+  if (['pantry_staple_score'].includes(fieldName) && (value < 0 || value > 1)) {
+    throw new Error(`rich enrichment response ${fieldName} must be from 0 to 1`);
+  }
+  if (['age_min_months', 'age_max_months'].includes(fieldName) && (value < 0 || value > 240)) {
+    throw new Error(`rich enrichment response ${fieldName} must be a plausible month age`);
+  }
+  if (value < 0 && !['alcohol_percent'].includes(fieldName)) {
+    throw new Error(`rich enrichment response ${fieldName} must be nonnegative`);
+  }
+  return Math.round(value * 10000) / 10000;
+}
+
+function normalizeRichEnum(value, allowedValues, fieldName) {
+  if (value === undefined || value === null || value === '') {
+    return null;
+  }
+  if (typeof value !== 'string') {
+    throw new Error(`rich enrichment response ${fieldName} must be a string enum or null`);
+  }
+  const normalized = normalizeScalar(value);
+  if (!normalized) {
+    return null;
+  }
+  const allowed = normalizedSet(allowedValues);
+  if (!allowed.has(normalized)) {
+    throw new Error(`invalid ${fieldName}: ${value}`);
+  }
+  return normalized;
+}
+
+function normalizeRichNearMissPayload(payload, validationWarnings = null) {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    return payload;
+  }
+
+  const originalProductForm = payload.product_form;
+  if (isUnsupportedProductFormNearMiss(originalProductForm)) {
+    if (Array.isArray(validationWarnings)) {
+      validationWarnings.push({
+        field: 'product_form',
+        original_value: originalProductForm,
+        normalized_value: null,
+        reason: 'unsupported_near_miss_product_form',
+      });
+    }
+    return {
+      ...payload,
+      product_form: null,
+    };
+  }
+
+  return payload;
+}
+
+function isUnsupportedProductFormNearMiss(value) {
+  if (typeof value !== 'string') {
+    return false;
+  }
+  const normalized = normalizeScalar(value);
+  return normalized === 'semi-solid' || normalized === 'semi solid';
+}
+
+function summarizeRejectedEnrichmentField(error, enrichment) {
+  const message = String(error?.message || '');
+  const invalidMatch = message.match(/^invalid\s+([a-z0-9_]+):\s*(.+)$/iu);
+  if (invalidMatch) {
+    const field = invalidMatch[1];
+    return {
+      field,
+      original_value: safeRejectedValue(enrichment?.[field] ?? invalidMatch[2]),
+      reason: 'invalid_controlled_value',
+    };
+  }
+
+  const typeMatch = message.match(/rich enrichment response\s+([a-z0-9_]+)\s+must/iu);
+  if (typeMatch) {
+    const field = typeMatch[1];
+    return {
+      field,
+      original_value: safeRejectedValue(enrichment?.[field]),
+      reason: 'invalid_field_type',
+    };
+  }
+
+  return {
+    reason: 'validation_error',
+  };
+}
+
+function safeRejectedValue(value) {
+  if (value === undefined) {
+    return null;
+  }
+  if (value === null || typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+    return value;
+  }
+  return JSON.stringify(value).slice(0, 240);
+}
+
+function validateRichSemanticConsistency(enrichment) {
+  if (enrichment.is_personal_care === true && enrichment.is_food === true) {
+    throw new Error('rich enrichment cannot mark the same product as personal care and food');
+  }
+  if (enrichment.beverage_type === 'cola' && enrichment.is_beverage === false) {
+    throw new Error('rich enrichment cola beverage_type requires is_beverage true');
+  }
+  if (enrichment.dairy_type === 'milk' && enrichment.is_personal_care === true) {
+    throw new Error('rich enrichment milk dairy_type cannot be personal care');
+  }
+}
+
 module.exports = {
   CATEGORY_TREE,
   ENRICHMENT_PROMPT_VERSION,
+  RICH_CANONICAL_ENRICHMENT_VERSION,
+  RICH_CANONICAL_PROMPT_VERSION,
+  RICH_ALLOWED_KEYS,
+  buildRichCanonicalEnrichmentBatchPrompt,
   buildEnrichmentPrompt,
   isLlmEnrichmentEnabled,
   requestCanonicalEnrichment,
   syncCanonicalEnrichmentArtifacts,
+  validateRichCanonicalEnrichmentBatchResponse,
+  validateRichCanonicalEnrichmentBatchResponseDetailed,
+  validateRichCanonicalEnrichmentResponse,
   validateEnrichmentResponse,
   extractExplicitDietAndAttributeTags,
   normalizeDietAndAttributeTags,

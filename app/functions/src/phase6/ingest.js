@@ -1,11 +1,16 @@
 const crypto = require('node:crypto');
 const path = require('node:path');
 
-const { SOURCE_HEADERS } = require('../phase1/constants');
+const {
+  GENERIC_PRODUCT_TERMS,
+  NEVER_BRAND_TERMS,
+  SOURCE_HEADERS,
+} = require('../phase1/constants');
 const { buildEnrichment, detectNameDrift } = require('../phase1/enrichment');
 const { buildRawSnapshotRecord } = require('../phase1/importer');
 const { normalizeHeader, parseDelimitedStream } = require('./csv_stream');
 const { appendPipelineLog, createPipelineLog } = require('./logging');
+const { validateSourceRowForImport } = require('./product_validation');
 const {
   listSnapshotEntries,
   openSnapshotEntryStreamByName,
@@ -405,6 +410,7 @@ async function processDailySnapshotCsvStream({
   let importedRows = 0;
   let duplicateRows = 0;
   let malformedRows = 0;
+  const malformedRowSamples = [];
   let ingestDiagnostics = null;
 
   for await (const row of parseDelimitedStream(csvStream, {
@@ -416,8 +422,18 @@ async function processDailySnapshotCsvStream({
     importedRows += 1;
 
     const sourceRow = mapCsvRecordToSourceRow(row.record);
-    if (!isImportableSourceRow(sourceRow)) {
+    const validation = validateSourceRowForImport(sourceRow, {
+      parseMetadata: row.parse_metadata,
+    });
+    if (!validation.valid) {
       malformedRows += 1;
+      if (malformedRowSamples.length < 10) {
+        malformedRowSamples.push({
+          row_number: row.row_number,
+          reasons: validation.reasons,
+          sample: validation.sample,
+        });
+      }
       appendPipelineLog(ingestState.state, createPipelineLog({
         level: 'warn',
         event_type: 'ingest_malformed_row',
@@ -426,6 +442,9 @@ async function processDailySnapshotCsvStream({
           snapshot_date: snapshotDate,
           row_number: row.row_number,
           source_file_name: sourceFileName,
+          malformed_reasons: validation.reasons,
+          malformed_sample: validation.sample,
+          parse_metadata: row.parse_metadata || null,
           ...sourceFileMetadata,
         },
         logged_at: ingestedAt,
@@ -474,6 +493,7 @@ async function processDailySnapshotCsvStream({
     imported_rows: importedRows,
     duplicate_rows: duplicateRows,
     malformed_rows: malformedRows,
+    malformed_row_samples: malformedRowSamples,
   };
 
   appendPipelineLog(ingestState.state, createPipelineLog({
@@ -486,6 +506,7 @@ async function processDailySnapshotCsvStream({
       imported_rows: importedRows,
       duplicate_rows: duplicateRows,
       malformed_rows: malformedRows,
+      malformed_row_samples: malformedRowSamples,
       ...sourceFileMetadata,
     },
     logged_at: ingestedAt,
@@ -1018,6 +1039,10 @@ function buildChainBucketRepresentatives({
           productNameRaw: sourceProduct.latest_product_name_raw,
           normalizedName: enrichment.normalized_name || '',
         }),
+        size_marker: extractStructuredSizeMarker({
+          productNameRaw: sourceProduct.latest_product_name_raw,
+          normalizedName: enrichment.normalized_name || '',
+        }),
         volume_marker: extractVolumeMarker({
           productNameRaw: sourceProduct.latest_product_name_raw,
           normalizedName: enrichment.normalized_name || '',
@@ -1134,6 +1159,7 @@ function createCanonicalGroup({
         reserve_marker: bucket.reserve_marker,
         year_marker: bucket.year_marker,
         age_statement_marker: bucket.age_statement_marker,
+        size_marker: bucket.size_marker,
         volume_marker: bucket.volume_marker,
         flavor_marker: bucket.flavor_marker,
         color_marker: bucket.color_marker,
@@ -1279,6 +1305,7 @@ function extractCanonicalMarkerSet(bucket) {
     reserve_marker: bucket.reserve_marker || null,
     year_marker: bucket.year_marker || null,
     age_statement_marker: bucket.age_statement_marker || null,
+    size_marker: bucket.size_marker || null,
     volume_marker: bucket.volume_marker || null,
     flavor_marker: bucket.flavor_marker || null,
     color_marker: bucket.color_marker || null,
@@ -1327,6 +1354,7 @@ function normalizeMarkerSet(markers) {
     reserve_marker: markers.reserve_marker || null,
     year_marker: markers.year_marker || null,
     age_statement_marker: markers.age_statement_marker || null,
+    size_marker: markers.size_marker || null,
     volume_marker: markers.volume_marker || null,
     flavor_marker: markers.flavor_marker || null,
     color_marker: markers.color_marker || null,
@@ -1501,19 +1529,295 @@ function runCanonicalDisambiguationDryRun({
   };
 }
 
+const CANONICAL_MARKER_BACKFILL_VERSION = 'phase6_canonical_marker_backfill_v2';
+const CANONICAL_BACKFILL_MARKER_FIELDS = Object.freeze([
+  'stage_marker',
+  'count_marker',
+  'age_band_marker',
+  'reserve_marker',
+  'size_marker',
+  'volume_marker',
+]);
+
+function buildCanonicalMarkerBackfillPlan({
+  product,
+  now = new Date().toISOString(),
+  onlyMissing = false,
+} = {}) {
+  if (!product || typeof product !== 'object') {
+    return {
+      changed: false,
+      patch: {},
+      changes: {},
+      skipped: true,
+      skip_reason: 'missing_product',
+    };
+  }
+
+  const productNameRaw = resolveCanonicalBackfillName(product);
+  if (!productNameRaw) {
+    return {
+      changed: false,
+      patch: {},
+      changes: {},
+      skipped: true,
+      skip_reason: 'missing_product_name',
+    };
+  }
+
+  const enrichment = buildEnrichment({
+    productNameRaw,
+    categoryCode: product.canonical_category_code,
+  });
+  const recomputedMarkers = buildCanonicalMarkerSetFromName({
+    productNameRaw,
+    normalizedName: enrichment.normalized_name || '',
+  });
+  const existingAttributes = parseCanonicalAttributes(product.canonical_attributes_json);
+  const nextAttributes = {
+    ...existingAttributes,
+  };
+  const patch = {};
+  const changes = {};
+
+  CANONICAL_BACKFILL_MARKER_FIELDS.forEach((fieldName) => {
+    const nextValue = recomputedMarkers[fieldName] || null;
+    const currentValue = existingAttributes[fieldName] || null;
+    if (!nextValue || !shouldPatchCanonicalField(currentValue, nextValue, { onlyMissing })) {
+      return;
+    }
+
+    nextAttributes[fieldName] = nextValue;
+    changes[`canonical_attributes_json.${fieldName}`] = {
+      before: currentValue,
+      after: nextValue,
+    };
+  });
+
+  const brandPatch = resolveCanonicalBrandBackfill({
+    currentBrand: product.canonical_brand,
+    nextBrand: enrichment.brand_guess,
+    onlyMissing,
+  });
+  if (brandPatch.shouldPatch) {
+    patch.canonical_brand = brandPatch.nextBrand;
+    changes.canonical_brand = {
+      before: product.canonical_brand || null,
+      after: brandPatch.nextBrand,
+    };
+  }
+
+  const productTypePatch = resolveCanonicalProductTypeBackfill({
+    currentType: product.canonical_product_type,
+    nextType: enrichment.product_type_guess,
+    productNameRaw,
+    onlyMissing,
+  });
+  if (productTypePatch.shouldPatch) {
+    patch.canonical_product_type = productTypePatch.nextType;
+    changes.canonical_product_type = {
+      before: product.canonical_product_type || null,
+      after: productTypePatch.nextType,
+    };
+  }
+
+  if (Object.keys(changes).some((fieldName) => fieldName.startsWith('canonical_attributes_json.'))) {
+    nextAttributes.backfill = {
+      ...(existingAttributes.backfill && typeof existingAttributes.backfill === 'object'
+        ? existingAttributes.backfill
+        : {}),
+      marker_parser_version: CANONICAL_MARKER_BACKFILL_VERSION,
+      marker_parser_backfilled_at: now,
+    };
+    patch.canonical_attributes_json = JSON.stringify(nextAttributes);
+  }
+
+  if (Object.keys(changes).length > 0) {
+    patch.canonical_marker_backfill_version = CANONICAL_MARKER_BACKFILL_VERSION;
+    patch.canonical_marker_backfilled_at = now;
+    patch.updated_at = now;
+  }
+
+  return {
+    changed: Object.keys(patch).length > 0,
+    patch,
+    changes,
+    skipped: false,
+    skip_reason: null,
+    recomputed: {
+      markers: recomputedMarkers,
+      canonical_brand: enrichment.brand_guess || null,
+      canonical_product_type: enrichment.product_type_guess || null,
+    },
+  };
+}
+
+function buildCanonicalMarkerSetFromName({
+  productNameRaw,
+  normalizedName,
+}) {
+  return {
+    stage_marker: extractStageMarker({ productNameRaw, normalizedName }),
+    count_marker: extractCountMarker({ productNameRaw, normalizedName }),
+    age_band_marker: extractCanonicalAgeBand({ productNameRaw, normalizedName }),
+    reserve_marker: extractReserveMarker({ productNameRaw, normalizedName }),
+    size_marker: extractStructuredSizeMarker({ productNameRaw, normalizedName }),
+    volume_marker: extractVolumeMarker({ productNameRaw, normalizedName }),
+  };
+}
+
+function resolveCanonicalBackfillName(product) {
+  return [
+    product.source_example_name,
+    product.canonical_display_name,
+  ].map((value) => String(value || '').trim()).find(Boolean) || '';
+}
+
+function parseCanonicalAttributes(value) {
+  if (!value || typeof value !== 'string') {
+    return {};
+  }
+
+  try {
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+  } catch (_error) {
+    return {};
+  }
+}
+
+function resolveCanonicalBrandBackfill({
+  currentBrand,
+  nextBrand,
+  onlyMissing,
+}) {
+  const safeNextBrand = normalizeSafeCanonicalBrand(nextBrand);
+  if (!safeNextBrand) {
+    return {
+      shouldPatch: false,
+      nextBrand: null,
+    };
+  }
+
+  const currentIsMissing = !String(currentBrand || '').trim();
+  const currentIsUnsafe = isUnsafeCanonicalBrand(currentBrand);
+  if (!currentIsMissing && !currentIsUnsafe) {
+    return {
+      shouldPatch: false,
+      nextBrand: safeNextBrand,
+    };
+  }
+
+  if (onlyMissing && !currentIsMissing && !currentIsUnsafe) {
+    return {
+      shouldPatch: false,
+      nextBrand: safeNextBrand,
+    };
+  }
+
+  return {
+    shouldPatch: safeNextBrand !== String(currentBrand || '').trim(),
+    nextBrand: safeNextBrand,
+  };
+}
+
+function normalizeSafeCanonicalBrand(value) {
+  const brand = String(value || '').trim();
+  if (!brand || isUnsafeCanonicalBrand(brand)) {
+    return null;
+  }
+
+  return brand;
+}
+
+function isUnsafeCanonicalBrand(value) {
+  const normalized = normalizeCanonicalText(value);
+  return !normalized ||
+    NEVER_BRAND_TERMS.has(normalized) ||
+    GENERIC_PRODUCT_TERMS.has(normalized) ||
+    looksLikeNumericToken(normalized) ||
+    looksLikeUnitOnlyToken(normalized);
+}
+
+function resolveCanonicalProductTypeBackfill({
+  currentType,
+  nextType,
+  productNameRaw,
+  onlyMissing,
+}) {
+  const normalizedNextType = String(nextType || '').trim();
+  if (!normalizedNextType) {
+    return {
+      shouldPatch: false,
+      nextType: null,
+    };
+  }
+
+  const normalizedCurrentType = String(currentType || '').trim();
+  const currentIsMissing = !normalizedCurrentType;
+  const babyFormulaIsCertain = normalizedNextType === 'baby_formula' && hasBabyFormulaContext(productNameRaw);
+  const shouldPatch = currentIsMissing ||
+    (!onlyMissing && babyFormulaIsCertain && normalizedCurrentType !== normalizedNextType);
+
+  return {
+    shouldPatch,
+    nextType: normalizedNextType,
+  };
+}
+
+function shouldPatchCanonicalField(currentValue, nextValue, {
+  onlyMissing = false,
+} = {}) {
+  const normalizedCurrent = currentValue === undefined || currentValue === null
+    ? null
+    : stableMarkerValue(currentValue);
+  const normalizedNext = nextValue === undefined || nextValue === null
+    ? null
+    : stableMarkerValue(nextValue);
+  if (!normalizedNext || normalizedCurrent === normalizedNext) {
+    return false;
+  }
+
+  return !onlyMissing || !normalizedCurrent;
+}
+
+function stableMarkerValue(value) {
+  if (value && typeof value === 'object') {
+    return JSON.stringify(sortObjectForStableCompare(value));
+  }
+
+  return String(value);
+}
+
+function sortObjectForStableCompare(value) {
+  if (Array.isArray(value)) {
+    return value.map(sortObjectForStableCompare);
+  }
+
+  if (!value || typeof value !== 'object') {
+    return value;
+  }
+
+  return Object.fromEntries(
+    Object.keys(value)
+      .sort()
+      .map((key) => [key, sortObjectForStableCompare(value[key])])
+  );
+}
+
 function extractStageMarker({
   productNameRaw,
   normalizedName,
 }) {
   const normalized = normalizeCanonicalText(normalizedName || productNameRaw);
-  if (!/(аптамил|aptamil|nan|хумана|humana|formula|формула|адаптирано|adapted|мляко сухо|сухо мляко)/u.test(normalized)) {
+  if (!/(\u0430\u043f\u0442\u0430\u043c\u0438\u043b|aptamil|nan|\u0445\u0443\u043c\u0430\u043d\u0430|humana|pronutra|formula|\u0444\u043e\u0440\u043c\u0443\u043b\u0430|\u0430\u0434\u0430\u043f\u0442\u0438\u0440\u0430\u043d\u043e|\u0431\u0435\u0431\u0435\u0448\u043a\u043e|follow on|follow-on|toddler|adapted|\u043c\u043b\u044f\u043a\u043e \u0441\u0443\u0445\u043e|\u0441\u0443\u0445\u043e \u043c\u043b\u044f\u043a\u043e)/u.test(normalized)) {
     return null;
   }
 
   const explicitPatterns = [
-    /\b(?:stage|етап|номер|no)\s*([1-4])\b/u,
-    /\b([1-4])\s*(?:stage|етап)\b/u,
-    /\bадаптирано\s*([1-4])\b/u,
+    /\b(?:stage|\u0435\u0442\u0430\u043f|\u043d\u043e\u043c\u0435\u0440|no)\s*([1-4])\b/u,
+    /\b([1-4])\s*(?:stage|\u0435\u0442\u0430\u043f)\b/u,
+    /\b\u0430\u0434\u0430\u043f\u0442\u0438\u0440\u0430\u043d\u043e\s*([1-4])\b/u,
     /\b([1-4])\b/u,
   ];
 
@@ -1526,15 +1830,15 @@ function extractStageMarker({
 
   return null;
 }
-
 function extractCountMarker({
   productNameRaw,
   normalizedName,
 }) {
   const normalized = normalizeVariantText(productNameRaw || normalizedName);
   const patterns = [
-    /\bx\s*(\d{1,3})\b/u,
-    /\b(\d{1,3})\s*(?:бр|Ð±Ñ€|br|pcs?|pieces?|count)\.?\b/u,
+    /(?:^|[^\p{L}\p{N}])x\s*(\d{1,3})(?=$|[^\p{L}\p{N}])/u,
+    /(?:^|[^\p{L}\p{N}])(\d{1,3})\s*[xх]\s*\d/u,
+    /(?:^|[^\p{L}\p{N}])(\d{1,3})\s*(?:бр|брой|броя|Ð±Ñ€|br|pcs?|pieces?|count)\.?(?=$|[^\p{L}\p{N}])/u,
     /\bpack\s*of\s*(\d{1,3})\b/u,
     /\bset\s*of\s*(\d{1,3})\b/u,
   ];
@@ -1583,10 +1887,15 @@ function extractCanonicalAgeBand({
 }) {
   const normalized = normalizeVariantText(productNameRaw || normalizedName);
   const explicitPatterns = [
-    { pattern: /\b(\d{1,2})\s*[-â€“]\s*(\d{1,2})\s*(?:Ð³Ð¾Ð´|years?|yrs?|y)\b/u, unit: 'y', plus: false },
-    { pattern: /\b(\d{1,2})\s*\+\s*(?:Ð³Ð¾Ð´|years?|yrs?|y)\b/u, unit: 'y', plus: true },
-    { pattern: /\b(\d{1,2})\s*[-â€“]\s*(\d{1,2})\s*(?:m|mo|mos|month|months|Ð¼|Ð¼ÐµÑ)\b/u, unit: 'm', plus: false },
-    { pattern: /\b(\d{1,2})\s*\+\s*(?:m|mo|mos|month|months|Ð¼|Ð¼ÐµÑ)\b/u, unit: 'm', plus: true },
+    { pattern: /(?:^|[^\p{L}\p{N}])(?:\u043d\u0430\u0434|over|above|from)\s*(\d{1,2})\s*(?:\u043c\u0435\u0441\u0435\u0446\u0430|\u043c\u0435\u0441\u0435\u0446|\u043c\u0435\u0441|m|mo|mos|month|months)(?=$|[^\p{L}\p{N}])/u, unit: 'm', plus: true },
+    { pattern: /(?:^|[^\p{L}\p{N}])(?:\u043d\u0430\u0434|over|above|from)\s*(\d{1,2})\s*(?:\u0433\u043e\u0434\u0438\u043d\u0438|\u0433\u043e\u0434\u0438\u043d\u0430|\u0433\u043e\u0434|years?|yrs?|y)(?=$|[^\p{L}\p{N}])/u, unit: 'y', plus: true },
+    { pattern: /\b(\d{1,2})\s*(?:\u043c\u0435\u0441\u0435\u0446\u0430|\u043c\u0435\u0441\u0435\u0446|\u043c\u0435\u0441|m|mo|mos|month|months)\s*\+/u, unit: 'm', plus: true },
+    { pattern: /\b(\d{1,2})\s*(?:\u0433\u043e\u0434\u0438\u043d\u0438|\u0433\u043e\u0434\u0438\u043d\u0430|\u0433\u043e\u0434|years?|yrs?|y)\s*\+/u, unit: 'y', plus: true },
+    { pattern: /\b(\d{1,2})\s*\u043c\s*\+/u, unit: 'm', plus: true },
+    { pattern: /\b(\d{1,2})\s*[-?]\s*(\d{1,2})\s*(?:\u0433\u043e\u0434|years?|yrs?|y)\b/u, unit: 'y', plus: false },
+    { pattern: /\b(\d{1,2})\s*\+\s*(?:\u0433\u043e\u0434|years?|yrs?|y)\b/u, unit: 'y', plus: true },
+    { pattern: /\b(\d{1,2})\s*[-?]\s*(\d{1,2})\s*(?:m|mo|mos|month|months|\u043c|\u043c\u0435\u0441|\u043c\u0435\u0441\u0435\u0446\u0430|\u043c\u0435\u0441\u0435\u0446)\b/u, unit: 'm', plus: false },
+    { pattern: /\b(\d{1,2})\s*\+\s*(?:m|mo|mos|month|months|\u043c|\u043c\u0435\u0441|\u043c\u0435\u0441\u0435\u0446\u0430|\u043c\u0435\u0441\u0435\u0446)\b/u, unit: 'm', plus: true },
   ];
 
   for (const descriptor of explicitPatterns) {
@@ -1603,8 +1912,8 @@ function extractCanonicalAgeBand({
   }
 
   const implicitPatterns = [
-    { pattern: /\b(\d{1,2})\s*[-â€“]\s*(\d{1,2})\b/u, unit: 'y', plus: false },
-    { pattern: /\b(\d{1,2})\s*\+(?:\s|$)/u, unit: 'y', plus: true },
+    { pattern: /\b(\d{1,2})\s*[-?]\s*(\d{1,2})\b/u, unit: resolveImplicitAgeBandUnit(normalized), plus: false },
+    { pattern: /\b(\d{1,2})\s*\+(?:\s|$)/u, unit: resolveImplicitAgeBandUnit(normalized), plus: true },
   ];
 
   for (const descriptor of implicitPatterns) {
@@ -1618,11 +1927,27 @@ function extractCanonicalAgeBand({
 
   return null;
 }
-
 function hasAgeBandContext(normalizedValue) {
+  if (/\b(?:ganchev|\u0433\u0430\u043d\u0447\u0435\u0432)\b/u.test(String(normalizedValue || ''))) {
+    return true;
+  }
+
   return /\b(kid|kids|child|children|baby|babies|infant|infants|toddler|toddlers|junior|детск|деца|дете|беб|бебеш)\b/u.test(
     String(normalizedValue || '')
   );
+}
+
+function resolveImplicitAgeBandUnit(normalizedValue) {
+  return /\b(?:baby|babies|infant|infants|toddler|toddlers|ganchev|\u0433\u0430\u043d\u0447\u0435\u0432|\u0431\u0435\u0431|\u0431\u0435\u0431\u0435\u0448)\b/u.test(
+    String(normalizedValue || '')
+  )
+    ? 'm'
+    : 'y';
+}
+
+function hasBabyFormulaContext(value) {
+  const normalized = normalizeCanonicalText(value);
+  return /(\u0430\u043f\u0442\u0430\u043c\u0438\u043b|aptamil|nan|\u0445\u0443\u043c\u0430\u043d\u0430|humana|pronutra|formula|\u0444\u043e\u0440\u043c\u0443\u043b\u0430|\u0430\u0434\u0430\u043f\u0442\u0438\u0440\u0430\u043d\u043e|\u0431\u0435\u0431\u0435\u0448\u043a\u043e|follow on|follow-on|toddler|adapted)/u.test(normalized);
 }
 
 function extractYearMarker({
@@ -1644,7 +1969,8 @@ function extractAgeMarker({
 
   const normalized = normalizeVariantText(productNameRaw || normalizedName);
   const patterns = [
-    /(?:^|[^0-9+\-/])(\d{1,2})\s*(?:years?|yrs?|yo|год(?:иш(?:ен|на|но|ни))?)(?!\s*[-+/]\s*\d)/u,
+    /\b(?:\u043d\u0430\u0434|over|above)\s*(\d{1,2})\s*(?:\u0433\u043e\u0434\u0438\u043d\u0438|\u0433\u043e\u0434\u0438\u043d\u0430|\u0433\u043e\u0434|years?|yrs?|y)\b/u,
+    /(?:^|[^0-9+\-/])(\d{1,2})\s*(?:\u0433\u043e\u0434\u0438\u043d\u0438|\u0433\u043e\u0434\u0438\u043d\u0430|\u0433\u043e\u0434|years?|yrs?|yo)(?!\s*[-+/]\s*\d)/u,
     /\b(\d{1,2})\s*(?:g\.o\.|y\.o\.)\b/u,
   ];
 
@@ -1657,7 +1983,6 @@ function extractAgeMarker({
 
   return null;
 }
-
 function extractReserveMarker({
   productNameRaw,
   normalizedName,
@@ -1694,6 +2019,133 @@ function extractReserveMarker({
   return null;
 }
 
+function extractStructuredSizeMarker({
+  productNameRaw,
+  normalizedName,
+}) {
+  const normalized = normalizeVariantText(productNameRaw || normalizedName);
+  const packageMarker = extractPackageSizeMarker(normalized);
+  if (packageMarker) {
+    return packageMarker;
+  }
+
+  const explicit = extractSingleSizeMarker(normalized);
+  if (explicit) {
+    return explicit;
+  }
+
+  const contextualBare = extractContextualBareSizeMarker(normalized);
+  return contextualBare || null;
+}
+
+function extractPackageSizeMarker(normalizedValue) {
+  const normalized = String(normalizedValue || '');
+  const unitPattern = sizeUnitPattern();
+  const packagePatterns = [
+    new RegExp(`(?:^|[^\\p{L}\\p{N}])(\\d{1,3})\\s*(?:pcs?|pieces?|count|br|бр|брой|броя)\\.?\\s*[xх]\\s*(\\d+(?:[.,]\\d+)?)\\s*(${unitPattern})(?=$|[^\\p{L}\\p{N}])`, 'u'),
+    new RegExp(`(?:^|[^\\p{L}\\p{N}])(\\d{1,3})\\s*[xх]\\s*(\\d+(?:[.,]\\d+)?)\\s*(${unitPattern})(?=$|[^\\p{L}\\p{N}])`, 'u'),
+  ];
+
+  for (const pattern of packagePatterns) {
+    const match = normalized.match(pattern);
+    if (!match) {
+      continue;
+    }
+
+    const packCount = Number.parseInt(match[1], 10);
+    const normalizedUnitValue = normalizeStructuredUnitQuantity({
+      numericValue: match[2],
+      unit: match[3],
+    });
+    if (!Number.isFinite(packCount) || packCount <= 0 || !normalizedUnitValue) {
+      continue;
+    }
+
+    const totalQuantity = roundMarkerNumber(packCount * normalizedUnitValue.quantity);
+    const display = `${packCount} pcs x ${formatMarkerQuantity(normalizedUnitValue.quantity)} ${normalizedUnitValue.unit} / total ${formatMarkerQuantity(totalQuantity)} ${normalizedUnitValue.unit}`;
+    return {
+      raw_text: collapseMarkerText(match[0]),
+      quantity: normalizedUnitValue.quantity,
+      unit: normalizedUnitValue.unit,
+      total_quantity: totalQuantity,
+      total_unit: normalizedUnitValue.unit,
+      pack_count: packCount,
+      unit_quantity: normalizedUnitValue.quantity,
+      unit_quantity_unit: normalizedUnitValue.unit,
+      display,
+      normalized_display: display,
+    };
+  }
+
+  return null;
+}
+
+function extractSingleSizeMarker(normalizedValue) {
+  const normalized = String(normalizedValue || '');
+  const unitPattern = sizeUnitPattern();
+  const pattern = new RegExp(`(?:^|[^\\p{L}\\p{N}])(\\d+(?:[.,]\\d+)?)\\s*(${unitPattern})(?=$|[^\\p{L}\\p{N}])`, 'u');
+  const match = normalized.match(pattern);
+  if (!match) {
+    return null;
+  }
+
+  const normalizedUnitValue = normalizeStructuredUnitQuantity({
+    numericValue: match[1],
+    unit: match[2],
+  });
+  if (!normalizedUnitValue) {
+    return null;
+  }
+
+  const display = `${formatMarkerQuantity(normalizedUnitValue.quantity)} ${normalizedUnitValue.unit}`;
+  return {
+    raw_text: collapseMarkerText(match[0]),
+    quantity: normalizedUnitValue.quantity,
+    unit: normalizedUnitValue.unit,
+    total_quantity: normalizedUnitValue.quantity,
+    total_unit: normalizedUnitValue.unit,
+    pack_count: null,
+    unit_quantity: null,
+    unit_quantity_unit: null,
+    display,
+    normalized_display: display,
+  };
+}
+
+function extractContextualBareSizeMarker(normalizedValue) {
+  const normalized = String(normalizedValue || '');
+  const match = normalized.match(/\b(\d{1,2}[.,]\d{2,3})\b/u);
+  if (!match) {
+    return null;
+  }
+
+  if (!hasBeverageVolumeContext(normalized) || !looksLikeImplicitVolumeToken(match[1])) {
+    return null;
+  }
+
+  const normalizedUnitValue = normalizeStructuredUnitQuantity({
+    numericValue: match[1],
+    unit: 'l',
+  });
+  if (!normalizedUnitValue) {
+    return null;
+  }
+
+  const display = `${formatMarkerQuantity(normalizedUnitValue.quantity)} ${normalizedUnitValue.unit}`;
+  return {
+    raw_text: collapseMarkerText(match[0]),
+    quantity: normalizedUnitValue.quantity,
+    unit: normalizedUnitValue.unit,
+    total_quantity: normalizedUnitValue.quantity,
+    total_unit: normalizedUnitValue.unit,
+    pack_count: null,
+    unit_quantity: null,
+    unit_quantity_unit: null,
+    display,
+    normalized_display: display,
+  };
+}
+
 function extractVolumeMarker({
   productNameRaw,
   normalizedName,
@@ -1709,7 +2161,7 @@ function extractVolumeMarker({
 
 function extractExplicitVolumeMarker(normalizedValue) {
   const patterns = [
-    /\b(\d+(?:[.,]\d+)?)\s*(ml|мл|cl|l|л|kg|кг|g|гр)\b/u,
+    /(?:^|[^\p{L}\p{N}])(\d+(?:[.,]\d+)?)\s*(ml|\u043c\u043b|\u043c\u0438\u043b\u0438\u043b\u0438\u0442\u044a\u0440|\u043c\u0438\u043b\u0438\u043b\u0438\u0442\u0440\u0430|cl|l|\u043b|\u043b\u0438\u0442\u044a\u0440|\u043b\u0438\u0442\u0440\u0430|kg|\u043a\u0433|\u043a\u0438\u043b\u043e\u0433\u0440\u0430\u043c|\u043a\u0438\u043b\u043e\u0433\u0440\u0430\u043c\u0430|g|gr|\u0433\u0440|\u0433\u0440\u0430\u043c|\u0433\u0440\u0430\u043c\u0430|\u0433)(?=$|[^\p{L}\p{N}])/u,
   ];
 
   for (const pattern of patterns) {
@@ -1729,7 +2181,6 @@ function extractExplicitVolumeMarker(normalizedValue) {
 
   return null;
 }
-
 function extractContextualBareVolumeMarker(normalizedValue) {
   const normalized = String(normalizedValue || '');
   const match = normalized.match(/\b(\d{1,2}[.,]\d{2,3})\b/u);
@@ -1737,7 +2188,7 @@ function extractContextualBareVolumeMarker(normalizedValue) {
     return null;
   }
 
-  if (!hasBeverageVolumeContext(normalized) && !looksLikeImplicitVolumeToken(match[1])) {
+  if (!hasBeverageVolumeContext(normalized) || !looksLikeImplicitVolumeToken(match[1])) {
     return null;
   }
 
@@ -1772,33 +2223,127 @@ function normalizeVolumeValue({
   numericValue,
   unit,
 }) {
+  const normalizedUnitValue = normalizeStructuredUnitQuantity({ numericValue, unit });
+  return normalizedUnitValue
+    ? `${formatVolumeNumber(normalizedUnitValue.quantity)}${normalizedUnitValue.unit}`
+    : null;
+}
+
+function normalizeStructuredUnitQuantity({
+  numericValue,
+  unit,
+}) {
   const parsed = parseVariantNumber(numericValue);
   if (!Number.isFinite(parsed) || parsed <= 0) {
     return null;
   }
 
-  const normalizedUnit = normalizeCanonicalText(unit);
-  if (normalizedUnit === 'ml' || normalizedUnit === 'мл') {
-    return `${formatVolumeNumber(parsed)}ml`;
+  const normalizedUnit = normalizeSizeUnit(unit);
+  if (!normalizedUnit) {
+    return null;
+  }
+
+  if (normalizedUnit === 'kg') {
+    return {
+      quantity: roundMarkerNumber(parsed * 1000),
+      unit: 'g',
+    };
+  }
+
+  if (normalizedUnit === 'l') {
+    return {
+      quantity: roundMarkerNumber(parsed * 1000),
+      unit: 'ml',
+    };
   }
 
   if (normalizedUnit === 'cl') {
-    return `${formatVolumeNumber(parsed * 10)}ml`;
+    return {
+      quantity: roundMarkerNumber(parsed * 10),
+      unit: 'ml',
+    };
   }
 
-  if (normalizedUnit === 'l' || normalizedUnit === 'л') {
-    return `${formatVolumeNumber(parsed * 1000)}ml`;
+  if (normalizedUnit === 'pcs') {
+    return {
+      quantity: roundMarkerNumber(parsed),
+      unit: 'pcs',
+    };
   }
 
-  if (normalizedUnit === 'g' || normalizedUnit === 'гр') {
-    return `${formatVolumeNumber(parsed)}g`;
+  return {
+    quantity: roundMarkerNumber(parsed),
+    unit: normalizedUnit,
+  };
+}
+
+function normalizeSizeUnit(unit) {
+  const normalizedUnit = normalizeCanonicalText(unit);
+  if (['ml', '\u043c\u043b', '\u043c\u0438\u043b\u0438\u043b\u0438\u0442\u044a\u0440', '\u043c\u0438\u043b\u0438\u043b\u0438\u0442\u0440\u0430'].includes(normalizedUnit)) {
+    return 'ml';
   }
 
-  if (normalizedUnit === 'kg' || normalizedUnit === 'кг') {
-    return `${formatVolumeNumber(parsed * 1000)}g`;
+  if (normalizedUnit === 'cl') {
+    return 'cl';
+  }
+
+  if (['l', '\u043b', '\u043b\u0438\u0442\u044a\u0440', '\u043b\u0438\u0442\u0440\u0430'].includes(normalizedUnit)) {
+    return 'l';
+  }
+
+  if (['g', 'gr', '\u0433\u0440', '\u0433', '\u0433\u0440\u0430\u043c', '\u0433\u0440\u0430\u043c\u0430'].includes(normalizedUnit)) {
+    return 'g';
+  }
+
+  if (['kg', '\u043a\u0433', '\u043a\u0438\u043b\u043e\u0433\u0440\u0430\u043c', '\u043a\u0438\u043b\u043e\u0433\u0440\u0430\u043c\u0430'].includes(normalizedUnit)) {
+    return 'kg';
+  }
+
+  if (['pcs', 'pc', 'piece', 'pieces', 'count', 'br', '\u0431\u0440', '\u0431\u0440\u043e\u0439', '\u0431\u0440\u043e\u044f'].includes(normalizedUnit)) {
+    return 'pcs';
   }
 
   return null;
+}
+
+function sizeUnitPattern() {
+  return [
+    'ml',
+    '\u043c\u043b',
+    '\u043c\u0438\u043b\u0438\u043b\u0438\u0442\u044a\u0440',
+    '\u043c\u0438\u043b\u0438\u043b\u0438\u0442\u0440\u0430',
+    'cl',
+    'l',
+    '\u043b',
+    '\u043b\u0438\u0442\u044a\u0440',
+    '\u043b\u0438\u0442\u0440\u0430',
+    'kg',
+    '\u043a\u0433',
+    '\u043a\u0438\u043b\u043e\u0433\u0440\u0430\u043c',
+    '\u043a\u0438\u043b\u043e\u0433\u0440\u0430\u043c\u0430',
+    'g',
+    'gr',
+    '\u0433\u0440',
+    '\u0433\u0440\u0430\u043c',
+    '\u0433\u0440\u0430\u043c\u0430',
+    '\u0433',
+  ].join('|');
+}
+
+function collapseMarkerText(value) {
+  return String(value || '')
+    .replace(/^[^\p{L}\p{N}]+/u, '')
+    .replace(/[^\p{L}\p{N}]+$/u, '')
+    .replace(/\s+/gu, ' ')
+    .trim();
+}
+
+function roundMarkerNumber(value) {
+  return Math.round(value * 1000) / 1000;
+}
+
+function formatMarkerQuantity(value) {
+  return formatVolumeNumber(value);
 }
 
 function parseVariantNumber(value) {
@@ -1972,11 +2517,15 @@ function looksLikeRangeToken(token) {
 }
 
 function looksLikeVolumeToken(token) {
-  return /^\d+(?:[.,]\d+)?(?:ml|cl|l|g|kg)$/u.test(normalizeCanonicalText(token));
+  return /^\d+(?:[.,]\d+)?(?:ml|мл|милилитър|милилитра|cl|l|л|литър|литра|g|гр|г|грам|грама|kg|кг|килограм|килограма)$/u.test(
+    normalizeCanonicalText(token)
+  );
 }
 
 function looksLikeUnitOnlyToken(token) {
-  return /^(?:ml|cl|l|g|kg)$/u.test(normalizeCanonicalText(token));
+  return /^(?:ml|мл|милилитър|милилитра|cl|l|л|литър|литра|g|гр|г|грам|грама|kg|кг|килограм|килограма)$/u.test(
+    normalizeCanonicalText(token)
+  );
 }
 
 function looksLikeCountContextToken(token, countMarker) {
@@ -1985,8 +2534,9 @@ function looksLikeCountContextToken(token, countMarker) {
   }
 
   const normalizedToken = normalizeCanonicalText(token);
-  return /^(?:бр|br|pcs?|pieces?|count|pack|set)$/u.test(normalizedToken) ||
-    /^x\d{1,3}$/u.test(normalizedToken);
+  return /^(?:бр|брой|броя|br|pcs?|pieces?|count|pack|set)$/u.test(normalizedToken) ||
+    /^x\d{1,3}$/u.test(normalizedToken) ||
+    /^\d{1,3}[xх]\d+/u.test(normalizedToken);
 }
 
 function looksLikeAgeContextToken(token, ageBandMarker, ageStatementMarker) {
@@ -2212,13 +2762,7 @@ function mapCsvRecordToSourceRow(raw) {
 }
 
 function isImportableSourceRow(sourceRow) {
-  return Boolean(
-    sourceRow.locality_code_raw &&
-    sourceRow.store_name_raw &&
-    sourceRow.product_name_raw &&
-    sourceRow.product_code_raw &&
-    sourceRow.category_code_raw
-  );
+  return validateSourceRowForImport(sourceRow).valid;
 }
 
 function sortByKey(items, key) {
@@ -2241,7 +2785,9 @@ function normalizeHeaderLookup(header) {
 }
 
 module.exports = {
+  CANONICAL_MARKER_BACKFILL_VERSION,
   buildCanonicalDisambiguationFingerprint,
+  buildCanonicalMarkerBackfillPlan,
   buildCanonicalDisambiguationQueueRecord,
   buildCanonicalProductKey,
   buildCanonicalizationState,

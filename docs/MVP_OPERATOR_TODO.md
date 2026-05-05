@@ -22,6 +22,7 @@ Only human/operator-owned tasks are listed here.
 14. If push alerts are in MVP, enable Firebase Cloud Messaging/APNs setup and provide any required Apple push configuration.
 15. Decide whether live xAI enrichment is needed for launch data refresh.
 16. If live xAI is needed, provide/store the `XAI_API_KEY` as a production runtime secret.
+17. Review the canonical marker backfill dry-run summary before approving a real run. Start with `PRICER_BACKFILL_DRY_RUN=true` and a small `PRICER_BACKFILL_LIMIT`; inspect Product Detail in Admin Console for Aptamil/Ganchev marker fixes after any approved real run.
 
 ## Not Required For Current Mobile MVP
 

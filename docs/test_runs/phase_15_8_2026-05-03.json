@@ -1,0 +1,42 @@
+{
+  "phase": "15.8",
+  "name": "shopping_intent_preferences",
+  "date": "2026-05-03",
+  "commands": [
+    {
+      "command": "npm run test:phase15_8",
+      "status": "passed",
+      "summary": "8 passed, 0 failed, 8 total"
+    },
+    {
+      "command": "npm run test:phase15_3",
+      "status": "passed",
+      "summary": "9 passed, 0 failed, 9 total"
+    },
+    {
+      "command": "npm run test:phase15_4",
+      "status": "passed",
+      "summary": "8 passed, 0 failed, 8 total"
+    },
+    {
+      "command": "node -e \"require('./functions/src'); require('./app/functions/src'); console.log('index require ok')\"",
+      "status": "passed",
+      "summary": "mirrored backend indexes require successfully"
+    },
+    {
+      "command": "npm run validate:docs",
+      "status": "passed",
+      "summary": "JSON docs parse successfully"
+    },
+    {
+      "command": "node -e \"JSON.parse(require('fs').readFileSync('docs/test_registry.json','utf8')); JSON.parse(require('fs').readFileSync('docs/test_runs/phase_15_8_2026-05-03.json','utf8')); console.log('json ok')\"",
+      "status": "passed",
+      "summary": "test registry and test run JSON parse successfully"
+    }
+  ],
+  "notes": [
+    "No LLM calls were introduced.",
+    "No mobile UI files were changed.",
+    "No canonical product or offer selection behavior was changed."
+  ]
+}

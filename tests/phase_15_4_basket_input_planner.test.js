@@ -8,6 +8,7 @@ const {
   importDailySnapshotCsvStream,
   resolveShoppingListItems,
   storeEnrichment,
+  upsertUserProductFamilyPreference,
   validateEnrichmentResponse,
 } = require('../app/functions/src');
 const { SOURCE_HEADERS } = require('../app/functions/src/phase1/constants');
@@ -77,6 +78,8 @@ async function createPlannerStore() {
     rows: [
       '"1000","Store A","Chocolate Milk 1L","1001","6","2.99","0"',
       '"1000","Store A","Whole Milk 1L","1002","6","2.49","0"',
+      '"1000","Store A","Greek Yogurt 2% 500g","1005","6","3.49","0"',
+      '"1000","Store A","Plain Yogurt 3.6% 400g","1006","6","2.79","0"',
       '"1000","Store A","Free Range Eggs 10 Count","1003","8","5.49","0"',
       '"1000","Store A","Toilet Paper 10 Roll","1004","9","8.99","0"',
     ],
@@ -116,6 +119,26 @@ async function createPlannerStore() {
     modelName: 'seed-model',
     promptVersion: 'v1',
     createdAt: '2026-04-24T13:02:00.000Z',
+  });
+  storeEnrichment(state, canonicalByName.get('Greek Yogurt 2% 500g'), enrichment({
+    base_product: 'yogurt',
+    category_l3: 'Yogurt',
+    attributes: ['greek', '2%', '500g'],
+    confidence: 0.94,
+  }), {
+    modelName: 'seed-model',
+    promptVersion: 'v1',
+    createdAt: '2026-04-24T13:02:15.000Z',
+  });
+  storeEnrichment(state, canonicalByName.get('Plain Yogurt 3.6% 400g'), enrichment({
+    base_product: 'yogurt',
+    category_l3: 'Yogurt',
+    attributes: ['plain', '3.6%', '400g'],
+    confidence: 0.9,
+  }), {
+    modelName: 'seed-model',
+    promptVersion: 'v1',
+    createdAt: '2026-04-24T13:02:20.000Z',
   });
   storeEnrichment(state, canonicalByName.get('Toilet Paper 10 Roll'), enrichment({
     base_product: 'toilet paper',
@@ -254,6 +277,106 @@ test('basket planner endpoint does not mutate canonical products mappings or enr
   assert.deepEqual(after.canonical_products, baseline.canonical_products);
   assert.deepEqual(after.canonical_product_mappings, baseline.canonical_product_mappings);
   assert.deepEqual(after.canonical_enrichment_store, baseline.canonical_enrichment_store);
+});
+
+test('intent-first basket planner asks for yogurt clarification without preference', async () => {
+  const { store } = await createPlannerStore();
+  const response = await handleBuildBasketPlanRequest({
+    store,
+    body: {
+      items: ['yogurt'],
+      use_shopping_intent: true,
+    },
+  });
+
+  assert.equal(response.status, 200);
+  assert.equal(response.body.optimization_ready, false);
+  assert.equal(response.body.requires_user_confirmation, true);
+  assert.equal(response.body.clarification_items.length, 1);
+  assert.equal(response.body.clarification_items[0].clarification_needed.selected_family.family_id, 'yogurt');
+  assert.equal(response.body.clarification_items[0].clarification_needed.clarification_questions[0].attribute_id, 'style');
+});
+
+test('intent-first shopping-list resolution proceeds to product candidates with high-confidence yogurt preference', async () => {
+  const { store } = await createPlannerStore();
+  const ownerContext = {
+    owner_id: 'intent_user',
+    owner_type: 'user',
+  };
+  await upsertUserProductFamilyPreference({
+    store,
+    ownerContext,
+    preference: {
+      family_id: 'yogurt',
+      preferred_attributes: {
+        style: 'greek',
+        fat_percent: '2',
+        size: '500g',
+      },
+      confidence: 0.95,
+      source: 'explicit_user_choice',
+    },
+    updatedAt: '2026-05-03T12:00:00.000Z',
+  });
+
+  const result = await resolveShoppingListItems({
+    store,
+    items: ['yogurt'],
+    useShoppingIntent: true,
+    ownerContext,
+  });
+
+  assert.notEqual(result.items[0].status, 'clarification_needed');
+  assert.equal(result.items[0].intent_resolution.ready_for_product_selection, true);
+  assert.equal(result.items[0].candidates.length > 0, true);
+  assert.equal(
+    result.items[0].candidates.some((candidate) => candidate.canonical_name === 'Greek Yogurt 2% 500g'),
+    true
+  );
+});
+
+test('intent-first basket planner returns cheese family ambiguity instead of guessing', async () => {
+  const { store } = await createPlannerStore();
+  const response = await handleBuildBasketPlanRequest({
+    store,
+    body: {
+      items: ['cheese'],
+      resolution_mode: 'intent_first',
+    },
+  });
+
+  assert.equal(response.status, 200);
+  assert.equal(response.body.optimization_ready, false);
+  assert.equal(response.body.clarification_items.length, 1);
+  const familyIds = response.body.clarification_items[0].clarification_needed.possible_families.map(
+    (family) => family.family_id
+  );
+  assert.equal(familyIds.includes('sirene'), true);
+  assert.equal(familyIds.includes('kashkaval'), true);
+  assert.equal(familyIds.includes('cream_cheese'), true);
+});
+
+test('disabled shopping intent flag preserves the existing basket planning path', async () => {
+  const { store } = await createPlannerStore();
+  const oldPath = await handleBuildBasketPlanRequest({
+    store,
+    body: {
+      items: ['yogurt'],
+    },
+  });
+  const explicitDefault = await handleBuildBasketPlanRequest({
+    store,
+    body: {
+      items: ['yogurt'],
+      use_shopping_intent: false,
+      resolution_mode: 'default',
+    },
+  });
+
+  assert.equal(explicitDefault.status, 200);
+  assert.deepEqual(explicitDefault.body, oldPath.body);
+  assert.equal(Object.prototype.hasOwnProperty.call(explicitDefault.body, 'clarification_items'), true);
+  assert.equal(explicitDefault.body.clarification_items.length, 0);
 });
 
 async function run() {

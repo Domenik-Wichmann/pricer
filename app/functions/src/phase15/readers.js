@@ -5,6 +5,8 @@ const {
 const {
   getEnrichmentByFingerprint,
 } = require('../phase1/store');
+const { buildGroceryQueryExpansion } = require('./search_synonyms');
+const { isRuntimeSafeCanonicalProduct } = require('../phase6/product_validation');
 
 const LAYER_SELECTIONS = Object.freeze({
   CANONICAL_TRUTH: 'canonical_truth',
@@ -21,8 +23,16 @@ const ENRICHMENT_FILTER_FIELDS = Object.freeze([
   'category_l3',
   'category_l4',
   'brand',
+  'brand_normalized',
   'base_product',
+  'product_type',
+  'product_family',
+  'category',
+  'subcategory',
   'flavor',
+  'flavor_terms',
+  'search_aliases_bg',
+  'search_aliases_en',
   'attributes',
   'diet_tags',
   'usage_context',
@@ -30,6 +40,9 @@ const ENRICHMENT_FILTER_FIELDS = Object.freeze([
   'packaging',
   'quality_tier',
   'allergens',
+  'is_food',
+  'is_beverage',
+  'is_personal_care',
   'confidence_gte',
 ]);
 
@@ -83,16 +96,16 @@ function searchCanonicalProductViews({
     layerSelection,
   });
   const boundedLimit = resolveBoundedLimit(limit);
-  const queryTokens = tokenizeSearchInput(queryText);
+  const searchPlan = buildSearchPlan(queryText);
 
   return context.canonicalProducts
     .map((product) => buildCanonicalProductView({ product, context }))
     .filter((view) => matchesEnrichmentFilters(view, filters, context))
     .map((view) => ({
       view,
-      score: computeSearchScore(view, queryTokens, context),
+      score: computeSearchScore(view, searchPlan, context),
     }))
-    .filter((entry) => queryTokens.length === 0 || entry.score > 0)
+    .filter((entry) => searchPlan.query_tokens.length === 0 || entry.score > 0)
     .sort((left, right) => {
       if (right.score !== left.score) {
         return right.score - left.score;
@@ -101,7 +114,10 @@ function searchCanonicalProductViews({
       return String(left.view.canonical_product_id).localeCompare(String(right.view.canonical_product_id));
     })
     .slice(0, boundedLimit)
-    .map((entry) => entry.view);
+    .map((entry) => ({
+      ...entry.view,
+      search_debug: buildSearchDebug(entry.score, searchPlan, entry.view, context),
+    }));
 }
 
 function buildCanonicalEnrichmentAnalytics({
@@ -146,7 +162,8 @@ function createCanonicalReaderContext({
   layerSelection,
 }) {
   const resolvedLayerSelection = resolveLayerSelection(layerSelection);
-  const canonicalProducts = sortCanonicalProducts(state?.canonical_products || []);
+  const canonicalProducts = sortCanonicalProducts(state?.canonical_products || [])
+    .filter(isRuntimeSafeCanonicalProduct);
   const canonicalProductById = new Map(
     canonicalProducts.map((product) => [product.canonical_product_id, product])
   );
@@ -318,7 +335,22 @@ function matchesEnrichmentFilters(view, filters, context) {
   if (!matchesScalarFilter(enrichment.brand, normalizedFilters.brand)) {
     return false;
   }
+  if (!matchesScalarFilter(enrichment.brand_normalized, normalizedFilters.brand_normalized)) {
+    return false;
+  }
   if (!matchesScalarFilter(enrichment.base_product, normalizedFilters.base_product)) {
+    return false;
+  }
+  if (!matchesScalarFilter(enrichment.product_type, normalizedFilters.product_type)) {
+    return false;
+  }
+  if (!matchesScalarFilter(enrichment.product_family, normalizedFilters.product_family)) {
+    return false;
+  }
+  if (!matchesScalarFilter(enrichment.category, normalizedFilters.category)) {
+    return false;
+  }
+  if (!matchesScalarFilter(enrichment.subcategory, normalizedFilters.subcategory)) {
     return false;
   }
   if (!matchesScalarFilter(enrichment.product_form, normalizedFilters.product_form)) {
@@ -331,6 +363,15 @@ function matchesEnrichmentFilters(view, filters, context) {
     return false;
   }
   if (!matchesArrayFilter(enrichment.flavor, normalizedFilters.flavor)) {
+    return false;
+  }
+  if (!matchesArrayFilter(enrichment.flavor_terms, normalizedFilters.flavor_terms)) {
+    return false;
+  }
+  if (!matchesArrayFilter(enrichment.search_aliases_bg, normalizedFilters.search_aliases_bg)) {
+    return false;
+  }
+  if (!matchesArrayFilter(enrichment.search_aliases_en, normalizedFilters.search_aliases_en)) {
     return false;
   }
   if (!matchesArrayFilter(enrichment.attributes, normalizedFilters.attributes)) {
@@ -352,47 +393,332 @@ function matchesEnrichmentFilters(view, filters, context) {
   ) {
     return false;
   }
+  if (!matchesBooleanFilter(enrichment.is_food, normalizedFilters.is_food)) {
+    return false;
+  }
+  if (!matchesBooleanFilter(enrichment.is_beverage, normalizedFilters.is_beverage)) {
+    return false;
+  }
+  if (!matchesBooleanFilter(enrichment.is_personal_care, normalizedFilters.is_personal_care)) {
+    return false;
+  }
 
   return true;
 }
 
-function computeSearchScore(view, queryTokens, context) {
+function buildSearchPlan(queryText) {
+  const expansion = buildGroceryQueryExpansion(queryText);
+  return {
+    ...expansion,
+    matched_concept_ids: expansion.matched_concepts.map((concept) => concept.id),
+  };
+}
+
+function computeSearchScore(view, searchPlan, context) {
+  const queryTokens = searchPlan.query_tokens;
   if (queryTokens.length === 0) {
     return 1;
   }
 
-  const searchFields = [
+  const weightedFields = [
+    { value: view.canonical_truth.canonical_display_name, weight: 1.4 },
+    { value: view.canonical_truth.source_example_name, weight: 1.2 },
+    { value: view.canonical_truth.canonical_product_type, weight: 1.1 },
+    { value: view.canonical_truth.canonical_brand, weight: 0.8 },
+  ];
+
+  const searchFields = weightedFields.map((field) => field.value);
+
+  if (context.supportsEnrichment && view.enrichment) {
+    weightedFields.push(
+      { value: view.enrichment.base_product, weight: 1.1 },
+      { value: view.enrichment.category_l1, weight: 0.4 },
+      { value: view.enrichment.category_l2, weight: 0.5 },
+      { value: view.enrichment.category_l3, weight: 0.6 },
+      { value: view.enrichment.category_l4, weight: 0.6 },
+      { value: view.enrichment.product_type, weight: 1.3 },
+      { value: view.enrichment.product_family, weight: 1.1 },
+      { value: view.enrichment.category, weight: 0.8 },
+      { value: view.enrichment.subcategory, weight: 0.8 },
+      { value: view.enrichment.brand, weight: 0.8 },
+      { value: view.enrichment.brand_normalized, weight: 1.0 },
+      { value: view.enrichment.product_line, weight: 0.7 },
+      ...(view.enrichment.flavor || []).map((value) => ({ value, weight: 0.4 })),
+      ...(view.enrichment.flavor_terms || []).map((value) => ({ value, weight: 0.5 })),
+      ...(view.enrichment.search_aliases_bg || []).map((value) => ({ value, weight: 1.2 })),
+      ...(view.enrichment.search_aliases_en || []).map((value) => ({ value, weight: 1.2 })),
+      ...(view.enrichment.synonym_terms || []).map((value) => ({ value, weight: 0.9 })),
+      ...(view.enrichment.should_match_queries || []).map((value) => ({ value, weight: 1.0 })),
+      ...(view.enrichment.attributes || []).map((value) => ({ value, weight: 0.4 })),
+      ...(view.enrichment.diet_tags || []).map((value) => ({ value, weight: 0.3 })),
+      ...(view.enrichment.usage_context || []).map((value) => ({ value, weight: 0.3 })),
+      ...(view.enrichment.allergens || []).map((value) => ({ value, weight: 0.3 }))
+    );
+  }
+
+  const haystack = normalizeSearchValue(weightedFields.map((field) => field.value).join(' '));
+  const haystackTokens = new Set(tokenizeSearchInput(haystack));
+  const originalMatchedTokens = queryTokens.filter((token) => haystackTokens.has(token) || haystack.includes(token));
+  const expandedMatchedTokens = searchPlan.expanded_tokens
+    .filter((token) => !queryTokens.includes(token))
+    .filter((token) => haystackTokens.has(token) || haystack.includes(token));
+  const matchedExpandedPhrases = searchPlan.expanded_terms
+    .filter((term) => term.includes(' '))
+    .filter((term) => haystack.includes(term));
+  const exactPhrase = searchPlan.normalized_query && haystack.includes(searchPlan.normalized_query);
+  const allOriginalTokens = queryTokens.length > 0 && originalMatchedTokens.length === queryTokens.length;
+
+  let score = 0;
+  if (exactPhrase) {
+    score += 30;
+  }
+  if (allOriginalTokens) {
+    score += 18;
+  }
+
+  score += originalMatchedTokens.length * 5;
+  score += expandedMatchedTokens.length * 1.6;
+  score += matchedExpandedPhrases.length * 4;
+  score += computeWeightedFieldBonus(weightedFields, searchPlan);
+
+  if (searchPlan.matched_concept_ids.includes('baby_formula') && isBabyFormulaView(view)) {
+    score += 16;
+  }
+  if (
+    searchPlan.matched_concept_ids.includes('milk') &&
+    !searchPlan.matched_concept_ids.includes('baby_formula') &&
+    isBabyFormulaView(view)
+  ) {
+    score -= 14;
+  }
+
+  const guardrail = computeCategoryGuardrail(view, searchPlan);
+  score += guardrail.score_adjustment;
+  score += computeRichEnrichmentQueryAdjustment(view, searchPlan);
+
+  return Math.max(0, Math.round(score * 1000) / 1000);
+}
+
+function computeRichEnrichmentQueryAdjustment(view, searchPlan) {
+  const enrichment = view.enrichment || {};
+  let adjustment = 0;
+  if (matchesAnyQueryHint(searchPlan, enrichment.should_match_queries || [])) {
+    adjustment += 8;
+  }
+  if (matchesAnyQueryHint(searchPlan, enrichment.synonym_terms || [])) {
+    adjustment += 4;
+  }
+  if (matchesAnyQueryHint(searchPlan, enrichment.do_not_match_queries || [])) {
+    adjustment -= 40;
+  }
+  if (matchesAnyQueryHint(searchPlan, enrichment.negative_match_hints || [])) {
+    adjustment -= 12;
+  }
+  return adjustment;
+}
+
+function computeCategoryGuardrail(view, searchPlan) {
+  const conceptIds = new Set(searchPlan.matched_concept_ids || []);
+  const beverageIntent = conceptIds.has('cola') || conceptIds.has('soft_drink');
+  const snackIntent = conceptIds.has('snacks') || conceptIds.has('biscuits') || conceptIds.has('chips') || conceptIds.has('crackers');
+  const reasons = [];
+  let scoreAdjustment = 0;
+
+  if (beverageIntent && isBeverageView(view)) {
+    scoreAdjustment += 18;
+    reasons.push('beverage_intent_boost');
+  }
+  if (beverageIntent && isPersonalCareView(view) && !isBeverageView(view)) {
+    scoreAdjustment -= 35;
+    reasons.push('personal_care_vs_beverage_demotion');
+  }
+  if (snackIntent && isSnackView(view)) {
+    scoreAdjustment += 14;
+    reasons.push('snack_category_boost');
+  }
+  if (matchesAnyQueryHint(searchPlan, view.enrichment?.do_not_match_queries || [])) {
+    scoreAdjustment -= 40;
+    reasons.push('enrichment_do_not_match_query');
+  }
+  if (matchesAnyQueryHint(searchPlan, view.enrichment?.negative_match_hints || [])) {
+    scoreAdjustment -= 12;
+    reasons.push('enrichment_negative_match_hint');
+  }
+
+  return {
+    score_adjustment: scoreAdjustment,
+    reasons,
+  };
+}
+
+function computeWeightedFieldBonus(weightedFields, searchPlan) {
+  return weightedFields.reduce((sum, field) => {
+    const normalized = normalizeSearchValue(field.value);
+    if (!normalized) {
+      return sum;
+    }
+
+    let fieldScore = 0;
+    if (searchPlan.normalized_query && normalized.includes(searchPlan.normalized_query)) {
+      fieldScore += 3 * field.weight;
+    }
+    searchPlan.query_tokens.forEach((token) => {
+      if (normalized.includes(token)) {
+        fieldScore += field.weight;
+      }
+    });
+    searchPlan.expanded_terms.forEach((term) => {
+      if (term !== searchPlan.normalized_query && normalized.includes(term)) {
+        fieldScore += 0.6 * field.weight;
+      }
+    });
+    return sum + fieldScore;
+  }, 0);
+}
+
+function isBabyFormulaView(view) {
+  const haystack = normalizeSearchValue([
     view.canonical_truth.canonical_display_name,
     view.canonical_truth.canonical_brand,
     view.canonical_truth.canonical_product_type,
     view.canonical_truth.source_example_name,
-  ];
+    view.enrichment?.base_product,
+    view.enrichment?.category_l2,
+    view.enrichment?.category_l3,
+    view.enrichment?.category_l4,
+    view.enrichment?.brand,
+    view.enrichment?.product_line,
+  ].join(' '));
+  return /\b(aptamil|аптамил|pronutra|адаптирано|бебешко|infant formula|baby formula|follow on|follow-on|toddler milk)\b/u.test(haystack);
+}
 
-  if (context.supportsEnrichment && view.enrichment) {
-    searchFields.push(
-      view.enrichment.base_product,
-      view.enrichment.category_l1,
-      view.enrichment.category_l2,
-      view.enrichment.category_l3,
-      view.enrichment.category_l4,
-      view.enrichment.brand,
-      view.enrichment.product_line,
-      ...(view.enrichment.flavor || []),
-      ...(view.enrichment.attributes || []),
-      ...(view.enrichment.diet_tags || []),
-      ...(view.enrichment.usage_context || []),
-      ...(view.enrichment.allergens || [])
-    );
+function isBeverageView(view) {
+  const enrichment = view.enrichment || {};
+  if (enrichment.is_beverage === true) {
+    return true;
   }
+  if (enrichment.is_beverage === false) {
+    return false;
+  }
+  return normalizedFieldValues(view).some((value) =>
+    /\b(beverage|beverages|soft drink|soft drinks|soda|cola|water|juice|напитка|безалкохолно|газирано|кола)\b/u.test(value)
+  );
+}
 
-  const haystack = normalizeSearchValue(searchFields.join(' '));
-  return queryTokens.reduce((score, token) => {
-    if (haystack.includes(token)) {
-      return score + 1;
-    }
+function isPersonalCareView(view) {
+  const enrichment = view.enrichment || {};
+  if (enrichment.is_personal_care === true) {
+    return true;
+  }
+  return normalizedFieldValues(view).some((value) =>
+    /\b(personal care|hair care|shampoo|conditioner|soap|hygiene|шампоан|сапун)\b/u.test(value)
+  );
+}
 
-    return score;
-  }, 0);
+function isSnackView(view) {
+  return normalizedFieldValues(view).some((value) =>
+    /\b(snack|snacks|biscuit|biscuits|cookie|cookies|chips|crisps|cracker|crackers|wafer|wafers|dessert|снакс|бисквити|курабии|сладки|чипс|солети|крекери|вафли|десерт)\b/u.test(value)
+  );
+}
+
+function normalizedFieldValues(view) {
+  const enrichment = view.enrichment || {};
+  return [
+    view.canonical_truth.canonical_display_name,
+    view.canonical_truth.canonical_brand,
+    view.canonical_truth.canonical_product_type,
+    view.canonical_truth.source_example_name,
+    enrichment.base_product,
+    enrichment.product_type,
+    enrichment.product_family,
+    enrichment.category,
+    enrichment.subcategory,
+    enrichment.category_l1,
+    enrichment.category_l2,
+    enrichment.category_l3,
+    enrichment.category_l4,
+    enrichment.brand,
+    enrichment.brand_normalized,
+    enrichment.product_line,
+    enrichment.dairy_type,
+    enrichment.beverage_type,
+    enrichment.storage_type,
+    enrichment.shopping_family_id,
+    ...(enrichment.flavor || []),
+    ...(enrichment.flavor_terms || []),
+    ...(enrichment.search_aliases_bg || []),
+    ...(enrichment.search_aliases_en || []),
+    ...(enrichment.exclusion_terms || []),
+    ...(enrichment.synonym_terms || []),
+    ...(enrichment.should_match_queries || []),
+    ...(enrichment.negative_match_hints || []),
+    ...(enrichment.do_not_match_queries || []),
+  ].map((value) => normalizeSearchValue(value)).filter(Boolean);
+}
+
+function buildSearchDebug(score, searchPlan, view) {
+  const haystack = normalizeSearchValue([
+    view.canonical_truth.canonical_display_name,
+    view.canonical_truth.source_example_name,
+    view.canonical_truth.canonical_product_type,
+    view.canonical_truth.canonical_brand,
+    view.enrichment?.base_product,
+    view.enrichment?.product_type,
+    view.enrichment?.product_family,
+    view.enrichment?.category,
+    view.enrichment?.subcategory,
+    view.enrichment?.category_l1,
+    view.enrichment?.category_l2,
+    view.enrichment?.category_l3,
+    ...(view.enrichment?.search_aliases_bg || []),
+    ...(view.enrichment?.search_aliases_en || []),
+  ].join(' '));
+  const matchedTokens = searchPlan.query_tokens.filter((token) => haystack.includes(token));
+  const matchedAliases = [
+    ...(view.enrichment?.search_aliases_bg || []),
+    ...(view.enrichment?.search_aliases_en || []),
+  ].filter((alias) => {
+    const normalizedAlias = normalizeSearchValue(alias);
+    return normalizedAlias && (
+      searchPlan.normalized_query.includes(normalizedAlias) ||
+      haystack.includes(normalizedAlias) ||
+      searchPlan.expanded_terms.includes(normalizedAlias)
+    );
+  });
+  const exactPhrase = Boolean(searchPlan.normalized_query && haystack.includes(searchPlan.normalized_query));
+  const allTokens = searchPlan.query_tokens.length > 0 && matchedTokens.length === searchPlan.query_tokens.length;
+  const tier = exactPhrase
+    ? 'exact_phrase'
+    : allTokens
+      ? 'all_tokens'
+      : matchedTokens.length > 0
+        ? 'any_token'
+        : 'expanded';
+  const guardrail = computeCategoryGuardrail(view, searchPlan);
+
+  return {
+    normalized_query: searchPlan.normalized_query,
+    expanded_terms: searchPlan.expanded_terms,
+    matched_concepts: searchPlan.matched_concepts,
+    match_tier: tier,
+    matched_tokens: matchedTokens,
+    matched_enrichment: {
+      product_type: view.enrichment?.product_type || null,
+      product_family: view.enrichment?.product_family || null,
+      category: view.enrichment?.category || view.enrichment?.category_l2 || null,
+      subcategory: view.enrichment?.subcategory || view.enrichment?.category_l3 || null,
+      enrichment_version: view.enrichment?.enrichment_version || null,
+      dairy_type: view.enrichment?.dairy_type || null,
+      beverage_type: view.enrichment?.beverage_type || null,
+      is_food: view.enrichment?.is_food ?? null,
+      is_beverage: view.enrichment?.is_beverage ?? null,
+      is_personal_care: view.enrichment?.is_personal_care ?? null,
+      aliases: matchedAliases,
+    },
+    guardrail_reasons: guardrail.reasons,
+    demotion_reason: guardrail.reasons.find((reason) => reason.includes('demotion')) || null,
+    score,
+  };
 }
 
 function buildCountRollup(views, selector) {
@@ -495,6 +821,17 @@ function matchesArrayFilter(actualValues, requestedValue) {
     .every((value) => actual.has(value));
 }
 
+function matchesBooleanFilter(actualValue, requestedValue) {
+  if (requestedValue === undefined || requestedValue === null || requestedValue === '') {
+    return true;
+  }
+  const normalized = String(requestedValue).trim().toLowerCase();
+  if (normalized !== 'true' && normalized !== 'false') {
+    return true;
+  }
+  return Boolean(actualValue) === (normalized === 'true');
+}
+
 function tokenizeSearchInput(value) {
   return normalizeSearchValue(value)
     .split(/[^a-z0-9\u00c0-\u024f\u0400-\u04ff%]+/u)
@@ -506,6 +843,19 @@ function normalizeSearchValue(value) {
     .trim()
     .toLowerCase()
     .replace(/\s+/gu, ' ');
+}
+
+function matchesAnyQueryHint(searchPlan, hints = []) {
+  return (hints || [])
+    .map((hint) => normalizeSearchValue(hint))
+    .filter(Boolean)
+    .some((hint) => {
+      if (searchPlan.normalized_query === hint || searchPlan.normalized_query.includes(hint)) {
+        return true;
+      }
+      const hintTokens = tokenizeSearchInput(hint);
+      return hintTokens.length > 0 && hintTokens.every((token) => searchPlan.query_tokens.includes(token));
+    });
 }
 
 function roundRatio(value) {
@@ -546,6 +896,7 @@ module.exports = {
   ENRICHMENT_FILTER_FIELDS,
   LAYER_SELECTIONS,
   buildCanonicalEnrichmentAnalytics,
+  buildSearchPlan,
   getCanonicalProductViewById,
   listCanonicalProductViews,
   searchCanonicalProductViews,

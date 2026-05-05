@@ -1,5 +1,139 @@
 # Changelog
 
+## 2026-05-05 - Canonical Semantic Enrichment V2 Pilot
+
+- Extended Phase 15 canonical enrichment with backward-compatible `canonical_semantic_v2` fields for richer product identity, classification, food/beverage/dairy/baby/package/search/shopping-intent, and quality/audit semantics.
+- Changed the default xAI Grok model across backend LLM paths to `grok-4-1-fast-reasoning`, including Phase 15 enrichment, Phase 6 disambiguation/Grok helpers, and recipe extraction fallbacks.
+- Switched the enrichment pilot to the rich batch prompt and strict batch validator, requiring one validated result per requested `canonical_product_id` before writing.
+- Added `npm run phase15:enrichment-healthcheck` for config-only xAI diagnostics by default, plus explicit live healthcheck opt-in and provider/network/HTTP error detail reporting for real pilot batches.
+- Added same canonical-id/name-hash/version cache skipping so already-enriched v2 records are not prompted or rewritten.
+- Added controlled pilot groups for milk/dairy, bread/bakery, cola/beverages, cookies/snacks, personal-care false positives, baby food, and mixed search-quality evaluation.
+- Kept dry-run as the default and preserved the real-run guard requiring both `PRICER_ENRICHMENT_DRY_RUN=false` and `PRICER_ENRICHMENT_RUN_LLM=true`; no real LLM calls were run.
+- Extended enrichment-backed product search/debug to use v2 synonym, should-match, negative-match, do-not-match, dairy, beverage, and category flags when present while keeping fallback deterministic search intact.
+- Added regression tests for v2 validation, milk/shampoo/Milka/cola/collagen distinctions, strict batch id/count validation, dry-run/no-write behavior, real-run guard, cache skip, and canonical-enrichment-only writes.
+- Hardened rich Phase 15 enrichment `product_form` enum prompting/validation: prompts now list exact allowed forms, unsupported `semi-solid` near-misses normalize to `null` with warnings, and real pilot runs reject only invalid items while writing valid siblings.
+
+## 2026-05-05 - Admin Product Search Hosting Regression Fix
+
+- Fixed deployed Admin Console Product Search to default to the live `europe-west1` Functions API on Firebase Hosting and replace stale localhost API-base overrides saved in browser `localStorage`.
+- Updated the Product Search interpreted results panel to read `response.results`, show total/result counts, render optional `current_offer_summary` price fields defensively, and keep missing summaries visible as product rows with `n/a` prices.
+- Preserved the raw JSON response below the interpreted product results for operator debugging.
+
+## 2026-05-05 - Phase 6 Bad Product Ingest Guardrails
+
+- Root-caused malformed canonical products to upstream Lidl CSV rows with unescaped quotes inside product names plus permissive parser recovery and missing ingest-time product validation.
+- Added parser diagnostics and strict Phase 6 source/product validation before raw/source/canonical/mapping/current-offer creation.
+- Refined product-quality severity into `valid`, `warning`, `suspicious`, and `invalid`, keeping quote-only brand-style names as warnings while reserving quarantine/runtime exclusion for invalid row-corruption patterns.
+- Added guarded no-delete quarantine mode to `phase6:audit-bad-products`; it defaults to dry-run, requires explicit confirmation for writes, marks only invalid/quarantinable `canonical_products` and `source_products`, and reports affected current-offer read-model counts without rewriting them.
+- Added deterministic runtime exclusion for unsafe products in current offers, product search, and canonical enrichment pilot selection.
+- Added `npm run phase6:audit-bad-products`, a Firestore report command for warning/suspicious/invalid `canonical_products` and `source_products`; it writes nothing by default and never deletes records.
+- Added regression tests for multi-row chunks, embedded newline names, long valid Bulgarian names, no downstream docs/offers for malformed rows, search/enrichment exclusion, and validation without Firestore reads/writes.
+
+## 2026-05-05 - Product Search Current Price Summaries
+
+- Added `current_offer_summary` to Phase 15 product search results, populated only from scoped `canonical_current_offer_summary` lookups for bounded search candidate canonical ids.
+- Preferred candidates with current summaries before pagination so the first search page favors currently priced products when the compact read model covers them.
+- Kept missing search summaries as `null` without falling back to raw snapshots or scanning current offers.
+- Updated Admin Console Product Search to show cheapest/highest/average price, offer count, and cheapest retailer/chain while keeping raw JSON visible.
+- Added Phase 15.2 tests for summary presence, scoped summary lookup, missing-summary null behavior, and legacy response fields.
+
+## 2026-05-05 - Structured Size Marker API Exposure
+
+- Exposed `canonical_attributes_json.size_marker` as backward-compatible `markers.size_marker` in Phase 15 product detail and product search responses while preserving legacy marker fields.
+- Updated Admin Console Product Detail to show structured size marker display, comparable totals, pack count, and unit quantity beside the legacy marker strings.
+- Added Phase 15.2 tests proving detail/search include structured size markers when present and keep `volume_marker` unchanged.
+- Verified the PRAGOLAKTOS production canonical product already has `canonical_attributes_json.size_marker` from the canonical marker backfill.
+
+## 2026-05-05 - Semantic Search Enrichment Pilot
+
+- Added deterministic cookies/snacks/Coca-Cola/coke/soft-drink aliases to Phase 15 search before any LLM enrichment.
+- Extended product search ranking to use optional canonical enrichment fields such as `product_type`, `product_family`, `category`, `subcategory`, `brand_normalized`, `flavor_terms`, and BG/EN search aliases.
+- Added cola beverage guardrails so beverage intent boosts cola/soft-drink products and demotes or excludes personal-care/shampoo products when enrichment marks them as non-beverage.
+- Extended the canonical enrichment schema backward-compatibly with pilot fields, category flags, alias arrays, source/version metadata, and canonical-name hash cache metadata.
+- Added `npm run phase15:enrichment-pilot`, a bounded dry-run-first selector/LLM pilot that reads canonical products plus existing enrichment and writes only `canonical_enrichment_store` when explicitly opted in.
+- Added Admin Console Product Search debug summary for matched enrichment category/product type, aliases, and demotion reason.
+- Added regression tests for cookies/snacks/Coca-Cola expansion, enrichment alias/product-type search, cola-vs-shampoo ranking, pilot dry-run no writes, and real pilot writes limited to canonical enrichment.
+
+## 2026-05-05 - Current Offer Fingerprint Baseline Export
+
+- Added `npm run phase6:export-current-offer-fingerprints`, a paginated read-only exporter from `current_product_offers` to compact local JSONL baselines for daily incremental diff.
+- Added guarded `npm run phase6:backfill-current-offer-fingerprints` support using the same path; it writes only `current_offer_fingerprints` when explicitly enabled and defaults to dry-run.
+- Extended incremental baseline loading to accept JSONL files and compact rows with `offer_fingerprint` aliases.
+- Added compact baseline record helpers and tests for baseline generation, JSONL loading, and read-only paginated export behavior.
+- Updated Admin Console and docs with baseline export commands and the `PRICER_INCREMENTAL_BASELINE_PATH` diff workflow.
+
+## 2026-05-05 - Incremental Ingest Diff Foundation
+
+- Added deterministic `current_offer_fingerprints`, planned `offer_change_events`, and `snapshot_manifests` runtime schemas for daily latest update diffing.
+- Added `phase6/incremental_ingest.js` in both backend trees for fingerprinting, diff categories, affected-summary detection, event payloads, and manifest payloads.
+- Added `npm run phase6:diff-snapshot` / `npm run phase6:daily-incremental-dry-run`, which parses one snapshot, builds current offers, compares to a local baseline or explicitly bounded Firestore reads, reports estimated reads/writes, and writes nothing.
+- Updated Admin Console Ingest / Data Jobs with a daily incremental dry-run command and clearer historical-vs-current safety warnings.
+- Documented current write behavior, initial/daily/historical/enrichment semantics, and why the real incremental writer is deferred until the fingerprint baseline is backfilled/exported.
+- Added Phase 6 incremental diff tests covering unchanged skip, price/promo/new/removed classifications, affected summaries, dry-run no writes, deterministic IDs, and changed-only write estimates.
+
+## 2026-05-05 - Canonical Marker Backfill Dry-Run Command
+
+- Added `npm run phase6:backfill-canonical-markers`, a Firestore canonical-only backfill that scans `canonical_products`, recomputes deterministic parser markers from current Phase 6 logic, and patches only changed canonical docs.
+- Added structured `canonical_attributes_json.size_marker` normalization with raw text, normalized quantity/unit, total quantity/unit, package count, unit quantity, and display-safe strings for variants such as `100 гр`, `100g`, `0,5 кг`, `1.5 л`, `2x500 г`, and `6 бр x 330 мл`.
+- Tightened bare decimal parsing so price-like decimals without beverage/alcohol context are not converted into size markers.
+- Kept the backfill away from raw/source/offer/history/mapping collections; it may read one matching `canonical_enrichment_store` document only when a safe brand cleanup would keep existing enrichment brand metadata aligned.
+- Added conservative parser backfill behavior for Bulgarian weight/volume/count/age markers, never-brand cleanup, Aptamil baby-formula hints, and Ganchev baby-food age markers without changing canonical IDs or product mappings.
+- Added dry-run/limit/progress/heartbeat support plus tests for Aptamil, Ganchev juice examples, no-op products, dry-run no writes, limit mode, real-run patching, and forbidden collection access.
+- Ran a production limited dry-run on `prod` with `PRICER_BACKFILL_LIMIT=100`: 100 scanned, 86 changed candidates, 0 actual writes, and no forbidden collections touched.
+
+## 2026-05-03 - Shopping Intent Admin Tester And Opt-In Adapter
+
+- Added Admin Console Shopping Intent tab for `POST /shopping-intent/resolve`, including examples, optional owner id, inline preference JSON, selected-answer JSON, interpreted resolver fields, status/timing, and raw JSON.
+- Hardened the shopping-intent endpoint with `query` / `item_text` aliases, inline preference preview support, `preference_record` output, and scoped `user_product_family_preferences` read coverage.
+- Added opt-in `use_shopping_intent: true` / `resolution_mode: "intent_first"` shopping-list and basket planner path that asks for clarification before canonical product resolution when intent is ambiguous.
+- Kept existing shopping-list, basket planning, basket optimization, saved-list optimization, and mobile behavior unchanged unless the opt-in flag is explicitly enabled.
+- Added tests for endpoint response shape, scoped preference reads, yogurt preference/default behavior, cheese family ambiguity, and disabled-path backward compatibility.
+
+## 2026-05-03 - Historical Ingest Admin Foundation
+
+- Added `admin_ingest_jobs` runtime collection and internal ingest planning endpoints for listing/getting planned jobs, generating a safe command preview, and creating planned job records without running ZIP ingest inside HTTPS.
+- Added `npm run phase6:ingest-snapshot` for one explicit KolkoStruva ZIP/date. It defaults to dry-run and archive/history/log collections, skips existing deterministic documents, and performs no destructive deletes.
+- Added Admin Console Ingest / Data Jobs tab with snapshot/date inputs, target collections, dry-run toggle, PowerShell command preview, and job plan/list/create actions.
+- Documented historical archive vs current read-model vs canonical/catalog semantics and added a route/path safety map for ingest/publish paths.
+- Added targeted historical ingest/admin tests covering dry-run no writes, deterministic IDs, no deletes, prefixing, idempotent skip-existing behavior, and non-blocking admin endpoints.
+
+## 2026-05-03 - Shopping Intent Preferences Foundation
+
+- Added deterministic Phase 15.8 shopping-intent resolution for broad grocery terms before exact canonical product and offer selection.
+- Added seeded BG/EN product-family definitions and prioritized attributes for yogurt, milk, bread, sirene, kashkaval, cream cheese, juice, coffee, rice, pasta, oil, eggs, and chicken.
+- Added owner-scoped `user_product_family_preferences` runtime collection for preferred attributes, preferred/avoided brands, confidence, source, and last-confirmed timestamp.
+- Added `POST /shopping-intent/resolve` plus mirrored backend exports for resolving family ambiguity, missing high-priority attributes, clarification questions, and suggested defaults.
+- Added regression tests for yogurt, juice, cheese, bread, and preference confidence behavior.
+- Updated data model, schema map, repo map, test registry, decision log, and handoff notes.
+
+## 2026-05-03 - Compact Current Offer Read Model
+
+- Added `current_product_offers` and `canonical_current_offer_summary` as compact Firestore/flat runtime collections for current price display.
+- Added deterministic Phase 16 current-offer builder logic from existing Phase 6 local runtime state, preserving snapshot/source/canonical provenance and one current offer per source product.
+- Changed price lookup and basket optimization to prefer compact current offers when populated, with the legacy scoped mapping/source/snapshot path retained as bounded fallback.
+- Added bounded current offers and cheapest-offer summary to product detail responses.
+- Extended the Phase 6 Firestore publisher with current-offer read-model generation, collection selection, dry-run support, skip-existing/upsert behavior, and clear publish counts.
+- Added Admin Console current-offer display on Product Detail and a Price Lookup tester tab.
+- Updated schema/runtime docs, production Firestore audit, test registry, decision log, and handoff notes.
+
+## 2026-05-03 - Grocery Search Synonyms And Aptamil Parser QA
+
+- Added a deterministic Phase 15 BG/EN grocery synonym module with 100 concepts for query expansion only; related-but-not-equivalent terms remain separated and are not used for canonical product merging.
+- Reworked product search ranking to prefer exact phrases, then all original query tokens, then synonym-expanded matches, then any-token fallback; result items now include backward-compatible `search_debug` metadata.
+- Added conservative milk/baby-formula ranking behavior so generic `мляко` favors ordinary milk/yogurt over baby formula, while `адаптирано мляко` and `baby formula` favor baby formula/toddler milk.
+- Hardened brand/unit parsing so Bulgarian unit tokens such as `ГР` are never brands, uppercase Latin brands such as `APTAMIL` can be detected, and baby formula hints set a deterministic `baby_formula` type.
+- Added regression coverage for `МЛЯКО APTAMIL PRONUTRA+  4 800 ГР НАД 24 МЕСЕЦА`, including brand, weight, age-band, stage, and product-type expectations.
+- Documented synonym behavior, ranking tiers, Bulgarian parser caveats, and the need for future re-ingest/re-publish before existing production marker fields reflect parser fixes.
+
+## 2026-05-03 - Admin QA Console And Bulgarian Markers
+
+- Added a Home Summary tab to the Admin Console and improved Product Detail with readable canonical fields, marker fields, source-product mappings, copy buttons, and direct Price History launch.
+- Added bounded `source_product_ids` and `canonical_mappings` provenance to product detail responses so manual QA can discover source IDs without loading the full mappings collection.
+- Hardened scoped product search with case-variant prefix reads and a compact catalog fallback so lowercase Bulgarian queries can match uppercase or mid-name Cyrillic production names without loading mappings/raw prices.
+- Expanded deterministic Bulgarian unit extraction for full Cyrillic volume/weight/count unit words, decimal comma/point values, and simple package/multiplication patterns.
+- Kept canonical marker changes conservative: no production Firestore rewrite or heavy Phase 6 publish was run; existing products need a future re-ingest/re-publish to show newly extracted markers.
+- Rebuilt the Admin Console and expanded Phase 6/15 tests for detail provenance, Bulgarian markers, shopping-list quantities, and basket planner marker parsing.
+
 ## 2026-05-03 - Production Firestore Runtime Hardening
 
 - Added scoped Firestore runtime helpers, route-aware read diagnostics, and production guards for legacy full `store.load()` / `store.save()`.

@@ -8,6 +8,7 @@ const {
   InMemoryDataBackboneStore,
   applyEffectiveCanonicalDecisions,
   backfillCanonicalEmbeddings,
+  buildCurrentOfferReadModel,
   buildCanonicalDisambiguationFingerprint,
   buildCanonicalDisambiguationPromptPayload,
   buildCanonicalDisambiguationQueueRecord,
@@ -30,8 +31,11 @@ const {
   upsertCanonicalDisambiguationDecision,
   validateCanonicalDisambiguationDecision,
   validateCanonicalDisambiguationResponse,
+  validateCanonicalProductRecord,
+  validateProductName,
 } = require('../app/functions/src');
 const { SOURCE_HEADERS } = require('../app/functions/src/phase1/constants');
+const { runBadProductAudit } = require('../scripts/audit_phase6_bad_products_firestore');
 
 const tests = [];
 
@@ -41,6 +45,81 @@ function test(name, fn) {
 
 function fixturePath(name) {
   return path.join(__dirname, '..', 'data_samples', name);
+}
+
+function createFakeAuditFirestore(collectionsByName) {
+  const writes = [];
+  return {
+    writes,
+    collection(collectionName) {
+      const rows = collectionsByName[collectionName] || [];
+      return {
+        orderBy() {
+          return createFakeAuditQuery(rows);
+        },
+        where(fieldName, operator, values) {
+          assert.equal(operator, 'in');
+          return createFakeAuditQuery(rows, {
+            filter: (row) => values.includes(row.data?.[fieldName]),
+          });
+        },
+        doc(documentId) {
+          return {
+            async set(patch, options = {}) {
+              assert.deepEqual(options, { merge: true });
+              const row = rows.find((entry) => entry.id === documentId);
+              assert.ok(row, `expected fake Firestore row ${documentId}`);
+              row.data = {
+                ...row.data,
+                ...patch,
+              };
+              writes.push({ collectionName, documentId, patch });
+            },
+          };
+        },
+      };
+    },
+  };
+}
+
+function createFakeAuditQuery(rows, {
+  limit = rows.length,
+  startAfterId = null,
+  filter = null,
+} = {}) {
+  return {
+    limit(nextLimit) {
+      return createFakeAuditQuery(rows, {
+        limit: nextLimit,
+        startAfterId,
+        filter,
+      });
+    },
+    startAfter(doc) {
+      return createFakeAuditQuery(rows, {
+        limit,
+        startAfterId: doc.id,
+        filter,
+      });
+    },
+    async get() {
+      const sortedRows = [...rows]
+        .filter((row) => !filter || filter(row))
+        .sort((left, right) => String(left.id).localeCompare(String(right.id)));
+      const startIndex = startAfterId
+        ? sortedRows.findIndex((row) => row.id === startAfterId) + 1
+        : 0;
+      const docs = sortedRows.slice(Math.max(0, startIndex), Math.max(0, startIndex) + limit).map((row) => ({
+        id: row.id,
+        data: () => row.data,
+      }));
+      return {
+        empty: docs.length === 0,
+        size: docs.length,
+        docs,
+      };
+    },
+  };
 }
 
 function buildDisambiguationQueueItem({
@@ -137,6 +216,261 @@ test('streamed zip ingest dedupes duplicate rows and enriches only valid net-new
   assert.equal(typeof result.disambiguation_application_preview, 'object');
   assert.equal(Array.isArray(result.disambiguation_application_preview.audit_log), true);
   assert.equal(result.state.ingest_runs[0].disambiguation_application_preview.audit_log.length, result.disambiguation_application_preview.audit_log.length);
+});
+
+test('streamed csv ingest rejects malformed multi-row product chunks before creating products', async () => {
+  const store = new InMemoryDataBackboneStore();
+  const result = await importInlineCsv({
+    store,
+    rows: [
+      '"56784","143 - Plovdiv/bul.Peshtersko","Krina;" Byal bob (ONT 400)","7208918","46","1.84",""',
+      '"68134","107 - Sofia/bul. Rayko Daskalov 2","Eko Mes promo package XXL","7208342","28","7.66",""',
+      '"10135","144 - Varna/bul. Vladislav Varnenchik 257","Familia pastry sheets","7208006","5","2.19",""',
+    ],
+    snapshotDate: '2026-04-21',
+    sourceFileName: 'LIDL_131071587.csv',
+    ingestedAt: '2026-04-22T08:01:00.000Z',
+  });
+
+  assert.equal(result.malformed_rows, 1);
+  assert.equal(result.created_products, 0);
+  assert.equal(result.state.source_products.length, 0);
+  assert.equal(result.state.canonical_products.length, 0);
+  assert.equal(result.state.canonical_product_mappings.length, 0);
+  const malformedLog = result.state.pipeline_logs.find((entry) => entry.event_type === 'ingest_malformed_row');
+  const context = JSON.parse(malformedLog.context_json);
+  assert.equal(context.malformed_reasons.includes('product_name_contains_newline'), true);
+  assert.equal(context.malformed_sample.includes('Krina'), true);
+});
+
+test('streamed csv ingest rejects embedded newline product names', async () => {
+  const store = new InMemoryDataBackboneStore();
+  const result = await importInlineCsv({
+    store,
+    rows: [
+      '"1000","Store A","Fresh milk line one\nline two","1001","6","1.99","0"',
+    ],
+    snapshotDate: '2026-04-21',
+    sourceFileName: 'CHAIN_A_100.csv',
+    ingestedAt: '2026-04-22T08:01:30.000Z',
+  });
+
+  assert.equal(result.malformed_rows, 1);
+  assert.equal(result.state.source_products.length, 0);
+  assert.equal(result.state.canonical_products.length, 0);
+  assert.equal(result.state.canonical_product_mappings.length, 0);
+});
+
+test('streamed csv ingest accepts normal long Bulgarian product names', async () => {
+  const store = new InMemoryDataBackboneStore();
+  const longName = 'Био пълнозърнести бисквити с овесени ядки, мед и черен шоколад без палмова мазнина 250 г';
+  const result = await importInlineCsv({
+    store,
+    rows: [
+      `"1000","Store A","${longName}","1001","66","3.49","0"`,
+    ],
+    snapshotDate: '2026-04-21',
+    sourceFileName: 'CHAIN_A_100.csv',
+    ingestedAt: '2026-04-22T08:01:45.000Z',
+  });
+
+  assert.equal(result.malformed_rows, 0);
+  assert.equal(result.created_products, 1);
+  assert.equal(result.state.source_products[0].latest_product_name_raw, longName);
+});
+
+test('malformed rows do not publish current offers', async () => {
+  const store = new InMemoryDataBackboneStore();
+  const result = await importInlineCsv({
+    store,
+    rows: [
+      '"1000","Store A","Bad\nproduct","1001","6","1.99","0"',
+    ],
+    snapshotDate: '2026-04-21',
+    sourceFileName: 'CHAIN_A_100.csv',
+    ingestedAt: '2026-04-22T08:01:50.000Z',
+  });
+  const readModel = buildCurrentOfferReadModel({
+    state: result.state,
+    generatedAt: '2026-04-22T08:02:00.000Z',
+  });
+
+  assert.equal(result.malformed_rows, 1);
+  assert.equal(readModel.current_product_offers.length, 0);
+  assert.equal(readModel.canonical_current_offer_summary.length, 0);
+});
+
+test('product name validation is deterministic and store-free', () => {
+  const valid = validateProductName('Био пълнозърнести бисквити с овесени ядки и мед 250 г');
+  const invalid = validateProductName('Krina; Бял боб,7208918,46,1.84,\n68134,107 - Sofia/bul. Test,Eko Mes,7208342,28,7.66');
+  const quotedBrand = validateCanonicalProductRecord({
+    canonical_display_name: 'КРАВЕ СИРЕНЕ САЛАКИС "ПРЕЗИДЕНТ"',
+    source_example_name: 'КРАВЕ СИРЕНЕ САЛАКИС "ПРЕЗИДЕНТ"',
+  });
+  const rowChunk = validateCanonicalProductRecord({
+    canonical_display_name: 'Krina; Бял боб,7208918,46,1.84,\n68134,107 - Sofia/bul. Test,Eko Mes,7208342,28,7.66,Colgate shampoo,coffee,water,ham',
+    source_example_name: 'Krina; Бял боб,7208918,46,1.84,\n68134,107 - Sofia/bul. Test,Eko Mes,7208342,28,7.66,Colgate shampoo,coffee,water,ham',
+  });
+  const newlineWithFragments = validateProductName('Krina; Бял боб,7208918,46,1.84,\n68134,107 - Sofia/bul. Test,Eko Mes,7208342,28,7.66');
+
+  assert.equal(valid.valid, true);
+  assert.equal(valid.quality_status, 'valid');
+  assert.equal(invalid.valid, false);
+  assert.equal(invalid.quality_status, 'invalid');
+  assert.equal(invalid.reasons.includes('contains_newline'), true);
+  assert.equal(quotedBrand.quality_status, 'warning');
+  assert.equal(quotedBrand.quarantinable, false);
+  assert.equal(rowChunk.quality_status, 'invalid');
+  assert.equal(rowChunk.quarantinable, true);
+  assert.equal(newlineWithFragments.quality_status, 'invalid');
+});
+
+test('bad product audit separates warning suspicious and invalid counts', async () => {
+  const firestore = createFakeAuditFirestore({
+    prod_canonical_products: [
+      {
+        id: 'cp_warning',
+        data: {
+          canonical_product_id: 'cp_warning',
+          canonical_display_name: 'МАКАРОНИ/КАПЕЛИНИ 500ГР."БАРИЛА"',
+          source_example_name: 'МАКАРОНИ/КАПЕЛИНИ 500ГР."БАРИЛА"',
+        },
+      },
+      {
+        id: 'cp_suspicious',
+        data: {
+          canonical_product_id: 'cp_suspicious',
+          canonical_display_name: 'Смесен продукт; с много; разделители; в име; но без; редове; и още; няколко; части; за преглед; 500 г',
+          source_example_name: 'Смесен продукт; с много; разделители; в име; но без; редове; и още; няколко; части; за преглед; 500 г',
+        },
+      },
+      {
+        id: 'cp_invalid',
+        data: {
+          canonical_product_id: 'cp_invalid',
+          canonical_display_name: 'Krina; Бял боб,7208918,46,1.84,\n68134,107 - Sofia/bul. Test,Eko Mes,7208342,28,7.66',
+          source_example_name: 'Krina; Бял боб,7208918,46,1.84,\n68134,107 - Sofia/bul. Test,Eko Mes,7208342,28,7.66',
+        },
+      },
+    ],
+  });
+
+  const result = await runBadProductAudit({
+    projectId: 'test-project',
+    collectionPrefix: 'prod',
+    collections: ['canonical_products'],
+    firestore,
+    now: '2026-05-05T12:00:00.000Z',
+  });
+  const collection = result.collections.canonical_products;
+
+  assert.equal(collection.warning_count, 1);
+  assert.equal(collection.suspicious_count, 1);
+  assert.equal(collection.invalid_count, 1);
+  assert.equal(collection.quarantinable_count, 1);
+  assert.equal(collection.findings.find((item) => item.product_id === 'cp_warning').quarantinable, false);
+  assert.equal(collection.findings.find((item) => item.product_id === 'cp_invalid').quarantinable, true);
+});
+
+test('bad product quarantine dry-run writes nothing and never marks warnings', async () => {
+  const firestore = createFakeAuditFirestore({
+    prod_canonical_products: [
+      {
+        id: 'cp_warning',
+        data: {
+          canonical_product_id: 'cp_warning',
+          canonical_display_name: 'КАШКАВАЛ ВАКУУМ "МЕДКОВЕЦ"',
+          source_example_name: 'КАШКАВАЛ ВАКУУМ "МЕДКОВЕЦ"',
+        },
+      },
+      {
+        id: 'cp_invalid',
+        data: {
+          canonical_product_id: 'cp_invalid',
+          canonical_display_name: 'Krina; Бял боб,7208918,46,1.84,\n68134,107 - Sofia/bul. Test,Eko Mes,7208342,28,7.66',
+          source_example_name: 'Krina; Бял боб,7208918,46,1.84,\n68134,107 - Sofia/bul. Test,Eko Mes,7208342,28,7.66',
+        },
+      },
+    ],
+    prod_current_product_offers: [
+      {
+        id: 'offer_cp_invalid',
+        data: {
+          offer_id: 'offer_cp_invalid',
+          canonical_product_id: 'cp_invalid',
+          source_product_id: 'sp_invalid',
+        },
+      },
+    ],
+    prod_canonical_current_offer_summary: [
+      {
+        id: 'cp_invalid',
+        data: {
+          canonical_product_id: 'cp_invalid',
+          offer_count: 1,
+        },
+      },
+    ],
+  });
+
+  const result = await runBadProductAudit({
+    projectId: 'test-project',
+    collectionPrefix: 'prod',
+    collections: ['canonical_products'],
+    firestore,
+    dryRun: true,
+    now: '2026-05-05T12:30:00.000Z',
+  });
+
+  assert.equal(result.dry_run, true);
+  assert.equal(result.writes_performed, 0);
+  assert.equal(firestore.writes.length, 0);
+  assert.equal(result.collections.canonical_products.warning_count, 1);
+  assert.equal(result.collections.canonical_products.invalid_count, 1);
+  assert.equal(result.affected_read_models.current_product_offers.affected_records, 1);
+  assert.equal(result.affected_read_models.canonical_current_offer_summary.affected_records, 1);
+});
+
+test('bad product quarantine marks invalid multi-row products only', async () => {
+  const firestore = createFakeAuditFirestore({
+    prod_canonical_products: [
+      {
+        id: 'cp_warning',
+        data: {
+          canonical_product_id: 'cp_warning',
+          canonical_display_name: 'МАКАРОНИ/КАПЕЛИНИ 500ГР."БАРИЛА"',
+          source_example_name: 'МАКАРОНИ/КАПЕЛИНИ 500ГР."БАРИЛА"',
+        },
+      },
+      {
+        id: 'cp_invalid',
+        data: {
+          canonical_product_id: 'cp_invalid',
+          canonical_display_name: 'Krina; Бял боб,7208918,46,1.84,\n68134,107 - Sofia/bul. Test,Eko Mes,7208342,28,7.66',
+          source_example_name: 'Krina; Бял боб,7208918,46,1.84,\n68134,107 - Sofia/bul. Test,Eko Mes,7208342,28,7.66',
+        },
+      },
+    ],
+  });
+
+  const result = await runBadProductAudit({
+    projectId: 'test-project',
+    collectionPrefix: 'prod',
+    collections: ['canonical_products'],
+    firestore,
+    dryRun: false,
+    confirmQuarantine: 'mark-invalid-products-no-delete',
+    now: '2026-05-05T12:45:00.000Z',
+  });
+
+  assert.equal(result.dry_run, false);
+  assert.equal(result.writes_performed, 1);
+  assert.equal(firestore.writes.length, 1);
+  assert.equal(firestore.writes[0].documentId, 'cp_invalid');
+  assert.equal(firestore.writes[0].patch.data_quality_status, 'invalid');
+  assert.deepEqual(firestore.writes[0].patch.data_quality_reasons.includes('contains_newline'), true);
+  assert.equal(firestore.writes[0].patch.quarantined_at, '2026-05-05T12:45:00.000Z');
+  assert.equal(firestore.writes[0].patch.quarantine_source, 'phase6_bad_product_audit_v1');
 });
 
 async function importInlineCsv({
@@ -1758,6 +2092,38 @@ test('cross-chain canonicalization merges equivalent comma and dot decimal liter
   assert.equal(result.canonical_merge_count, 1);
 });
 
+test('cross-chain canonicalization extracts Bulgarian full-word liter markers', async () => {
+  const store = new InMemoryDataBackboneStore();
+
+  const milkFullWord = '\u041f\u0440\u044f\u0441\u043d\u043e \u043c\u043b\u044f\u043a\u043e \u0412\u0435\u0440\u0435\u044f 1,5 \u043b\u0438\u0442\u0440\u0430';
+  const milkAbbrev = '\u041f\u0440\u044f\u0441\u043d\u043e \u043c\u043b\u044f\u043a\u043e \u0412\u0435\u0440\u0435\u044f 1.5 \u043b';
+
+  await importInlineCsv({
+    store,
+    rows: [
+      `"1000","Store A","${milkFullWord}","1001","6","3.49","0"`,
+    ],
+    snapshotDate: '2026-04-21',
+    sourceFileName: 'CHAIN_A_100.csv',
+    ingestedAt: '2026-04-22T08:19:28.500Z',
+  });
+
+  const result = await importInlineCsv({
+    store,
+    rows: [
+      `"1001","Store B","${milkAbbrev}","2001","6","3.49","0"`,
+    ],
+    snapshotDate: '2026-04-21',
+    sourceFileName: 'CHAIN_B_200.csv',
+    ingestedAt: '2026-04-22T08:19:29.000Z',
+  });
+
+  const markers = result.state.canonical_products.map((product) =>
+    JSON.parse(product.canonical_attributes_json)
+  );
+  assert.equal(markers.some((entry) => entry.volume_marker === '1500ml'), true);
+});
+
 test('cross-chain canonicalization merges equivalent weight formatting variants', async () => {
   const store = new InMemoryDataBackboneStore();
 
@@ -1783,6 +2149,38 @@ test('cross-chain canonicalization merges equivalent weight formatting variants'
 
   assert.equal(result.canonical_product_count, 1);
   assert.equal(result.canonical_merge_count, 1);
+});
+
+test('cross-chain canonicalization extracts Bulgarian full-word weight markers', async () => {
+  const store = new InMemoryDataBackboneStore();
+
+  const cheeseKg = '\u0421\u0438\u0440\u0435\u043d\u0435 \u043a\u0440\u0430\u0432\u0435 0,5 \u043a\u0438\u043b\u043e\u0433\u0440\u0430\u043c\u0430';
+  const cheeseGram = '\u0421\u0438\u0440\u0435\u043d\u0435 \u043a\u0440\u0430\u0432\u0435 0.5 \u043a\u0433';
+
+  await importInlineCsv({
+    store,
+    rows: [
+      `"1000","Store A","${cheeseKg}","1001","6","7.99","0"`,
+    ],
+    snapshotDate: '2026-04-21',
+    sourceFileName: 'CHAIN_A_100.csv',
+    ingestedAt: '2026-04-22T08:19:32.500Z',
+  });
+
+  const result = await importInlineCsv({
+    store,
+    rows: [
+      `"1001","Store B","${cheeseGram}","2001","6","7.99","0"`,
+    ],
+    snapshotDate: '2026-04-21',
+    sourceFileName: 'CHAIN_B_200.csv',
+    ingestedAt: '2026-04-22T08:19:33.000Z',
+  });
+
+  const markers = result.state.canonical_products.map((product) =>
+    JSON.parse(product.canonical_attributes_json)
+  );
+  assert.equal(markers.some((entry) => entry.volume_marker === '500g'), true);
 });
 
 test('cross-chain canonicalization separates color variants', async () => {
@@ -1861,6 +2259,97 @@ test('cross-chain canonicalization separates pack-count variants', async () => {
   });
 
   assert.equal(result.canonical_product_count, 2);
+});
+
+test('cross-chain canonicalization extracts Bulgarian count plus package volume markers', async () => {
+  const store = new InMemoryDataBackboneStore();
+
+  const juiceBg = '\u0421\u043e\u043a \u043f\u043e\u0440\u0442\u043e\u043a\u0430\u043b 6 \u0431\u0440 x 330 \u043c\u043b';
+  const juiceLatin = '\u0421\u043e\u043a \u043f\u043e\u0440\u0442\u043e\u043a\u0430\u043b x6 330 \u043c\u043b';
+
+  await importInlineCsv({
+    store,
+    rows: [
+      `"1000","Store A","${juiceBg}","1001","6","7.99","0"`,
+    ],
+    snapshotDate: '2026-04-21',
+    sourceFileName: 'CHAIN_A_100.csv',
+    ingestedAt: '2026-04-22T08:24:10.000Z',
+  });
+
+  const result = await importInlineCsv({
+    store,
+    rows: [
+      `"1001","Store B","${juiceLatin}","2001","6","7.99","0"`,
+    ],
+    snapshotDate: '2026-04-21',
+    sourceFileName: 'CHAIN_B_200.csv',
+    ingestedAt: '2026-04-22T08:24:20.000Z',
+  });
+
+  const markers = result.state.canonical_products.map((product) =>
+    JSON.parse(product.canonical_attributes_json)
+  );
+  assert.equal(markers.some((entry) => entry.count_marker === '6'), true);
+  assert.equal(markers.some((entry) => entry.volume_marker === '330ml'), true);
+});
+
+test('cross-chain canonicalization extracts Bulgarian multiplication weight markers', async () => {
+  const store = new InMemoryDataBackboneStore();
+
+  const biscuitsCompact = '\u0411\u0438\u0441\u043a\u0432\u0438\u0442\u0438 2x500 \u0433';
+  const biscuitsSpaced = '\u0411\u0438\u0441\u043a\u0432\u0438\u0442\u0438 2 \u0445 500 \u0433\u0440\u0430\u043c\u0430';
+
+  await importInlineCsv({
+    store,
+    rows: [
+      `"1000","Store A","${biscuitsCompact}","1001","29","5.99","0"`,
+    ],
+    snapshotDate: '2026-04-21',
+    sourceFileName: 'CHAIN_A_100.csv',
+    ingestedAt: '2026-04-22T08:24:30.000Z',
+  });
+
+  const result = await importInlineCsv({
+    store,
+    rows: [
+      `"1001","Store B","${biscuitsSpaced}","2001","29","5.99","0"`,
+    ],
+    snapshotDate: '2026-04-21',
+    sourceFileName: 'CHAIN_B_200.csv',
+    ingestedAt: '2026-04-22T08:24:40.000Z',
+  });
+
+  const markers = result.state.canonical_products.map((product) =>
+    JSON.parse(product.canonical_attributes_json)
+  );
+  assert.equal(markers.some((entry) => entry.count_marker === '2'), true);
+  assert.equal(markers.some((entry) => entry.volume_marker === '500g'), true);
+});
+
+test('canonical parsing handles Aptamil unit brand and age markers', async () => {
+  const store = new InMemoryDataBackboneStore();
+  const aptamil = '\u041c\u041b\u042f\u041a\u041e APTAMIL PRONUTRA+  4 800 \u0413\u0420 \u041d\u0410\u0414 24 \u041c\u0415\u0421\u0415\u0426\u0410';
+
+  const result = await importInlineCsv({
+    store,
+    rows: [
+      `"1000","Store A","${aptamil}","1001","65","34.99","0"`,
+    ],
+    snapshotDate: '2026-04-21',
+    sourceFileName: 'CHAIN_A_100.csv',
+    ingestedAt: '2026-04-22T08:24:45.000Z',
+  });
+
+  const product = result.state.canonical_products[0];
+  const markers = JSON.parse(product.canonical_attributes_json);
+
+  assert.notEqual(product.canonical_brand, '\u0413\u0420');
+  assert.equal(product.canonical_brand, 'APTAMIL');
+  assert.equal(product.canonical_product_type, 'baby_formula');
+  assert.equal(markers.volume_marker, '800g');
+  assert.equal(markers.age_band_marker, '24+m');
+  assert.equal(markers.stage_marker, 'stage_4');
 });
 
 test('cross-chain canonicalization separates olives with different numeric ranges', async () => {

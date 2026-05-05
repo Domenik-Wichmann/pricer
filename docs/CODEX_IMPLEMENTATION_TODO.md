@@ -20,6 +20,7 @@ These are code and repo tasks Codex can complete without creating external accou
 12. Wire Android and iOS native AdMob app ids from build configuration instead of hardcoded Google test ids.
 13. Add `GoogleService-Info.plist` to the iOS Xcode project resources.
 14. Add production API smoke tests for `GET /`, `POST /products/search`, and `POST /basket/optimize`.
+15. After operator approval, run the full canonical marker backfill dry-run without `PRICER_BACKFILL_LIMIT`, review field-change examples, then run the real canonical-only backfill if the dry-run is clean.
 
 ## Nice Later
 

@@ -1,0 +1,35 @@
+{
+  "phase": "phase_6_historical_ingest_admin",
+  "date": "2026-05-03",
+  "commands": [
+    {
+      "command": "npm run test:phase6_historical_ingest",
+      "status": "passed",
+      "summary": "7 passed, 0 failed, 7 total"
+    },
+    {
+      "command": "npm run admin-web:build",
+      "status": "passed",
+      "summary": "TypeScript and Vite production build succeeded"
+    },
+    {
+      "command": "npm run phase6:ingest-snapshot",
+      "status": "passed",
+      "summary": "Local fixture dry-run reported 2 raw snapshots, 2 product_daily_prices rows, 1 ingest_run, 4 pipeline_logs, and 0 written records"
+    }
+  ],
+  "coverage": [
+    "dry-run writes no records",
+    "deterministic historical raw snapshot ids",
+    "collection prefix respected",
+    "no destructive deletes",
+    "skip-existing idempotency",
+    "admin ingest endpoints create planned records only",
+    "plan warnings for current read-model targets"
+  ],
+  "production_actions": {
+    "heavy_historical_ingest_run": false,
+    "firestore_deletes_run": false,
+    "deploy_run": false
+  }
+}

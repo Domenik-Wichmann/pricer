@@ -32,6 +32,12 @@ async function handleBuildBasketPlanRequest({
       items: body.items,
       layer_mode: body.layer_mode,
       limit_per_item: resolveResolverLimit(body.planner_options),
+      use_shopping_intent: body.use_shopping_intent,
+      resolution_mode: body.resolution_mode,
+      owner_context: body.owner_context,
+      owner_id: body.owner_id,
+      owner_type: body.owner_type,
+      preference_confidence_threshold: body.preference_confidence_threshold,
       locality_code: body.locality_code,
       chain_id: body.chain_id,
       chain_name: body.chain_name,
@@ -75,6 +81,7 @@ function buildBasketPlanFromResolvedItems({
 
   const readyItems = [];
   const ambiguousItems = [];
+  const clarificationItems = [];
   const unresolvedItems = [];
   let optimizationReady = true;
   let requiresUserConfirmation = false;
@@ -89,6 +96,16 @@ function buildBasketPlanFromResolvedItems({
           quantityContext,
         }));
       }
+      return;
+    }
+
+    if (item.status === 'clarification_needed') {
+      clarificationItems.push(buildClarificationOutcome({
+        item,
+        quantityContext,
+      }));
+      optimizationReady = false;
+      requiresUserConfirmation = true;
       return;
     }
 
@@ -127,13 +144,31 @@ function buildBasketPlanFromResolvedItems({
     requires_user_confirmation: requiresUserConfirmation,
     ready_items: readyItems,
     ambiguous_items: ambiguousItems,
+    clarification_items: clarificationItems,
     unresolved_items: unresolvedItems,
     summary: {
       total_items: effectiveResolvedItems.length,
       ready_count: readyItems.length,
       ambiguous_count: ambiguousItems.length,
+      clarification_needed_count: clarificationItems.length,
       unresolved_count: unresolvedItems.length,
     },
+  };
+}
+
+function buildClarificationOutcome({
+  item,
+  quantityContext,
+}) {
+  return {
+    input_text: item.input_text,
+    normalized_query: item.normalized_query,
+    status: 'clarification_needed',
+    confidence: item.confidence,
+    requested_quantity: quantityContext.requested_quantity,
+    requested_markers: quantityContext.requested_markers,
+    clarification_needed: item.clarification_needed || null,
+    intent_resolution: item.intent_resolution || null,
   };
 }
 
@@ -317,7 +352,7 @@ function parseRequestedQuantity(text) {
 }
 
 function parseVolumeMarker(text) {
-  const match = String(text || '').match(/(\d+(?:[.,]\d+)?)\s*(ml|l|cl)(?=\s|$|[.,])/iu);
+  const match = String(text || '').match(/(\d+(?:[.,]\d+)?)\s*(ml|мл|милилитър|милилитра|l|л|литър|литра|cl|kg|кг|килограм|килограма|g|гр|г|грам|грама)(?=\s|$|[.,])/iu);
   if (!match) {
     return null;
   }
@@ -328,18 +363,24 @@ function parseVolumeMarker(text) {
   }
 
   const unit = match[2].toLowerCase();
-  if (unit === 'l') {
+  if (unit === 'l' || unit === 'л' || unit === 'литър' || unit === 'литра') {
     return `${Math.round(value * 1000)}ml`;
   }
   if (unit === 'cl') {
     return `${Math.round(value * 10)}ml`;
+  }
+  if (unit === 'kg' || unit === 'кг' || unit === 'килограм' || unit === 'килограма') {
+    return `${Math.round(value * 1000)}g`;
+  }
+  if (unit === 'g' || unit === 'гр' || unit === 'г' || unit === 'грам' || unit === 'грама') {
+    return `${Math.round(value)}g`;
   }
 
   return `${Math.round(value)}ml`;
 }
 
 function parseCountMarker(text) {
-  const explicitMatch = String(text || '').match(/(\d+)\s*(count|ct|pcs?|pieces?|rolls?|eggs?)(?=\s|$|[.,])/iu);
+  const explicitMatch = String(text || '').match(/(\d+)\s*(бр|брой|броя|count|ct|pcs?|pieces?|rolls?|eggs?)(?=\s|$|[.,])/iu);
   if (explicitMatch) {
     return `${Number.parseInt(explicitMatch[1], 10)} count`;
   }

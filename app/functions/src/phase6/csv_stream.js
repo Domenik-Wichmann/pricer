@@ -17,18 +17,29 @@ async function* parseDelimitedStream(readable, {
   let cell = '';
   let inQuotes = false;
   let pendingQuote = false;
+  let afterClosingQuote = false;
   let skipNextLf = false;
   let rowNumber = 1;
+  let rowMalformedReasons = [];
 
   const flushCell = () => {
     row.push(cell);
     cell = '';
+    afterClosingQuote = false;
+  };
+
+  const markMalformed = (reason) => {
+    if (!rowMalformedReasons.includes(reason)) {
+      rowMalformedReasons.push(reason);
+    }
   };
 
   const flushRow = () => {
     flushCell();
     const normalized = row.map((value) => value);
+    const malformedReasons = rowMalformedReasons;
     row = [];
+    rowMalformedReasons = [];
 
     if (normalized.length === 1 && normalized[0] === '' && headers) {
       return null;
@@ -51,6 +62,12 @@ async function* parseDelimitedStream(readable, {
     const parsed = {
       record,
       row_number: rowNumber,
+      parse_metadata: {
+        column_count: normalized.length,
+        expected_column_count: headers.length,
+        has_column_count_mismatch: normalized.length !== headers.length,
+        malformed_reasons: malformedReasons,
+      },
     };
     if (previewRows.length < 3) {
       previewRows.push(parsed);
@@ -93,11 +110,39 @@ async function* parseDelimitedStream(readable, {
         if (char === '"') {
           cell += '"';
           pendingQuote = false;
+          afterClosingQuote = false;
           continue;
         }
 
         inQuotes = false;
         pendingQuote = false;
+        afterClosingQuote = true;
+      }
+
+      if (afterClosingQuote) {
+        if (!inQuotes && char === selectedDelimiter) {
+          flushCell();
+          continue;
+        }
+
+        if (!inQuotes && (char === '\n' || char === '\r')) {
+          if (char === '\r') {
+            skipNextLf = true;
+          }
+
+          const parsed = flushRow();
+          if (parsed) {
+            yield parsed;
+          }
+          continue;
+        }
+
+        if (/\s/u.test(char)) {
+          continue;
+        }
+
+        markMalformed(char === '"' ? 'quote_after_closing_quote' : 'text_after_closing_quote');
+        afterClosingQuote = false;
       }
 
       if (char === '"') {
@@ -137,6 +182,16 @@ async function* parseDelimitedStream(readable, {
   const tail = decoder.end();
   if (tail) {
     cell += tail;
+  }
+
+  if (pendingQuote) {
+    inQuotes = false;
+    pendingQuote = false;
+    afterClosingQuote = true;
+  }
+
+  if (inQuotes) {
+    markMalformed('unclosed_quote');
   }
 
   if (cell.length > 0 || row.length > 0) {

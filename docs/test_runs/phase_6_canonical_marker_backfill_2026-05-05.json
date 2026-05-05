@@ -1,0 +1,36 @@
+{
+  "date": "2026-05-05",
+  "phase": 6,
+  "scope": "canonical marker backfill",
+  "commands": [
+    {
+      "command": "node --check scripts/backfill_canonical_markers_firestore.js",
+      "status": "passed"
+    },
+    {
+      "command": "npm run test:phase6_canonical_backfill",
+      "status": "passed",
+      "summary": "14 passed, 0 failed"
+    },
+    {
+      "command": "npm run test:phase6",
+      "status": "passed",
+      "summary": "78 passed, 0 failed"
+    },
+    {
+      "command": "npm run test:phase15_1",
+      "status": "passed",
+      "summary": "7 passed, 0 failed"
+    },
+    {
+      "command": "npm run test:phase15_2",
+      "status": "passed",
+      "summary": "18 passed, 0 failed"
+    },
+    {
+      "command": "PRICER_BACKFILL_DRY_RUN=true PRICER_BACKFILL_LIMIT=100 npm run phase6:backfill-canonical-markers",
+      "status": "passed",
+      "summary": "100 scanned, 86 changed candidates, 14 unchanged, 0 actual writes, 0 failed writes, no forbidden collections touched"
+    }
+  ]
+}

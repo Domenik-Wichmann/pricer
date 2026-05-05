@@ -15,12 +15,12 @@ const {
   searchCanonicalProductCatalog,
   searchCanonicalProductCatalogForRequest,
 } = require('./service');
-
 const DEFAULT_LIMIT_PER_ITEM = 5;
 const MAX_LIMIT_PER_ITEM = 10;
 const MAX_ITEMS_PER_REQUEST = 100;
 const INTERNAL_SEARCH_LIMIT = 25;
-const RESOLUTION_STATUSES = Object.freeze(['resolved', 'ambiguous', 'unresolved']);
+const SHOPPING_INTENT_RESOLUTION_MODES = Object.freeze(['default', 'intent_first']);
+const RESOLUTION_STATUSES = Object.freeze(['resolved', 'ambiguous', 'unresolved', 'clarification_needed']);
 const CONFIDENCE_LEVELS = Object.freeze(['high', 'medium', 'low', 'none']);
 const SCORE_THRESHOLDS = Object.freeze({
   high: 0.85,
@@ -59,6 +59,10 @@ async function handleResolveShoppingListItemsRequest({
     items: items.value,
     layerMode: layerMode.layerMode,
     limitPerItem: resolveLimitPerItem(body.limit_per_item),
+    useShoppingIntent: body.use_shopping_intent,
+    resolutionMode: body.resolution_mode,
+    ownerContext: body.owner_context || buildOwnerContextFromRequestBody(body, req),
+    preferenceConfidenceThreshold: body.preference_confidence_threshold,
   });
   const localityCode = normalizeLocalityCode(
     body.locality_code ||
@@ -102,6 +106,10 @@ async function resolveShoppingListItems({
   items = [],
   layerMode = DEFAULT_PRODUCT_LAYER_MODE,
   limitPerItem = DEFAULT_LIMIT_PER_ITEM,
+  useShoppingIntent = false,
+  resolutionMode = 'default',
+  ownerContext = {},
+  preferenceConfidenceThreshold,
 }) {
   const normalizedItems = normalizeShoppingListItems(items);
   if (normalizedItems.error) {
@@ -112,6 +120,10 @@ async function resolveShoppingListItems({
   if (!resolvedLayerMode.ok) {
     throw new Error(resolvedLayerMode.response?.body?.error || 'invalid layer_mode');
   }
+  const intentMode = resolveShoppingIntentMode({
+    useShoppingIntent,
+    resolutionMode,
+  });
 
   const boundedLimitPerItem = resolveLimitPerItem(limitPerItem);
   const state = store?.prefersScopedProductSearch
@@ -125,11 +137,15 @@ async function resolveShoppingListItems({
       item,
       layerMode: resolvedLayerMode.layerMode,
       limitPerItem: boundedLimitPerItem,
+      intentMode,
+      ownerContext,
+      preferenceConfidenceThreshold,
     }));
   }
 
   return {
     layer_mode: resolvedLayerMode.layerMode,
+    resolution_mode: intentMode,
     items: resolvedItems,
     summary: buildResolutionSummary(resolvedItems),
   };
@@ -141,6 +157,9 @@ async function resolveOneShoppingListItem({
   item,
   layerMode,
   limitPerItem,
+  intentMode = 'default',
+  ownerContext = {},
+  preferenceConfidenceThreshold,
 }) {
   const parsed = parseShoppingListItemText(item.text);
   if (!parsed.normalized_query) {
@@ -154,23 +173,47 @@ async function resolveOneShoppingListItem({
     };
   }
 
+  const intentResult = intentMode === 'intent_first'
+    ? await getShoppingIntentResolver()({
+      store,
+      text: item.text,
+      ownerContext,
+      preferenceConfidenceThreshold,
+    })
+    : null;
+  if (intentResult && intentResult.status !== 'unresolved') {
+    if (intentResult.status !== 'ready_for_product_selection') {
+      return buildClarificationNeededItem({
+        item,
+        parsed,
+        intentResult,
+      });
+    }
+  }
+
+  const queryText = intentResult?.status === 'ready_for_product_selection'
+    ? buildIntentFirstCatalogQuery(intentResult)
+    : parsed.normalized_query;
+  const catalogParsed = queryText === parsed.normalized_query
+    ? parsed
+    : parseShoppingListItemText(queryText);
   const catalogResponse = state
     ? searchCanonicalProductCatalog({
       state,
-      queryText: parsed.normalized_query,
+      queryText,
       layerMode,
       limit: INTERNAL_SEARCH_LIMIT,
       offset: 0,
     })
     : await searchCanonicalProductCatalogForRequest({
       store,
-      queryText: parsed.normalized_query,
+      queryText,
       layerMode,
       limit: INTERNAL_SEARCH_LIMIT,
       offset: 0,
     });
   const rankedCandidates = rankShoppingListCandidates({
-    parsed,
+    parsed: catalogParsed,
     candidates: catalogResponse.results,
   });
   const status = determineResolutionStatus(rankedCandidates);
@@ -181,12 +224,81 @@ async function resolveOneShoppingListItem({
   return {
     input_text: item.text,
     normalized_query: parsed.normalized_query,
+    ...(intentResult ? {
+      intent_resolution: buildIntentResolutionSummary(intentResult),
+      intent_query: queryText,
+    } : {}),
     status,
     confidence: determineConfidence(rankedCandidates[0]?.score || 0),
     best_match: bestMatch,
     candidates: rankedCandidates
       .slice(0, limitPerItem)
       .map((candidate) => buildRankedCandidate(candidate)),
+  };
+}
+
+function getShoppingIntentResolver() {
+  return require('./shopping_intent').resolveShoppingIntent;
+}
+
+function buildClarificationNeededItem({
+  item,
+  parsed,
+  intentResult,
+}) {
+  return {
+    input_text: item.text,
+    normalized_query: parsed.normalized_query,
+    status: 'clarification_needed',
+    confidence: 'none',
+    best_match: null,
+    candidates: [],
+    clarification_needed: {
+      status: intentResult.status,
+      possible_families: intentResult.possible_families || [],
+      selected_family: intentResult.selected_family || null,
+      missing_attributes: intentResult.missing_attributes || [],
+      clarification_questions: intentResult.clarification_questions || [],
+      suggested_defaults: intentResult.suggested_defaults || {},
+      ready_for_product_selection: false,
+    },
+    intent_resolution: buildIntentResolutionSummary(intentResult),
+  };
+}
+
+function buildIntentFirstCatalogQuery(intentResult) {
+  const terms = [
+    intentResult.selected_family?.display_name_en,
+  ];
+  const resolvedAttributes = {
+    ...(intentResult.resolved_attributes || {}),
+  };
+  for (const [attributeId, defaultValue] of Object.entries(intentResult.suggested_defaults || {})) {
+    if (!resolvedAttributes[attributeId]) {
+      resolvedAttributes[attributeId] = defaultValue?.value_id;
+    }
+  }
+  for (const [attributeId, value] of Object.entries(resolvedAttributes)) {
+    if (attributeId === 'brand') {
+      terms.push(value);
+      continue;
+    }
+    const defaultValue = intentResult.suggested_defaults?.[attributeId];
+    terms.push(defaultValue?.display_name_en || value);
+  }
+  return terms.filter(Boolean).join(' ');
+}
+
+function buildIntentResolutionSummary(intentResult) {
+  return {
+    status: intentResult.status,
+    possible_families: intentResult.possible_families || [],
+    selected_family: intentResult.selected_family || null,
+    resolved_attributes: intentResult.resolved_attributes || {},
+    missing_attributes: intentResult.missing_attributes || [],
+    clarification_questions: intentResult.clarification_questions || [],
+    suggested_defaults: intentResult.suggested_defaults || {},
+    ready_for_product_selection: intentResult.status === 'ready_for_product_selection',
   };
 }
 
@@ -461,6 +573,8 @@ function buildResolutionSummary(items) {
       next.resolved_count += 1;
     } else if (item.status === 'ambiguous') {
       next.ambiguous_count += 1;
+    } else if (item.status === 'clarification_needed') {
+      next.clarification_needed_count += 1;
     } else {
       next.unresolved_count += 1;
     }
@@ -470,6 +584,7 @@ function buildResolutionSummary(items) {
     total_items: 0,
     resolved_count: 0,
     ambiguous_count: 0,
+    clarification_needed_count: 0,
     unresolved_count: 0,
   });
 }
@@ -481,7 +596,7 @@ function inferShoppingHints(tokens) {
 }
 
 function parseVolumeMarker(text) {
-  const match = String(text || '').match(/(\d+(?:[.,]\d+)?)\s*(ml|l|cl)(?=\s|$|[.,])/iu);
+  const match = String(text || '').match(/(\d+(?:[.,]\d+)?)\s*(ml|мл|милилитър|милилитра|l|л|литър|литра|cl|kg|кг|килограм|килограма|g|гр|г|грам|грама)(?=\s|$|[.,])/iu);
   if (!match) {
     return null;
   }
@@ -492,18 +607,24 @@ function parseVolumeMarker(text) {
   }
 
   const unit = match[2].toLowerCase();
-  if (unit === 'l') {
+  if (unit === 'l' || unit === 'л' || unit === 'литър' || unit === 'литра') {
     return `${Math.round(value * 1000)}ml`;
   }
   if (unit === 'cl') {
     return `${Math.round(value * 10)}ml`;
+  }
+  if (unit === 'kg' || unit === 'кг' || unit === 'килограм' || unit === 'килограма') {
+    return `${Math.round(value * 1000)}g`;
+  }
+  if (unit === 'g' || unit === 'гр' || unit === 'г' || unit === 'грам' || unit === 'грама') {
+    return `${Math.round(value)}g`;
   }
 
   return `${Math.round(value)}ml`;
 }
 
 function parseCountValue(text) {
-  const explicitCountMatch = String(text || '').match(/(\d+)\s*(count|ct|pcs?|pieces?|rolls?|eggs?)(?=\s|$|[.,])/iu);
+  const explicitCountMatch = String(text || '').match(/(\d+)\s*(бр|брой|броя|count|ct|pcs?|pieces?|rolls?|eggs?)(?=\s|$|[.,])/iu);
   if (explicitCountMatch) {
     return Number.parseInt(explicitCountMatch[1], 10);
   }
@@ -521,6 +642,27 @@ function resolveLimitPerItem(rawLimit) {
   return Math.min(parsed, MAX_LIMIT_PER_ITEM);
 }
 
+function resolveShoppingIntentMode({
+  useShoppingIntent,
+  resolutionMode,
+}) {
+  if (resolutionMode === 'intent_first' || useShoppingIntent === true) {
+    return 'intent_first';
+  }
+  return 'default';
+}
+
+function buildOwnerContextFromRequestBody(body = {}, req = null) {
+  const ownerId = body.owner_id || body.user_id || req?.headers?.['x-pricer-owner-id'] || req?.headers?.['x-pricer-user-id'];
+  if (!ownerId) {
+    return {};
+  }
+  return {
+    owner_id: ownerId,
+    owner_type: body.owner_type || req?.headers?.['x-pricer-owner-type'] || 'user',
+  };
+}
+
 function roundScore(value) {
   const bounded = Math.max(0, Math.min(1, value));
   return Math.round(bounded * 100) / 100;
@@ -536,6 +678,7 @@ module.exports = {
   MAX_LIMIT_PER_ITEM,
   RESOLUTION_STATUSES,
   SCORE_THRESHOLDS,
+  SHOPPING_INTENT_RESOLUTION_MODES,
   handleResolveShoppingListItemsRequest,
   resolveShoppingListItems,
 };

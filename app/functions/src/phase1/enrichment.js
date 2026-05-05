@@ -2,6 +2,7 @@ const {
   BULGARIAN_SIZE_UNITS_PATTERN,
   CATEGORY_SEARCH_MAP,
   GENERIC_PRODUCT_TERMS,
+  NEVER_BRAND_TERMS,
   PRODUCT_TYPE_PATTERNS,
   UNIT_MAP,
 } = require('./constants');
@@ -51,6 +52,10 @@ function extractFatPercent(rawName) {
 }
 
 function guessProductType(normalizedName) {
+  if (PRODUCT_TYPE_PATTERNS.babyFormula.test(normalizedName)) {
+    return 'baby_formula';
+  }
+
   if (normalizedName.includes(PRODUCT_TYPE_PATTERNS.freshMilk)) {
     return 'fresh_milk';
   }
@@ -72,17 +77,26 @@ function guessProductType(normalizedName) {
 function guessBrand(rawName, tokens) {
   const originalTokens = collapseWhitespace(rawName)
     .split(/\s+/u)
-    .map((token) => token.replace(/[.,]/g, ''))
+    .map((token) => token.replace(/[.,]/g, '').replace(/^\+|\+$/gu, ''))
     .filter(Boolean);
 
   for (const token of originalTokens) {
-    const lowered = token.toLowerCase();
-    if (/^\d/u.test(lowered) || lowered.includes('%') || GENERIC_PRODUCT_TERMS.has(lowered)) {
+    const lowered = token.toLocaleLowerCase('bg-BG');
+    if (
+      /^\d/u.test(lowered) ||
+      lowered.includes('%') ||
+      GENERIC_PRODUCT_TERMS.has(lowered) ||
+      NEVER_BRAND_TERMS.has(lowered)
+    ) {
       continue;
     }
 
     if (tokens.includes(lowered) && /\p{Script=Cyrillic}/u.test(lowered)) {
       return token;
+    }
+
+    if (tokens.includes(lowered) && /^[A-Z][A-Z0-9+-]{2,}$/u.test(token)) {
+      return token.replace(/\+$/u, '');
     }
   }
 

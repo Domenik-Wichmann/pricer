@@ -1,6 +1,6 @@
 # Schema Map
 
-Last updated: 2026-04-29
+Last updated: 2026-05-05
 
 This is the schema-first companion to [REPO_MAP.md](REPO_MAP.md). Use it when you need to understand what data exists, where it lives, how records connect, and which code owns each schema surface.
 
@@ -33,18 +33,20 @@ Production runtime note: Firestore-backed routes must read and write this flat s
 | Query/matching outputs | Service output | Computed from flat store | `phase2/`, `phase4/` | `DATA_MODEL.md` |
 | Semantic profiles and embeddings | Yes | Flat store / Firestore | `phase3/` | `DATA_MODEL.md` |
 | Aggregated price history | Yes | Flat store / Firestore | `phase3_5/` | `DATA_MODEL.md` |
+| Current product offers, offer fingerprints, change events, manifests, and canonical current offer summaries | Yes | Derived flat store / Firestore read model | `phase16/current_offers.js`, `phase16/price_lookup.js`, `phase15/service.js`, `phase6/incremental_ingest.js`, `scripts/publish_phase6_latest_firestore.js`, `scripts/diff_phase6_snapshot_firestore.js`, `scripts/export_phase6_current_offer_fingerprints.js` | `DATA_MODEL.md`, this file |
 | Canonical products and mappings | Yes | Flat store / Firestore | `phase6/ingest.js`, `phase15/readers.js` | `DATA_MODEL.md` |
 | Retailer/store locations | Yes | Derived flat store / Firestore read model | `phase6/store_locations.js`, `phase6/ingest.js` | `DATA_MODEL.md`, `STORE_LOCATION_EXTRACTION.md` |
 | Retailer/store geocoding cache | Yes | Additive flat store / Firestore read model | `phase6/geocoding.js` | `DATA_MODEL.md`, `STORE_LOCATION_EXTRACTION.md` |
 | Manual-address geocoding cache | Yes | Additive flat store / Firestore read model | `phase6/geocoding.js` | `DATA_MODEL.md`, `STORE_LOCATION_EXTRACTION.md` |
 | Location review candidates | Yes | Additive flat store / Firestore admin-review read model | `phase6/location_review.js` | `DATA_MODEL.md`, `STORE_LOCATION_EXTRACTION.md` |
 | Reviewed location coordinates | Yes | Additive flat store / Firestore internal read model | `phase6/location_review.js` | `DATA_MODEL.md`, `STORE_LOCATION_EXTRACTION.md` |
-| Canonical enrichment and disambiguation | Yes | Flat store / Firestore | `phase6/disambiguation.js`, `phase15/enrichment.js` | `DATA_MODEL.md` |
+| Canonical enrichment and disambiguation | Yes | Flat store / Firestore | `phase6/disambiguation.js`, `phase15/enrichment.js`, `phase15/enrichment_pilot.js` | `DATA_MODEL.md`, `PHASE_15_9_SEMANTIC_ENRICHMENT_PILOT.md` |
 | Meal ingredient catalog and bridge | Yes | Flat store / Firestore | `meal/` | `DATA_MODEL.md`, Phase M0 docs |
 | Production ingest logs and alerts | Yes | Flat store / Firestore | `phase6/`, `phase9/` | `DATA_MODEL.md` |
 | Demand intelligence | Yes | Flat store / Firestore | `phase7/` | `DATA_MODEL.md` |
 | Monetization | Yes | Backend flat store plus client Firestore profile cache | `phase10/`, mobile billing services | `DATA_MODEL.md` |
 | Basket analytics | Yes | Flat store / Firestore | `phase16/basket_analytics.js` | Phase 16.6 docs |
+| Shopping intent family preferences | Yes | Flat store / Firestore | `phase15/shopping_intent.js` | `DATA_MODEL.md`, Phase 15.8 docs |
 | Saved lists and watchlist tracker | Yes | Flat store / Firestore | `phase17/` | Phase 17 docs |
 | Saved user locations | Yes | Flat store / Firestore user preference records | `phase6/saved_user_locations.js` | `DATA_MODEL.md`, `STORE_LOCATION_EXTRACTION.md` |
 | Mobile user lists/watchlist/billing cache | Client runtime | Nested Firestore under `users/{anon_id}` | `app/mobile/lib/core/services/firestore_repositories.dart` | `DATA_MODEL.md` |
@@ -78,14 +80,19 @@ Every collection is represented as an array in the local/in-memory store and as 
 | `embedding_records` | `source_product_id + embedding_model` | Product embedding vectors. | One or more embeddings per source product/model. |
 | `feedback_events` | `feedback_id` | User or system feedback about query/product resolution. | Optional link to `source_product_id`. |
 | `product_daily_prices` | `source_product_id + date` | Product-level daily price aggregates. | Derived from `raw_price_snapshots`. Used for product history and watchlist intelligence. |
+| `current_product_offers` | `offer_id` | Compact latest/current offer read model, one row per source product with usable current price. | Derived from latest raw snapshot, source product, canonical mapping, and canonical product context; queried by canonical/source ids in live routes. |
+| `current_offer_fingerprints` | `source_product_id` | Incremental latest-update baseline, one stable hash per current source-product offer. | Compared by daily diff jobs to skip unchanged offers and avoid rewriting the current read model. |
+| `offer_change_events` | `event_id` | Planned append-only latest-offer change stream for new, changed, and missing/removed offer observations. | Produced only by the future real incremental writer; dry-runs currently estimate event counts. |
+| `snapshot_manifests` | `manifest_id` | Per-snapshot diff/run summary for dry-runs and future committed incremental updates. | Records scanned counts, diff categories, affected canonical ids, estimated writes, and delete policy. |
+| `canonical_current_offer_summary` | `canonical_product_id` | Compact current-price summary per canonical product. | Derived from `current_product_offers`; stores min/max/avg, offer count, chain count, and cheapest offer pointers. |
 | `category_daily_aggregates` | `category_code + date` | Category-level daily aggregate prices. | Derived from snapshots/source products. |
 | `sql_products` | `source_product_id` | Flat sync target for SQL-like product reads. | Mirrors selected `source_products` fields. |
 | `sql_product_prices_daily` | `source_product_id + date` | Flat sync target for product daily prices. | Mirrors `product_daily_prices`. |
 | `sql_category_aggregates` | `category_code + date` | Flat sync target for category aggregates. | Mirrors `category_daily_aggregates`. |
 | `vector_index_records` | `source_product_id + embedding_model` | Flat sync target for vector records. | Mirrors `embedding_records`. |
-| `canonical_products` | `canonical_product_id` | Deterministic cross-source product groups. | Target of `canonical_product_mappings`; referenced by product catalog, basket planning, saved lists, watchlist tracker, and meal bridge. |
+| `canonical_products` | `canonical_product_id` | Deterministic cross-source product groups. | Target of `canonical_product_mappings`; referenced by product catalog, basket planning, saved lists, watchlist tracker, and meal bridge. Invalid records may carry additive no-delete `data_quality_status = "invalid"` quarantine markers. |
 | `canonical_product_mappings` | `source_product_id` | Link from source product to canonical product. | Connects `source_products.source_product_id` to `canonical_products.canonical_product_id`. |
-| `canonical_enrichment_store` | `canonical_fingerprint` | Additive LLM/cached enrichment for canonical product concepts. | Fingerprint currently aligns with canonical product ID. Must not mutate canonical grouping truth. |
+| `canonical_enrichment_store` | `canonical_fingerprint` | Additive LLM/cached enrichment for canonical product concepts, including optional Phase 15.9 search aliases/category flags. | Fingerprint currently aligns with canonical product ID. Must not mutate canonical grouping truth. Pilot writes are limited to this collection and may cache canonical-name hash metadata. |
 | `retailer_locations` | `location_id` | Deterministic store/location read model extracted from raw store names where source text contains city/address hints. | Derived from `raw_price_snapshots` and `source_products`; preserves provenance and leaves coordinates null until geocoding. |
 | `retailer_location_geocodes` | `geocode_id` | Additive geocoding cache/read model for retailer locations. | References `retailer_locations.location_id`; keyed by normalized country/city/raw address/store identity; provider results must not mutate raw location fields. |
 | `manual_location_geocodes` | `geocode_id` | Additive cache/read model for user-triggered manual-address coordinate lookup. | User-scoped provenance over raw address text; matched coordinates require explicit confirmation before use or saving. |
@@ -101,12 +108,14 @@ Every collection is represented as an array in the local/in-memory store and as 
 | `unit_conversions` | `conversion_id` | Generic conversions within unit types. | Links `from_unit_id` to `to_unit_id`. |
 | `ingredient_unit_rules` | `ingredient_rule_id` | Ingredient-specific conversion/yield rules. | References `ingredient_id`. |
 | `ingest_runs` | `ingest_run_id` | Production ingest run metadata. | Summarizes KolkoStruva import and canonicalization outcomes. |
+| `admin_ingest_jobs` | `job_id` | Admin Console historical ingest planning and visibility records. | Planned/running/succeeded/failed/cancelled job metadata; endpoint V1 creates planned records only and does not process ZIPs synchronously. |
 | `pipeline_logs` | `log_id` | Pipeline log records. | Append-only diagnostics. |
 | `analytics_events` | `analytics_event_id` | Query/product/user analytics events. | Optional user/query/source product links. |
 | `basket_analytics_store` | `analytics_id` | Persisted basket quality/optimizer metrics when explicitly requested. | Observation-only; must not affect basket output. |
 | `gap_signal_store` | `signal_id` | Internal market-gap signals from search, resolver, shopping-list/basket input, and watchlist additions, with nullable locality, chain, and store context. | Observation-only; read by `phase18/gap_detection.js` for global `GET /analytics/gap-detection`, locality rollups on `GET /analytics/gap-detection/localities`, chain coverage via `GET /analytics/gap-detection/coverage-by-chain`, business-readable opportunity reports via `GET /analytics/opportunities`, and merchant/admin insight rollups under `GET /analytics/insights/*`. |
 | `saved_lists_store` | `list_id` | Backend saved shopping lists. | Owner-scoped records storing user input only; Phase 18.7 mobile screens consume this through `/lists` CRUD without adding client persistence. |
 | `watchlist_store` | `watch_id` | Backend canonical-product watchlist tracker. | Owner-scoped references to canonical products; price view is computed, not copied. |
+| `user_product_family_preferences` | `preference_id` | Owner-scoped preferred attributes and brand hints by shopping product family. | Read by `phase15/shopping_intent.js` only as deterministic suggested defaults; does not select or mutate canonical products/offers. |
 | `saved_user_locations` | `location_id` | Consented saved user locations for opt-in location-aware search. | User-scoped preference records; can resolve Phase 2B availability requests by saved location id, unambiguous label, or default location. |
 | `watchlist_alert_events` | `alert_id` | Price drop alert events. | Links to user and `source_product_id`. |
 | `notification_events` | `notification_id` | Notification send attempts/results. | Links to alert/user/source product. |
@@ -139,14 +148,16 @@ Important rules:
 - `source_products` is stable source identity; do not replace it with canonical identity.
 - `canonical_products` is a grouping layer over source identity, not the raw source of prices.
 - `canonical_product_mappings` is the bridge for product catalog, shopping-list resolution, and basket planning.
+- Product detail may expose a bounded list of `canonical_product_mappings.source_product_id` values for QA/navigation; this is an API convenience over the same mapping rows, not a new persistence collection.
+- Historical ingest may append `raw_price_snapshots`, `product_daily_prices`, `ingest_runs`, and `pipeline_logs` for old dates. It must not delete catalog/current read-model rows, and it must not publish current read models unless the operator explicitly targets them.
 
 ### Current Price Lookup
 
 ```text
 canonical_product_id
   -> canonical_product_mappings
-  -> source_products
-  -> latest raw_price_snapshots per source_product_id
+  -> current_product_offers / canonical_current_offer_summary
+  -> fallback legacy scoped mappings/source_products/latest raw_price_snapshots per source_product_id when compact offers are absent
 ```
 
 Owner:
@@ -154,13 +165,35 @@ Owner:
 
 Rules:
 - Source prices are treated as EUR.
-- Do not create a separate canonical price store unless a later phase explicitly defines it.
+- Current-price display should prefer `current_product_offers` and `canonical_current_offer_summary` because they are compact and route-safe.
+- Legacy mappings/source/snapshot lookup remains bounded fallback behavior until the compact model is populated.
 - Staleness and missing-price state must be explicit in responses.
+- Invalid/quarantined `source_products` or invalid offer rows are excluded from compact current-offer reads and legacy fallback price records; current-offer summaries are not rewritten by quarantine mode.
+
+### Incremental Latest Update
+
+```text
+new latest snapshot
+  -> build current_product_offers in memory
+  -> build current_offer_fingerprints
+  -> compare with existing/exported fingerprints
+  -> write only changed offers/fingerprints/events
+  -> rebuild only affected canonical_current_offer_summary rows
+  -> record one snapshot_manifest
+```
+
+Rules:
+- Direct Firestore comparison reads one existing fingerprint or current-offer row per incoming source product. At production scale this can mean 1M+ reads, so full dry-runs should use an exported fingerprint baseline or a prebuilt manifest/cache.
+- The baseline export command reads `current_product_offers` page-by-page and writes a compact local JSONL file. It does not write Firestore data unless the operator explicitly enables the guarded backfill mode.
+- Daily diff categories are `unchanged`, `new`, `price_changed`, `promo_changed`, `metadata_changed`, and `missing_removed`.
+- Missing/removed offers are reported and may affect summaries, but no documents are deleted by default.
+- Historical backfill remains append/idempotency oriented for date-specific archive/history rows and must not recompute latest/current read models by default.
 
 ### Shopping and Basket Flow
 
 ```text
 user input text
+  -> phase15/shopping_intent family/attribute clarification when the term is broad
   -> phase15/shopping_list resolution
   -> canonical_products candidates
   -> phase15/basket_planner
@@ -170,6 +203,8 @@ user input text
 ```
 
 Persistence rules:
+- Shopping intent preferences store owner-scoped family defaults only; they are hints before canonical product selection.
+- The shopping-list and basket planner `intent_first` adapter is opt-in only. It may read `user_product_family_preferences` through scoped owner/family queries, but ambiguous intent stays transient in `clarification_needed` / `clarification_items` response fields and never writes a new schema row.
 - Saved lists store user input and owner metadata only.
 - Mobile saved-list editing sends normalized item strings back to the same saved-list records and navigates current items into `/optimize`; optimization output is not written to saved lists.
 - Optimizer, explanation, metrics, and health outputs are recomputed unless explicitly persisted as analytics.
@@ -241,8 +276,20 @@ For complete field lists, see [DATA_MODEL.md](DATA_MODEL.md). This section expla
 - Grouping key: `canonical_product_key`
 - Display/classification: `canonical_display_name`, `canonical_brand`, `canonical_product_type`, `canonical_category_code`
 - Size: `canonical_size_value`, `canonical_size_unit`
-- Deterministic markers: `canonical_attributes_json`
+- Deterministic markers: `canonical_attributes_json`, including compact legacy marker strings and optional structured `size_marker`
 - Provenance: `source_example_name`, `source_product_count`
+- Backfill metadata: optional `canonical_marker_backfill_version`, `canonical_marker_backfilled_at`
+
+Structured `size_marker` normalizes extracted size/package markers into comparable and display-safe fields while preserving `raw_text`. It stores `quantity`, `unit`, `total_quantity`, `total_unit`, optional `pack_count`, optional `unit_quantity`, optional `unit_quantity_unit`, `display`, and `normalized_display`. Unit variants such as `гр`, `г`, `кг`, `мл`, `л`, and `бр` normalize to `g`, `kg`, `ml`, `l`, or `pcs`; comparable mass/volume totals are expressed in `g` or `ml`.
+
+Product detail and product search expose this field as `markers.size_marker` when it exists on the canonical product. Legacy compact marker fields remain in `markers` for backward compatibility.
+
+Canonical marker backfill ownership:
+- Script: `scripts/backfill_canonical_markers_firestore.js`
+- Command: `npm run phase6:backfill-canonical-markers`
+- Scope: scans only `canonical_products`; reads matching `canonical_enrichment_store` docs only when a safe brand cleanup needs enrichment alignment.
+- Forbidden collections: `raw_price_snapshots`, `current_product_offers`, `product_daily_prices`, `canonical_product_mappings`, and `source_products`.
+- The script patches changed fields only and never rewrites canonical IDs, mappings, offers, raw rows, or history rows.
 
 `canonical_product_mappings`:
 - Source side: `source_product_id`, `dedupe_key`
@@ -253,7 +300,8 @@ For complete field lists, see [DATA_MODEL.md](DATA_MODEL.md). This section expla
 
 `canonical_enrichment_store`:
 - Identity: `canonical_fingerprint`
-- Enrichment payload: nested `enrichment.*`
+- Enrichment payload: nested `enrichment.*`; rich v2 records use `enrichment.enrichment_version = "canonical_semantic_v2"` and may include identity/classification, food/beverage/dairy/baby/package/search/shopping-intent/quality fields.
+- Cache metadata: `canonical_product_id`, `canonical_name_hash`, `enrichment_version`, and `enrichment_source`; the Phase 15.9 pilot skips records whose canonical id, name hash, and v2 version already match.
 - Explicit claim provenance: `explicit_claim_evidence[]` for deterministic diet/attribute alias matches where available
 - Provenance: `model_name`, `prompt_version`, `created_at`
 
@@ -1702,6 +1750,8 @@ raw import
 
 Schema implications:
 - Raw source records or raw-file references must be preserved.
+- Product source rows must pass Phase 6 row/product-name validation before they can create `raw_price_snapshots`, `source_products`, canonical mappings, canonical products, current offers, search records, or enrichment candidates. Quote-only brand-style product names are warning-level and remain runtime-eligible; invalid row-corruption patterns remain blocked.
+- Existing `canonical_products` and `source_products` are audited through a dry-run report command with `valid`, `warning`, `suspicious`, and `invalid` quality levels. After review, the same command can mark only `invalid` / `quarantinable` records with additive no-delete quarantine fields; warning records stay visible, and no cleanup plan may delete data by default.
 - Repeated fact rows should not be LLM-enriched.
 - Enrichment tables/collections must carry model, prompt/version, confidence, source/canonical link, and timestamp.
 - Runtime read models must be compact and app-safe.

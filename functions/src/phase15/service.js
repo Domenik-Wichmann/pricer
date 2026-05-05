@@ -11,6 +11,11 @@ const {
   normalizeLocalityCode,
   persistGapSignal,
 } = require('../phase18/gap_detection');
+const { buildGroceryQueryExpansion } = require('./search_synonyms');
+const {
+  loadCanonicalCurrentOfferSummaries,
+  loadCurrentOffersByCanonicalProductIds,
+} = require('../phase16/current_offers');
 
 const DEFAULT_PRODUCT_LAYER_MODE = LAYER_SELECTIONS.CANONICAL_WITH_ENRICHMENT;
 const DEFAULT_SEARCH_LIMIT = 25;
@@ -30,6 +35,7 @@ const MARKER_KEYS = Object.freeze([
   'count_marker',
   'age_band_marker',
   'reserve_marker',
+  'size_marker',
 ]);
 const PRODUCT_CATALOG_BASE_COLLECTIONS = Object.freeze([
   'canonical_products',
@@ -39,6 +45,7 @@ const PRODUCT_CATALOG_APPLIED_VIEW_COLLECTIONS = Object.freeze([
   'canonical_disambiguation_queue',
   'canonical_disambiguation_decisions',
 ]);
+const PRODUCT_DETAIL_MAPPING_LIMIT = 200;
 
 async function handleGetCanonicalProductRequest({
   store,
@@ -83,7 +90,10 @@ async function handleGetCanonicalProductRequest({
 
   return {
     status: 200,
-    body: buildProductDetailResponse(view),
+    body: await buildProductDetailResponse({
+      store,
+      view,
+    }),
   };
 }
 
@@ -250,27 +260,144 @@ async function handleGetEnrichmentAnalyticsSummaryRequest({
   };
 }
 
-function buildProductDetailResponse(view) {
+async function buildProductDetailResponse({
+  store,
+  view,
+}) {
   const item = buildProductListItem(view);
+  const canonicalMappings = buildBoundedDetailMappings(view.canonical_mappings);
+  const currentOffers = await loadBoundedCurrentOffersForDetail({
+    store,
+    canonicalProductId: view.canonical_product_id,
+  });
   return {
     layer_mode: view.layer_selection,
     ...item,
+    current_offers: currentOffers.current_offers,
+    current_offer_summary: currentOffers.current_offer_summary,
     provenance: {
       source_product_count: view.canonical_truth.source_product_count,
       canonical_mappings_count: view.canonical_mappings.length,
+      source_product_ids: canonicalMappings.map((mapping) => mapping.source_product_id),
+      source_product_ids_truncated: view.canonical_mappings.length > canonicalMappings.length,
+      canonical_mappings: canonicalMappings,
       enrichment_provenance: view.enrichment_provenance,
       applied_view: view.applied_view,
     },
   };
 }
 
-function buildProductListItem(view) {
+async function loadBoundedCurrentOffersForDetail({
+  store,
+  canonicalProductId,
+}) {
+  try {
+    const [offers, summaries] = await Promise.all([
+      loadCurrentOffersByCanonicalProductIds({
+        store,
+        canonicalProductIds: [canonicalProductId],
+      }),
+      loadCanonicalCurrentOfferSummaries({
+        store,
+        canonicalProductIds: [canonicalProductId],
+      }),
+    ]);
+    const sortedOffers = offers
+      .map(buildProductDetailOffer)
+      .sort((left, right) => {
+        if (Number(left.current_price) !== Number(right.current_price)) {
+          return Number(left.current_price) - Number(right.current_price);
+        }
+        return String(left.offer_id || '').localeCompare(String(right.offer_id || ''));
+      })
+      .slice(0, 25);
+    return {
+      current_offers: sortedOffers,
+      current_offer_summary: summaries[0] || null,
+    };
+  } catch (error) {
+    if (/Unknown data backbone collection/u.test(String(error?.message || ''))) {
+      return {
+        current_offers: [],
+        current_offer_summary: null,
+      };
+    }
+    throw error;
+  }
+}
+
+function buildProductDetailOffer(offer) {
   return {
+    offer_id: offer.offer_id || null,
+    canonical_product_id: offer.canonical_product_id || null,
+    source_product_id: offer.source_product_id || null,
+    source_product_name_raw: offer.source_product_name_raw || null,
+    retailer: offer.retailer || offer.chain_name || null,
+    chain_id: offer.chain_id || null,
+    chain_name: offer.chain_name || null,
+    store_id: offer.store_id || null,
+    store_name: offer.store_name || null,
+    locality_code: offer.locality_code || null,
+    current_price: offer.current_price ?? null,
+    currency: offer.currency || 'EUR',
+    unit_price: offer.unit_price ?? null,
+    is_sale: offer.is_sale === true,
+    is_promotion: offer.is_promotion === true,
+    snapshot_date: offer.snapshot_date || null,
+    observed_at: offer.observed_at || null,
+    source: offer.snapshot_id || offer.offer_id || null,
+  };
+}
+
+function buildProductListItem(view) {
+  const item = {
     canonical_product_id: view.canonical_product_id,
     canonical_name: view.canonical_truth.canonical_display_name || null,
+    canonical_brand: view.canonical_truth.canonical_brand || null,
+    canonical_product_type: view.canonical_truth.canonical_product_type || null,
+    canonical_category_code: view.canonical_truth.canonical_category_code || null,
+    source_example_name: view.canonical_truth.source_example_name || null,
     markers: extractCanonicalMarkers(view.canonical_truth),
     enrichment: view.enrichment,
+    current_offer_summary: buildCompactCurrentOfferSummary(view.current_offer_summary),
   };
+  if (view.search_debug) {
+    item.search_debug = view.search_debug;
+  }
+  return item;
+}
+
+function buildCompactCurrentOfferSummary(summary) {
+  if (!summary || typeof summary !== 'object') {
+    return null;
+  }
+
+  return {
+    min_current_price: summary.min_current_price ?? null,
+    max_current_price: summary.max_current_price ?? null,
+    avg_current_price: summary.avg_current_price ?? null,
+    offer_count: summary.offer_count ?? null,
+    chain_count: summary.chain_count ?? null,
+    retailer_count: summary.retailer_count ?? null,
+    cheapest_offer_id: summary.cheapest_offer_id || null,
+    cheapest_source_product_id: summary.cheapest_source_product_id || null,
+    cheapest_chain_id: summary.cheapest_chain_id || null,
+    cheapest_chain: summary.cheapest_chain || null,
+    cheapest_retailer: summary.cheapest_retailer || null,
+    cheapest_price: summary.cheapest_price ?? summary.min_current_price ?? null,
+    currency: summary.currency || null,
+    snapshot_date: summary.snapshot_date || null,
+    updated_at: summary.updated_at || null,
+  };
+}
+
+function buildBoundedDetailMappings(canonicalMappings = []) {
+  return canonicalMappings.slice(0, PRODUCT_DETAIL_MAPPING_LIMIT).map((mapping) => ({
+    source_product_id: mapping.source_product_id || null,
+    canonical_product_id: mapping.canonical_product_id || null,
+    mapped_at: mapping.mapped_at || null,
+    mapping_version: mapping.mapping_version || null,
+  }));
 }
 
 function searchCanonicalProductCatalog({
@@ -365,14 +492,92 @@ async function searchCanonicalProductCatalogForRequest({
     queryText,
     layerMode,
   });
-  return searchCanonicalProductCatalog({
+  const boundedLimit = resolveLimit(limit, DEFAULT_SEARCH_LIMIT, MAX_SEARCH_LIMIT);
+  const boundedOffset = resolveOffset(offset);
+  const views = searchCanonicalProductViews({
     state,
     queryText,
-    layerMode,
+    layerSelection: layerMode,
     filters,
+    limit: MAX_SEARCH_LIMIT,
+  });
+
+  return buildProductSearchResponseWithCurrentOfferSummaries({
+    store,
+    views,
+    layerMode,
+    limit: boundedLimit,
+    offset: boundedOffset,
+  });
+}
+
+async function buildProductSearchResponseWithCurrentOfferSummaries({
+  store,
+  views,
+  layerMode,
+  limit,
+  offset,
+}) {
+  const canonicalProductIds = [...new Set((views || [])
+    .map((view) => view.canonical_product_id)
+    .filter((value) => typeof value === 'string' && value.trim())
+    .map((value) => value.trim()))].sort();
+
+  const summariesById = await loadCurrentOfferSummariesByCanonicalId({
+    store,
+    canonicalProductIds,
+  });
+  const entries = (views || []).map((view, index) => {
+    const currentOfferSummary = summariesById.get(view.canonical_product_id) || null;
+    return {
+      index,
+      has_current_offer_summary: Boolean(currentOfferSummary),
+      item: buildProductListItem({
+        ...view,
+        current_offer_summary: currentOfferSummary,
+      }),
+    };
+  }).sort((left, right) => {
+    if (left.has_current_offer_summary !== right.has_current_offer_summary) {
+      return Number(right.has_current_offer_summary) - Number(left.has_current_offer_summary);
+    }
+    return left.index - right.index;
+  });
+
+  return {
+    layer_mode: layerMode,
+    total: entries.length,
     limit,
     offset,
-  });
+    results: entries
+      .slice(offset, offset + limit)
+      .map((entry) => entry.item),
+  };
+}
+
+async function loadCurrentOfferSummariesByCanonicalId({
+  store,
+  canonicalProductIds,
+}) {
+  if (!canonicalProductIds.length) {
+    return new Map();
+  }
+
+  let summaries = [];
+  try {
+    summaries = await loadCanonicalCurrentOfferSummaries({
+      store,
+      canonicalProductIds,
+    });
+  } catch (error) {
+    if (!/Unknown data backbone collection/u.test(String(error?.message || ''))) {
+      throw error;
+    }
+  }
+
+  return new Map((summaries || [])
+    .filter((summary) => summary?.canonical_product_id)
+    .map((summary) => [summary.canonical_product_id, summary]));
 }
 
 async function loadProductSearchState({
@@ -384,7 +589,12 @@ async function loadProductSearchState({
     return loadProductCatalogState(store, layerMode);
   }
 
-  const prefixes = searchTokens(queryText).slice(0, 3);
+  const expansion = buildGroceryQueryExpansion(queryText);
+  const prefixes = [
+    ...searchTokens(queryText),
+    ...expansion.expanded_tokens,
+    ...expansion.expanded_terms.flatMap((term) => searchTokens(term)),
+  ].filter((token) => token.length >= 2).slice(0, 8);
   if (prefixes.length === 0) {
     return {
       canonical_products: [],
@@ -394,29 +604,35 @@ async function loadProductSearchState({
   }
 
   const prefixLimit = MAX_SEARCH_LIMIT * 2;
-  const candidateGroups = await Promise.all(prefixes.flatMap((prefix) => [
-    store.queryCollectionPrefix('canonical_products', {
-      fieldName: 'canonical_display_name',
-      prefix,
-      limit: prefixLimit,
-    }),
-    store.queryCollectionPrefix('canonical_products', {
-      fieldName: 'source_example_name',
-      prefix,
-      limit: prefixLimit,
-    }),
-    store.queryCollectionPrefix('canonical_products', {
-      fieldName: 'canonical_product_type',
-      prefix,
-      limit: prefixLimit,
-    }),
-    store.queryCollectionPrefix('canonical_products', {
-      fieldName: 'canonical_brand',
-      prefix,
-      limit: prefixLimit,
-    }),
-  ]));
+  const candidateGroups = await Promise.all(prefixes.flatMap((prefix) =>
+    searchPrefixVariants(prefix).flatMap((prefixVariant) => [
+      store.queryCollectionPrefix('canonical_products', {
+        fieldName: 'canonical_display_name',
+        prefix: prefixVariant,
+        limit: prefixLimit,
+      }),
+      store.queryCollectionPrefix('canonical_products', {
+        fieldName: 'source_example_name',
+        prefix: prefixVariant,
+        limit: prefixLimit,
+      }),
+      store.queryCollectionPrefix('canonical_products', {
+        fieldName: 'canonical_product_type',
+        prefix: prefixVariant,
+        limit: prefixLimit,
+      }),
+      store.queryCollectionPrefix('canonical_products', {
+        fieldName: 'canonical_brand',
+        prefix: prefixVariant,
+        limit: prefixLimit,
+      }),
+    ])
+  ));
   const canonicalProducts = dedupeCanonicalProducts(candidateGroups.flat());
+  if (canonicalProducts.length === 0) {
+    return loadProductCatalogState(store, layerMode);
+  }
+
   const canonicalIds = canonicalProducts
     .map((product) => product.canonical_product_id)
     .filter(Boolean);
@@ -499,6 +715,19 @@ function searchTokens(value) {
     .toLowerCase()
     .split(/[^a-z0-9\u00c0-\u024f\u0400-\u04ff%]+/u)
     .filter(Boolean);
+}
+
+function searchPrefixVariants(prefix) {
+  const value = String(prefix || '').trim();
+  if (!value) {
+    return [];
+  }
+  return [...new Set([
+    value,
+    value.toLocaleLowerCase('bg'),
+    value.toLocaleUpperCase('bg'),
+    `${value.charAt(0).toLocaleUpperCase('bg')}${value.slice(1).toLocaleLowerCase('bg')}`,
+  ])];
 }
 
 function dedupeCanonicalProducts(products) {
@@ -651,10 +880,14 @@ module.exports = {
   DEFAULT_PRODUCT_LAYER_MODE,
   FACET_FIELDS,
   buildProductListItem,
+  buildCompactCurrentOfferSummary,
+  buildProductSearchResponseWithCurrentOfferSummaries,
+  buildProductDetailResponse,
   handleCanonicalProductFilterFacetsRequest,
   handleGetCanonicalProductRequest,
   handleGetEnrichmentAnalyticsSummaryRequest,
   handleSearchCanonicalProductsRequest,
+  loadCurrentOfferSummariesByCanonicalId,
   loadProductCatalogState,
   loadCanonicalProductMappingsForDetail,
   loadProductDetailState,

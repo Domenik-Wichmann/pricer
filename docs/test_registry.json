@@ -1,6 +1,228 @@
 {
   "tests": [
     {
+      "id": "P6-BAD-PRODUCT-GUARD-001",
+      "description": "Malformed multi-row CSV chunks and embedded newline product names are rejected before source, canonical, mapping, or current-offer records are created.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-BAD-PRODUCT-GUARD-002",
+      "description": "Normal long Bulgarian product names are accepted, quote-only brand names are warning-level and not quarantinable, while newline/code/price/address chunks are invalid deterministically without Firestore reads or writes.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-BAD-PRODUCT-GUARD-003",
+      "description": "Existing invalid canonical/current-offer products and data_quality_status invalid quarantine markers are excluded from current-offer read-model outputs, product search, and enrichment pilot selection, while warning-level quoted brand products remain runtime-eligible.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-BAD-PRODUCT-GUARD-004",
+      "description": "The bad-product audit separates warning, suspicious, invalid, and quarantinable counts, reports affected current-offer read models, writes nothing in dry-run, and marks only invalid/quarantinable records when quarantine mode is explicitly confirmed.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P15-CURRENT-OFFERS-SEARCH-001",
+      "description": "Product search attaches current_offer_summary from canonical_current_offer_summary for returned canonical ids and preserves legacy result fields.",
+      "phase": 15.2,
+      "status": "passed"
+    },
+    {
+      "id": "P15-CURRENT-OFFERS-SEARCH-002",
+      "description": "Scoped product search reads canonical_current_offer_summary by bounded candidate canonical_product_id values and returns null when a summary is missing.",
+      "phase": 15.2,
+      "status": "passed"
+    },
+    {
+      "id": "ADMIN-WEB-PRICE-SUMMARY-001",
+      "description": "Admin Console Product Search displays cheapest, highest, average price, offer count, and cheapest retailer or chain while preserving raw JSON output.",
+      "phase": "ADMIN-WEB-V0",
+      "status": "passed"
+    },
+    {
+      "id": "P15-SEMANTIC-PILOT-001",
+      "description": "Cookies, snacks, Coca-Cola, coke, and cola searches expand through deterministic BG/EN aliases before any LLM enrichment.",
+      "phase": 15.9,
+      "status": "passed"
+    },
+    {
+      "id": "P15-SEMANTIC-PILOT-002",
+      "description": "Product search uses optional enrichment aliases/product_type/category flags and does not rank enriched cola shampoo above enriched cola beverages.",
+      "phase": 15.9,
+      "status": "passed"
+    },
+    {
+      "id": "P15-SEMANTIC-PILOT-003",
+      "description": "Focused canonical enrichment pilot dry-run writes nothing, while explicitly opted-in real runs write only canonical_enrichment_store.",
+      "phase": 15.9,
+      "status": "passed"
+    },
+    {
+      "id": "P15-SEMANTIC-V2-001",
+      "description": "Rich canonical_semantic_v2 schema validates optional identity, grocery, package, dairy, beverage, baby, search, shopping-intent, and quality fields while keeping v1 fields backward-compatible.",
+      "phase": 15.9,
+      "status": "passed"
+    },
+    {
+      "id": "P15-SEMANTIC-V2-002",
+      "description": "Milk, milk shampoo, Milka chocolate, cola beverage, and collagen shampoo examples remain semantically distinct under rich enrichment validation.",
+      "phase": 15.9,
+      "status": "passed"
+    },
+    {
+      "id": "P15-SEMANTIC-V2-003",
+      "description": "Rich batch prompt and validator require exactly one result per requested canonical_product_id, reject count or id mismatches globally, and quarantine per-item validation failures without blocking valid siblings.",
+      "phase": 15.9,
+      "status": "passed"
+    },
+    {
+      "id": "P15-SEMANTIC-V2-006",
+      "description": "Rich product_form prompting lists exact allowed enum values, excludes semi-solid, normalizes semi-solid near-misses to null with warnings, and reports invalid enum item details without writing invalid enrichment records.",
+      "phase": 15.9,
+      "status": "passed"
+    },
+    {
+      "id": "P15-SEMANTIC-V2-004",
+      "description": "The enrichment pilot prevents accidental LLM calls unless both real-run env gates are set and skips same canonical id/name hash/version cache hits.",
+      "phase": 15.9,
+      "status": "passed"
+    },
+    {
+      "id": "P15-SEMANTIC-V2-005",
+      "description": "The enrichment healthcheck validates provider configuration without Firestore writes or live LLM calls by default, and real pilot request errors expose network cause details plus HTTP status/body details.",
+      "phase": 15.9,
+      "status": "passed"
+    },
+    {
+      "id": "P6-INCREMENTAL-DIFF-001",
+      "description": "Current-offer fingerprints skip unchanged offers and estimate zero current-offer writes for unchanged rows.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-INCREMENTAL-DIFF-002",
+      "description": "Incremental diff categorizes price, promo, metadata, new, and missing/removed offers deterministically without default deletes.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-INCREMENTAL-DIFF-003",
+      "description": "Incremental diff updates only affected canonical summaries and estimates changed-offer writes instead of full current-offer rewrites.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-INCREMENTAL-DIFF-004",
+      "description": "Daily incremental dry-run produces a snapshot manifest from a local baseline, writes nothing, and keeps fingerprint/event/manifest IDs deterministic for reruns.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-FINGERPRINT-BASELINE-001",
+      "description": "Compact current-offer baseline records expose source/canonical ids, offer_fingerprint, price, sale/promo flags, and snapshot dates without bulky fingerprint payloads.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-FINGERPRINT-BASELINE-002",
+      "description": "Incremental diff baseline loader accepts JSONL files and compares without Firestore reads.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-FINGERPRINT-BASELINE-003",
+      "description": "Current-offer fingerprint baseline export reads current offers by pages and writes only a local JSONL file by default.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-HISTORICAL-INGEST-001",
+      "description": "Historical snapshot dry-run writes no Firestore records, does not build current read models by default, and reports archive/history/log publish counts.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-HISTORICAL-INGEST-002",
+      "description": "Historical snapshot publication uses deterministic document ids, respects collection prefixes, performs no deletes, and skips existing records for idempotent reruns.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-ADMIN-INGEST-JOBS-001",
+      "description": "Admin ingest endpoints create planned job metadata and command previews without processing ZIP files synchronously.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P15-SHOPPING-INTENT-001",
+      "description": "Phase 15.8 resolves broad grocery terms into deterministic product-family clarification and owner-scoped preference defaults without selecting or merging canonical products.",
+      "phase": 15.8,
+      "status": "passed"
+    },
+    {
+      "id": "P15-SHOPPING-INTENT-002",
+      "description": "Shopping intent endpoint accepts admin preview inputs, returns effective preference records, and uses scoped user_product_family_preferences reads without full store load/save on Firestore-like stores.",
+      "phase": 15.8,
+      "status": "passed"
+    },
+    {
+      "id": "P15-SHOPPING-INTENT-ADAPTER-001",
+      "description": "Opt-in shopping-list and basket intent-first adapter returns clarification_needed for broad unresolved intent, continues to product candidates with high-confidence defaults, and preserves disabled default behavior.",
+      "phase": 15.8,
+      "status": "passed"
+    },
+    {
+      "id": "ADMIN-WEB-SHOPPING-INTENT-001",
+      "description": "Admin Console Shopping Intent tab builds successfully and exposes POST /shopping-intent/resolve examples, owner/preference/selected-answer inputs, interpreted resolver fields, request status/timing, and raw JSON.",
+      "phase": "ADMIN-WEB-V0",
+      "status": "passed"
+    },
+    {
+      "id": "P16-CURRENT-OFFERS-001",
+      "description": "Current offer read model generation creates deterministic current_product_offers and canonical_current_offer_summary rows from small fixture runtime state while excluding invalid/quarantined source or canonical products.",
+      "phase": 16,
+      "status": "passed"
+    },
+    {
+      "id": "P16-CURRENT-OFFERS-002",
+      "description": "Price lookup prefers compact current offers when populated and avoids raw snapshot/mapping fallback for that request.",
+      "phase": 16,
+      "status": "passed"
+    },
+    {
+      "id": "P15-CURRENT-OFFERS-DETAIL-001",
+      "description": "Product detail returns bounded current offers and canonical current offer summary without loading raw snapshots or daily prices.",
+      "phase": 15.2,
+      "status": "passed"
+    },
+    {
+      "id": "P15-STRUCTURED-SIZE-MARKER-001",
+      "description": "Product detail and product search expose canonical markers.size_marker when canonical_attributes_json.size_marker exists while preserving legacy marker fields.",
+      "phase": 15.2,
+      "status": "passed"
+    },
+    {
+      "id": "P6-BG-PARSER-APTAMIL-001",
+      "description": "Phase 6 parsing keeps Bulgarian unit tokens out of canonical_brand and extracts Aptamil brand, baby_formula type, 800g marker, 24+m age band, and stage_4 marker.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-CANONICAL-MARKER-BACKFILL-001",
+      "description": "Canonical marker backfill recomputes deterministic Aptamil/Ganchev markers, normalizes structured size markers for unit variants and package totals, skips no-op products, honors limit mode, writes nothing in dry-run, and avoids raw/source/offer/history/mapping collections.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P15-GROCERY-SYNONYMS-001",
+      "description": "Product search expands 100 deterministic BG/EN grocery concepts for query ranking only while keeping related-but-distinct terms separate.",
+      "phase": 15.2,
+      "status": "passed"
+    },
+    {
       "id": "REPO-VERIFY-001",
       "description": "Base repo files exist and docs JSON parse successfully.",
       "phase": 0,
@@ -4384,6 +4606,36 @@
       "id": "PROD-FIRESTORE-RUNTIME-007",
       "description": "Production Firestore runtime rejects legacy full load and save by default.",
       "phase": "PROD-FIRESTORE-RUNTIME",
+      "status": "passed"
+    },
+    {
+      "id": "ADMIN-QA-001",
+      "description": "Admin Console exposes Home Summary and Product Detail source-product mapping actions while preserving status/timing output.",
+      "phase": "ADMIN-QA",
+      "status": "passed"
+    },
+    {
+      "id": "ADMIN-QA-002",
+      "description": "Product detail response includes bounded source_product_ids and canonical_mappings provenance for one canonical product.",
+      "phase": "ADMIN-QA",
+      "status": "passed"
+    },
+    {
+      "id": "ADMIN-QA-003",
+      "description": "Product search falls back to compact catalog reads when scoped prefix candidates are empty, without loading mappings or raw prices.",
+      "phase": "ADMIN-QA",
+      "status": "passed"
+    },
+    {
+      "id": "BG-MARKERS-001",
+      "description": "Phase 6 ingest extracts Bulgarian full-word volume and weight markers with decimal comma/point support.",
+      "phase": "BG-MARKERS",
+      "status": "passed"
+    },
+    {
+      "id": "BG-MARKERS-002",
+      "description": "Phase 6 ingest extracts Bulgarian count/package and multiplication markers such as 6 бр x 330 мл and 2 х 500 грама.",
+      "phase": "BG-MARKERS",
       "status": "passed"
     }
   ]

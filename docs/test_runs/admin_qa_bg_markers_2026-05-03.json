@@ -1,0 +1,40 @@
+{
+  "phase": "ADMIN-QA-BG-MARKERS",
+  "date": "2026-05-03",
+  "scope": [
+    "Admin Console manual QA usability",
+    "Product detail source-product mapping preview",
+    "Bulgarian deterministic marker extraction"
+  ],
+  "commands": [
+    {
+      "command": "node tests\\phase_6_production_pipeline.test.js",
+      "result": "passed",
+      "summary": "77 passed, 0 failed, 77 total"
+    },
+    {
+      "command": "node tests\\phase_15_2_product_api.test.js",
+      "result": "passed",
+      "summary": "14 passed, 0 failed, 14 total"
+    },
+    {
+      "command": "node tests\\phase_15_3_shopping_list_resolution.test.js",
+      "result": "passed",
+      "summary": "9 passed, 0 failed, 9 total"
+    },
+    {
+      "command": "node tests\\phase_15_4_basket_input_planner.test.js",
+      "result": "passed",
+      "summary": "8 passed, 0 failed, 8 total"
+    },
+    {
+      "command": "npm --prefix app\\admin-web run build",
+      "result": "passed",
+      "summary": "TypeScript check and Vite production build completed"
+    }
+  ],
+  "notes": [
+    "No heavy Phase 6 publisher or ingest was run.",
+    "Existing production Firestore canonical products require an explicit future re-ingest/re-publish to show newly extracted marker values."
+  ]
+}

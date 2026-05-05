@@ -98,6 +98,19 @@ npm run phase6:run
 
 This imports KolkoStruva snapshot data into the runtime store. It does not export Docker/Postgres data.
 
+Targeted canonical marker refresh:
+
+```powershell
+$env:PRICER_FIRESTORE_PROJECT_ID='pricer-ee440'
+$env:PRICER_FIRESTORE_DATABASE_ID='(default)'
+$env:PRICER_FIRESTORE_COLLECTION_PREFIX='prod'
+$env:PRICER_BACKFILL_DRY_RUN='true'
+$env:PRICER_BACKFILL_LIMIT='100'
+npm run phase6:backfill-canonical-markers
+```
+
+This is not an ingest or publisher. It scans `prod_canonical_products`, recomputes deterministic parser markers/brand cleanup/product-type hints, and writes nothing in dry-run mode. A real run must be approved separately and still must not touch raw snapshots, source products, current offers, daily prices, or canonical mappings.
+
 ## 4. Mobile App
 
 Already implemented:
