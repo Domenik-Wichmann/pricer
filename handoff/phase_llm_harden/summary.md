@@ -22,10 +22,12 @@ $env:PRICER_ENRICHMENT_VERSION='canonical_semantic_v3'
 - Added xAI structured-output request support for v3 with `response_format.json_schema`.
 - Added pending proposal writing and dedupe from `registry_actions`.
 - Added failed provider-response quarantine for malformed JSON.
+- Added xAI provider retries with exponential backoff/jitter, per-request timeout, retryable status/network classification, `Connection: close`, and run-summary attempt history.
 
 ## Verification
 
-- `npm run test:phase15` passed: 39 passed, 0 failed.
+- `npm run test:phase15` passed: 49 passed, 0 failed.
+- `npm run validate:docs` passed.
 
 ## Operator Notes
 
@@ -35,3 +37,8 @@ $env:PRICER_ENRICHMENT_VERSION='canonical_semantic_v3'
   - `PRICER_ENRICHMENT_VERSION=canonical_semantic_v3`
 - If provider schema mode is unsupported, set:
   - `PRICER_ENRICHMENT_STRUCTURED_OUTPUT=false`
+- Retry controls:
+  - `PRICER_LLM_MAX_RETRIES`, default `3`
+  - `PRICER_LLM_RETRY_BASE_MS`, default `750`
+  - `PRICER_LLM_RETRY_MAX_MS`, default `8000`
+  - `PRICER_LLM_REQUEST_TIMEOUT_MS`, default `60000`

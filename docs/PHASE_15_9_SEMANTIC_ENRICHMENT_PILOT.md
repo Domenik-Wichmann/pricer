@@ -127,6 +127,10 @@ Environment controls:
 - `XAI_GROK_MODEL`, optional model override; default `grok-4-1-fast-reasoning`
 - `PRICER_ENRICHMENT_ENDPOINT`, pilot-specific endpoint fallback used when `XAI_GROK_ENDPOINT` is unset
 - `PRICER_ENRICHMENT_MODEL`, pilot-specific model fallback used when `XAI_GROK_MODEL` is unset
+- `PRICER_LLM_MAX_RETRIES`, default `3`
+- `PRICER_LLM_RETRY_BASE_MS`, default `750`
+- `PRICER_LLM_RETRY_MAX_MS`, default `8000`
+- `PRICER_LLM_REQUEST_TIMEOUT_MS`, default `60000`
 
 Dry-run loads only `canonical_products` and `canonical_enrichment_store`, selects a bounded candidate set, prints selected products, batch count, estimated tokens, and estimated cost, and writes nothing.
 
@@ -140,6 +144,26 @@ $env:PRICER_ENRICHMENT_RUN_LLM='true'
 Real runs update only `canonical_enrichment_store`. They cache by `canonical_product_id` plus canonical-name hash plus `canonical_semantic_v2`; existing same-version/same-name records are skipped and reported. They never apply LLM output to canonical merges.
 
 When `PRICER_ENRICHMENT_VERSION=canonical_semantic_v3`, real runs may also seed `semantic_term_registry`, write pending `semantic_term_registry_proposals`, and store malformed provider responses in `canonical_enrichment_failed_responses`. They still do not update raw/source/offer rows, prices, mappings, or canonical product grouping.
+
+## Provider Retry Reliability
+
+The xAI provider path retries transient failures inside the same pilot run. Retryable failures include:
+
+- socket/network failures such as `UND_ERR_SOCKET`, `ECONNRESET`, `ETIMEDOUT`, `ENOTFOUND`, and `fetch failed` with `SocketError`
+- request timeouts from `AbortController`
+- HTTP `408`, `425`, `429`, `500`, `502`, `503`, and `504`
+- HTTP `409` only when the provider body indicates a retryable/temporary conflict
+
+Non-retryable failures include local validation errors, bad request/schema errors, HTTP `400`, and auth/permission failures such as `401` or `403`.
+
+Every provider request has an AbortController timeout. Backoff is exponential with jitter and bounded by `PRICER_LLM_RETRY_MAX_MS`. `ENOTFOUND` is retried at most once. Run summaries include:
+
+- `provider_attempt_count`
+- `retry_count`
+- `retryable_error_count`
+- `provider_attempt_history[]` with per-batch attempts, status/cause codes, timeout flags, retryability, and `exhausted_retries`
+
+Provider calls send `Connection: close` to avoid depending on a reused socket that the provider may close between requests. This is the smallest current mitigation for Node/undici keep-alive socket reuse; if xAI publishes more specific transport guidance, replace this with a provider-recommended dispatcher/agent configuration.
 
 ## Cost Controls
 
@@ -168,6 +192,8 @@ npm run phase15:enrichment-healthcheck
 ```
 
 On failure the healthcheck and real pilot batch reports include provider, endpoint host, model, batch index when applicable, error type, error name/code, nested cause name/code/message, and HTTP status/body for non-2xx responses. Network-level failures such as Node `fetch failed` are reported separately from HTTP and validation failures.
+
+Live healthcheck requests now use the same provider request path as enrichment, including model, timeout, retry config, and v3 `response_format` when `PRICER_ENRICHMENT_VERSION=canonical_semantic_v3`.
 
 ## Run Examples
 

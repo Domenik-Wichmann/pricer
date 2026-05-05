@@ -1025,3 +1025,4 @@ The machine-readable registry lives in [docs/test_registry.json](/c:/Users/domwi
 - v3 real pilot seeds `semantic_term_registry`, writes `canonical_semantic_v3` enrichment records, and creates only pending `semantic_term_registry_proposals`
 - duplicate v3 registry proposals are deduped, and LLM proposals do not directly activate terms
 - malformed v3 provider JSON is stored in `canonical_enrichment_failed_responses` redacted, while affected canonical enrichment writes are skipped
+- Phase 15 provider retries cover first-try success, `UND_ERR_SOCKET`, HTTP 503, HTTP 429, non-retryable HTTP 400, exhausted retry attempt history, timeout aborts, v3 `response_format` preservation across retries, and pilot summary retry metrics

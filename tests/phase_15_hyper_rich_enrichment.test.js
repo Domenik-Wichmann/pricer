@@ -941,6 +941,288 @@ test('v3 provider request sends response_format when enabled', async () => {
   assert.equal(response.products[0].canonical_product_id, 'cp_structured_v3');
 });
 
+test('provider request succeeds first try without retry metadata noise', async () => {
+  let calls = 0;
+  const response = await requestCanonicalEnrichmentBatch({
+    prompt: { products: [] },
+    products: [],
+    env: {
+      XAI_API_KEY: 'test-key',
+      PRICER_ENRICHMENT_MODEL: 'test-model',
+      PRICER_ENRICHMENT_ENDPOINT: 'https://api.x.ai/v1/chat/completions',
+    },
+    fetchImpl: async () => {
+      calls += 1;
+      return buildProviderSuccessResponse({ products: [] });
+    },
+  });
+
+  assert.equal(calls, 1);
+  assert.equal(response.provider_attempt_count, 1);
+  assert.equal(response.retry_count, 0);
+  assert.equal(response.retryable_error_count, 0);
+  assert.equal(response.attempt_history[0].success, true);
+});
+
+test('provider request retries UND_ERR_SOCKET then succeeds', async () => {
+  let calls = 0;
+  const response = await requestCanonicalEnrichmentBatch({
+    prompt: { products: [] },
+    products: [],
+    env: {
+      XAI_API_KEY: 'test-key',
+      PRICER_ENRICHMENT_MODEL: 'test-model',
+      PRICER_ENRICHMENT_ENDPOINT: 'https://api.x.ai/v1/chat/completions',
+      PRICER_LLM_RETRY_BASE_MS: '0',
+    },
+    fetchImpl: async () => {
+      calls += 1;
+      if (calls === 1) {
+        throw buildSocketClosedError();
+      }
+      return buildProviderSuccessResponse({ products: [] });
+    },
+  });
+
+  assert.equal(calls, 2);
+  assert.equal(response.provider_attempt_count, 2);
+  assert.equal(response.retry_count, 1);
+  assert.equal(response.retryable_error_count, 1);
+  assert.equal(response.attempt_history[0].cause_code, 'UND_ERR_SOCKET');
+});
+
+test('provider request retries 503 then succeeds', async () => {
+  let calls = 0;
+  const response = await requestCanonicalEnrichmentBatch({
+    prompt: { products: [] },
+    products: [],
+    env: {
+      XAI_API_KEY: 'test-key',
+      PRICER_ENRICHMENT_MODEL: 'test-model',
+      PRICER_ENRICHMENT_ENDPOINT: 'https://api.x.ai/v1/chat/completions',
+      PRICER_LLM_RETRY_BASE_MS: '0',
+    },
+    fetchImpl: async () => {
+      calls += 1;
+      if (calls === 1) {
+        return new Response('temporary unavailable', { status: 503, statusText: 'Service Unavailable' });
+      }
+      return buildProviderSuccessResponse({ products: [] });
+    },
+  });
+
+  assert.equal(calls, 2);
+  assert.equal(response.attempt_history[0].status, 503);
+  assert.equal(response.retry_count, 1);
+});
+
+test('provider request retries 429 then succeeds', async () => {
+  let calls = 0;
+  const response = await requestCanonicalEnrichmentBatch({
+    prompt: { products: [] },
+    products: [],
+    env: {
+      XAI_API_KEY: 'test-key',
+      PRICER_ENRICHMENT_MODEL: 'test-model',
+      PRICER_ENRICHMENT_ENDPOINT: 'https://api.x.ai/v1/chat/completions',
+      PRICER_LLM_RETRY_BASE_MS: '0',
+    },
+    fetchImpl: async () => {
+      calls += 1;
+      if (calls === 1) {
+        return new Response('rate limited', { status: 429, statusText: 'Too Many Requests' });
+      }
+      return buildProviderSuccessResponse({ products: [] });
+    },
+  });
+
+  assert.equal(calls, 2);
+  assert.equal(response.attempt_history[0].status, 429);
+  assert.equal(response.retry_count, 1);
+});
+
+test('provider request does not retry 400 invalid API key style errors', async () => {
+  let calls = 0;
+  await assert.rejects(
+    () => requestCanonicalEnrichmentBatch({
+      prompt: { products: [] },
+      products: [],
+      env: {
+        XAI_API_KEY: 'test-key',
+        PRICER_ENRICHMENT_MODEL: 'test-model',
+        PRICER_ENRICHMENT_ENDPOINT: 'https://api.x.ai/v1/chat/completions',
+        PRICER_LLM_MAX_RETRIES: '0',
+      },
+      fetchImpl: async () => {
+        calls += 1;
+        return new Response('invalid api key', { status: 400, statusText: 'Bad Request' });
+      },
+    }),
+    (error) => {
+      assert.equal(calls, 1);
+      assert.equal(error.error_type, 'provider_http_error');
+      assert.equal(error.status, 400);
+      assert.equal(Boolean(error.exhausted_retries), false);
+      assert.equal(error.provider_attempt_count, 1);
+      return true;
+    }
+  );
+});
+
+test('provider request reports retry exhaustion with attempt history', async () => {
+  let calls = 0;
+  await assert.rejects(
+    () => requestCanonicalEnrichmentBatch({
+      prompt: { products: [] },
+      products: [],
+      env: {
+        XAI_API_KEY: 'test-key',
+        PRICER_ENRICHMENT_MODEL: 'test-model',
+        PRICER_ENRICHMENT_ENDPOINT: 'https://api.x.ai/v1/chat/completions',
+        PRICER_LLM_MAX_RETRIES: '2',
+        PRICER_LLM_RETRY_BASE_MS: '0',
+      },
+      fetchImpl: async () => {
+        calls += 1;
+        throw buildSocketClosedError();
+      },
+    }),
+    (error) => {
+      assert.equal(calls, 3);
+      assert.equal(error.error_type, 'provider_network_error');
+      assert.equal(error.exhausted_retries, true);
+      assert.equal(error.provider_attempt_count, 3);
+      assert.equal(error.retry_count, 2);
+      assert.equal(error.retryable_error_count, 3);
+      assert.equal(error.attempt_history.length, 3);
+      return true;
+    }
+  );
+});
+
+test('provider request timeout abort is retryable and reported', async () => {
+  let calls = 0;
+  await assert.rejects(
+    () => requestCanonicalEnrichmentBatch({
+      prompt: { products: [] },
+      products: [],
+      env: {
+        XAI_API_KEY: 'test-key',
+        PRICER_ENRICHMENT_MODEL: 'test-model',
+        PRICER_ENRICHMENT_ENDPOINT: 'https://api.x.ai/v1/chat/completions',
+        PRICER_LLM_MAX_RETRIES: '1',
+        PRICER_LLM_RETRY_BASE_MS: '0',
+        PRICER_LLM_REQUEST_TIMEOUT_MS: '1',
+      },
+      fetchImpl: async (_url, options) => {
+        calls += 1;
+        return new Promise((_resolve, reject) => {
+          options.signal.addEventListener('abort', () => {
+            reject(Object.assign(new Error('The operation was aborted'), { name: 'AbortError' }));
+          });
+        });
+      },
+    }),
+    (error) => {
+      assert.equal(calls, 2);
+      assert.equal(error.error_type, 'provider_network_error');
+      assert.equal(error.exhausted_retries, true);
+      assert.equal(error.timed_out, true);
+      assert.equal(error.timeout_ms, 1);
+      assert.equal(error.attempt_history.every((entry) => entry.timed_out), true);
+      return true;
+    }
+  );
+});
+
+test('v3 response_format remains included on every retry', async () => {
+  const product = {
+    canonical_product_id: 'cp_retry_format_v3',
+    canonical_display_name: 'Fresh Milk 1L',
+    source_example_name: 'Fresh Milk 1L',
+  };
+  const requestBodies = [];
+  let calls = 0;
+
+  const response = await requestCanonicalEnrichmentBatch({
+    prompt: buildCanonicalSemanticV3BatchPrompt([product]),
+    products: [product],
+    enrichmentVersion: CANONICAL_SEMANTIC_V3_VERSION,
+    env: {
+      XAI_API_KEY: 'test-key',
+      PRICER_ENRICHMENT_MODEL: 'test-model',
+      PRICER_ENRICHMENT_ENDPOINT: 'https://api.x.ai/v1/chat/completions',
+      PRICER_LLM_RETRY_BASE_MS: '0',
+    },
+    fetchImpl: async (_url, options) => {
+      calls += 1;
+      requestBodies.push(JSON.parse(options.body));
+      if (calls === 1) {
+        throw buildSocketClosedError();
+      }
+      return buildProviderSuccessResponse({
+        products: [{
+          canonical_product_id: product.canonical_product_id,
+          enrichment: buildValidV3Enrichment(product),
+        }],
+      });
+    },
+  });
+
+  assert.equal(calls, 2);
+  assert.equal(response.retry_count, 1);
+  assert.equal(requestBodies.length, 2);
+  assert.equal(requestBodies.every((body) => body.response_format?.type === 'json_schema'), true);
+  assert.equal(requestBodies.every((body) => body.response_format?.json_schema?.strict === true), true);
+});
+
+test('real pilot summary includes provider retry attempt metrics', async () => {
+  const store = new InMemoryDataBackboneStore({
+    canonical_products: [{
+      canonical_product_id: 'cp_retry_summary',
+      canonical_display_name: 'Fresh Milk 1L',
+      source_example_name: 'Fresh Milk 1L',
+    }],
+    canonical_enrichment_store: [],
+  });
+  let calls = 0;
+
+  const summary = await runCanonicalEnrichmentPilot({
+    store,
+    env: {
+      PRICER_ENRICHMENT_PILOT_QUERY: 'milk',
+      PRICER_ENRICHMENT_DRY_RUN: 'false',
+      PRICER_ENRICHMENT_RUN_LLM: 'true',
+      XAI_API_KEY: 'test-key',
+      PRICER_ENRICHMENT_MODEL: 'test-model',
+      PRICER_ENRICHMENT_ENDPOINT: 'https://api.x.ai/v1/chat/completions',
+      PRICER_LLM_RETRY_BASE_MS: '0',
+    },
+    canonicalEnrichmentBatchClient: async (args) => requestCanonicalEnrichmentBatch({
+      ...args,
+      fetchImpl: async () => {
+        calls += 1;
+        if (calls === 1) {
+          throw buildSocketClosedError();
+        }
+        return buildProviderSuccessResponse({
+          products: [{
+            canonical_product_id: 'cp_retry_summary',
+            enrichment: buildValidRichEnrichment(),
+          }],
+        });
+      },
+    }),
+  });
+
+  assert.equal(summary.actual_writes, 1);
+  assert.equal(summary.provider_attempt_count, 2);
+  assert.equal(summary.retry_count, 1);
+  assert.equal(summary.retryable_error_count, 1);
+  assert.equal(summary.provider_attempt_history.length, 1);
+  assert.equal(summary.provider_attempt_history[0].attempts[0].cause_code, 'UND_ERR_SOCKET');
+});
+
 test('v3 real pilot writes enrichment, seeds registry, and creates pending proposals only', async () => {
   const store = new InMemoryDataBackboneStore({
     canonical_products: [{

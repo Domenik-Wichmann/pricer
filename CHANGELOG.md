@@ -17,6 +17,7 @@
 - Added v3 prompts with exact JSON schema, registry context, raw-term preservation rules, false-match avoidance, pending registry actions, and xAI strict `response_format` schema support.
 - Added v3 validation that preserves unfamiliar raw values such as `кофичка` and `пакетирано`, accepts valid sibling items when another item fails, writes pending proposals only, and quarantines malformed provider JSON without canonical writes.
 - Added Phase 15 tests for v3 prompt/schema context, messy raw values, structured output, pending/deduped registry proposals, LLM non-activation, and failed-response quarantine.
+- Hardened the Phase 15 xAI provider path with bounded retry/backoff, per-request AbortController timeouts, `Connection: close` socket mitigation, retryable HTTP/network classification, and run-summary attempt history for transient socket closures such as `UND_ERR_SOCKET`.
 
 ## 2026-05-05 - Canonical Semantic Enrichment V2 Pilot
 

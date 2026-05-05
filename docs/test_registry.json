@@ -133,6 +133,18 @@
       "status": "passed"
     },
     {
+      "id": "P15-PROVIDER-RETRY-001",
+      "description": "Phase 15 xAI provider requests retry transient UND_ERR_SOCKET, HTTP 503, HTTP 429, and timeout failures with bounded attempt history while avoiding retries for non-retryable HTTP 400 errors.",
+      "phase": 15.9,
+      "status": "passed"
+    },
+    {
+      "id": "P15-PROVIDER-RETRY-002",
+      "description": "Phase 15 provider retry summaries expose provider_attempt_count, retry_count, retryable_error_count, per-batch attempt history, retry exhaustion, and preserve v3 response_format on every retry.",
+      "phase": 15.9,
+      "status": "passed"
+    },
+    {
       "id": "P6-INCREMENTAL-DIFF-001",
       "description": "Current-offer fingerprints skip unchanged offers and estimate zero current-offer writes for unchanged rows.",
       "phase": 6,
