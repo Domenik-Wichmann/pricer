@@ -2,12 +2,18 @@ const assert = require('node:assert/strict');
 const { Readable } = require('node:stream');
 
 const {
+  CANONICAL_SEMANTIC_V3_VERSION,
   ENRICHMENT_PROMPT_VERSION,
   InMemoryDataBackboneStore,
   RICH_CANONICAL_ENRICHMENT_VERSION,
+  buildCanonicalSemanticV3BatchPrompt,
+  buildProviderResponseFormat,
   buildEnrichmentLlmProviderConfig,
+  buildRegistryContext,
   buildRichCanonicalEnrichmentBatchPrompt,
   buildEnrichmentPrompt,
+  buildSeedSemanticTermRegistry,
+  createSemanticTermId,
   extractExplicitDietAndAttributeTags,
   getEnrichmentByFingerprint,
   importDailySnapshotCsvStream,
@@ -17,6 +23,7 @@ const {
   runCanonicalEnrichmentPilot,
   selectEnrichmentPilotCandidates,
   storeEnrichment,
+  validateCanonicalSemanticV3BatchResponse,
   validateEnrichmentResponse,
   validateRichCanonicalEnrichmentBatchResponse,
   validateRichCanonicalEnrichmentResponse,
@@ -173,6 +180,124 @@ function buildValidRichEnrichment(overrides = {}) {
     reviewed_status: 'unreviewed',
     ...overrides,
   };
+}
+
+function buildValidV3Enrichment(product, overrides = {}) {
+  const productId = product.canonical_product_id;
+  return {
+    schema_version: CANONICAL_SEMANTIC_V3_VERSION,
+    product_identity: {
+      canonical_product_id: productId,
+      canonical_name_hash: canonicalNameHashForTest(product),
+      observed_name: product.canonical_display_name || product.source_example_name || null,
+      observed_brand: product.canonical_brand || null,
+      brand_confidence: product.canonical_brand ? 0.9 : null,
+      brand_needs_review: false,
+    },
+    category: {
+      raw_terms: ['dairy'],
+      category_path_raw: ['food', 'dairy', 'yogurt'],
+      registry_matches: [{
+        domain: 'food_category',
+        term_id: createSemanticTermId('food_category', 'dairy'),
+        canonical_label: 'dairy',
+        confidence: 0.9,
+        evidence: ['dairy wording'],
+      }],
+      proposed_terms: [],
+      search_buckets: ['dairy'],
+      needs_review: false,
+    },
+    packaging: {
+      raw_terms: ['\u043a\u043e\u0444\u0438\u0447\u043a\u0430'],
+      description: 'small plastic yogurt cup/tub',
+      registry_match: {
+        domain: 'packaging',
+        term_id: createSemanticTermId('packaging', 'tub'),
+        canonical_label: 'tub',
+        confidence: 0.91,
+        evidence: ['\u043a\u043e\u0444\u0438\u0447\u043a\u0430'],
+      },
+      proposed_aliases: ['\u043a\u043e\u0444\u0438\u0447\u043a\u0430'],
+      proposed_new_term: null,
+      search_bucket: 'tub',
+      confidence: 0.91,
+      needs_review: false,
+      evidence: ['\u043a\u043e\u0444\u0438\u0447\u043a\u0430'],
+    },
+    product_form: {
+      raw_terms: ['semi-solid'],
+      description: 'semi-solid cultured dairy texture',
+      registry_match: {
+        domain: 'product_form',
+        term_id: createSemanticTermId('product_form', 'semi-solid'),
+        canonical_label: 'semi-solid',
+        confidence: 0.8,
+        evidence: ['semi-solid'],
+      },
+      proposed_aliases: [],
+      proposed_new_term: null,
+      search_bucket: 'semi-solid',
+      confidence: 0.8,
+      needs_review: false,
+      evidence: ['semi-solid'],
+    },
+    attributes: {
+      dairy: { dairy_type: 'yogurt', milk_source: 'cow' },
+      beverage: {},
+      nutrition_claims: [],
+      dietary_claims: [],
+      flavor_terms: [],
+      preparation_state: [],
+      storage: { storage_type: 'refrigerated' },
+      quantity: {},
+    },
+    registry_actions: [{
+      action: 'propose_alias',
+      domain: 'packaging',
+      existing_term_id: createSemanticTermId('packaging', 'tub'),
+      proposed_label: null,
+      proposed_alias: '\u043a\u043e\u0444\u0438\u0447\u043a\u0430',
+      parent_term_id: null,
+      confidence: 0.91,
+      evidence: ['\u043a\u043e\u0444\u0438\u0447\u043a\u0430'],
+      reason: 'Bulgarian raw term is used for a small yogurt tub/cup in this product name.',
+    }],
+    warnings: [],
+    confidence_overall: 0.88,
+    needs_human_review: false,
+    ...overrides,
+  };
+}
+
+function canonicalNameHashForTest(product) {
+  return require('node:crypto')
+    .createHash('sha256')
+    .update([
+      product?.canonical_product_id || '',
+      product?.canonical_display_name || '',
+      product?.source_example_name || '',
+    ].join('|'))
+    .digest('hex');
+}
+
+function buildProviderSuccessResponse(content = { products: [] }) {
+  return new Response(JSON.stringify({
+    choices: [{
+      message: {
+        content: JSON.stringify(content),
+      },
+    }],
+  }), { status: 200 });
+}
+
+function buildSocketClosedError() {
+  return new TypeError('fetch failed', {
+    cause: Object.assign(new Error('other side closed'), {
+      name: 'SocketError',
+      code: 'UND_ERR_SOCKET',
+    }),
+  });
 }
 
 test('new canonical fingerprint triggers enrichment LLM and caches the validated result', async () => {
@@ -707,6 +832,242 @@ test('rich batch prompt and validator require one result per canonical product i
     }, { products }),
     /unexpected product id/
   );
+});
+
+test('v3 prompt includes exact schema, registry context, and flexible vocabulary rules', () => {
+  const products = [{
+    canonical_product_id: 'cp_yogurt_cup',
+    canonical_display_name: '\u0419\u043e\u0433\u0443\u0440\u0442 \u043a\u043e\u0444\u0438\u0447\u043a\u0430 400 \u0433',
+    source_example_name: '\u0419\u043e\u0433\u0443\u0440\u0442 \u043a\u043e\u0444\u0438\u0447\u043a\u0430 400 \u0433',
+  }];
+  const prompt = buildCanonicalSemanticV3BatchPrompt(products);
+
+  assert.equal(prompt.enrichment_version, CANONICAL_SEMANTIC_V3_VERSION);
+  assert.equal(prompt.response_json_schema.required.includes('products'), true);
+  assert.equal(prompt.registry_context.packaging.some((term) => term.canonical_label === 'tub'), true);
+  assert.equal(prompt.registry_context.product_form.some((term) => term.canonical_label === 'semi_solid'), true);
+  assert.equal(prompt.strict_output_rules.some((rule) => rule.includes('Do not add extra top-level keys')), true);
+  assert.equal(prompt.semantic_rules.some((rule) => rule.includes('Do not force')), true);
+  assert.equal(prompt.semantic_rules.some((rule) => rule.includes('proposed_alias')), true);
+});
+
+test('v3 validation preserves messy raw terms without forcing unsafe buckets', () => {
+  const product = {
+    canonical_product_id: 'cp_packeted_yogurt',
+    canonical_display_name: '\u0419\u043e\u0433\u0443\u0440\u0442 \u043f\u0430\u043a\u0435\u0442\u0438\u0440\u0430\u043d\u043e \u043a\u043e\u0444\u0438\u0447\u043a\u0430',
+    source_example_name: '\u0419\u043e\u0433\u0443\u0440\u0442 \u043f\u0430\u043a\u0435\u0442\u0438\u0440\u0430\u043d\u043e \u043a\u043e\u0444\u0438\u0447\u043a\u0430',
+  };
+  const enrichment = buildValidV3Enrichment(product, {
+    packaging: {
+      ...buildValidV3Enrichment(product).packaging,
+      raw_terms: ['\u043f\u0430\u043a\u0435\u0442\u0438\u0440\u0430\u043d\u043e', '\u043a\u043e\u0444\u0438\u0447\u043a\u0430'],
+      registry_match: null,
+      proposed_aliases: [],
+      proposed_new_term: null,
+      search_bucket: null,
+      needs_review: true,
+      evidence: ['\u043f\u0430\u043a\u0435\u0442\u0438\u0440\u0430\u043d\u043e may mean packaged rather than packet'],
+    },
+    needs_human_review: true,
+    warnings: ['Packaging wording preserved without unsafe packet mapping.'],
+    registry_actions: [{
+      action: 'needs_review',
+      domain: 'packaging',
+      existing_term_id: null,
+      proposed_label: null,
+      proposed_alias: null,
+      parent_term_id: null,
+      confidence: 0.7,
+      evidence: ['\u043f\u0430\u043a\u0435\u0442\u0438\u0440\u0430\u043d\u043e'],
+      reason: 'Term may indicate packaged state rather than packet packaging.',
+    }],
+  });
+  const validated = validateCanonicalSemanticV3BatchResponse({
+    products: [{ canonical_product_id: product.canonical_product_id, enrichment }],
+  }, { products: [product] });
+
+  assert.equal(validated[0].enrichment.packaging.raw_terms.includes('\u043f\u0430\u043a\u0435\u0442\u0438\u0440\u0430\u043d\u043e'), true);
+  assert.equal(validated[0].enrichment.packaging.registry_match, null);
+  assert.equal(validated[0].enrichment.packaging.needs_review, true);
+});
+
+test('v3 structured output request body includes strict json_schema by default', () => {
+  const responseFormat = buildProviderResponseFormat({
+    env: {},
+    enrichmentVersion: CANONICAL_SEMANTIC_V3_VERSION,
+  });
+
+  assert.equal(responseFormat.type, 'json_schema');
+  assert.equal(responseFormat.json_schema.name, 'canonical_semantic_v3_batch');
+  assert.equal(responseFormat.json_schema.strict, true);
+  assert.equal(responseFormat.json_schema.schema.required.includes('products'), true);
+});
+
+test('v3 provider request sends response_format when enabled', async () => {
+  const product = {
+    canonical_product_id: 'cp_structured_v3',
+    canonical_display_name: 'Fresh Milk 1L',
+    source_example_name: 'Fresh Milk 1L',
+  };
+  let requestBody = null;
+  const response = await requestCanonicalEnrichmentBatch({
+    prompt: buildCanonicalSemanticV3BatchPrompt([product]),
+    products: [product],
+    enrichmentVersion: CANONICAL_SEMANTIC_V3_VERSION,
+    env: {
+      XAI_API_KEY: 'test-key',
+      PRICER_ENRICHMENT_MODEL: 'test-model',
+      PRICER_ENRICHMENT_ENDPOINT: 'https://api.x.ai/v1/chat/completions',
+    },
+    fetchImpl: async (_url, options) => {
+      requestBody = JSON.parse(options.body);
+      return new Response(JSON.stringify({
+        choices: [{
+          message: {
+            content: JSON.stringify({
+              products: [{
+                canonical_product_id: product.canonical_product_id,
+                enrichment: buildValidV3Enrichment(product),
+              }],
+            }),
+          },
+        }],
+      }), { status: 200 });
+    },
+  });
+
+  assert.equal(requestBody.response_format.type, 'json_schema');
+  assert.equal(requestBody.response_format.json_schema.strict, true);
+  assert.equal(response.products[0].canonical_product_id, 'cp_structured_v3');
+});
+
+test('v3 real pilot writes enrichment, seeds registry, and creates pending proposals only', async () => {
+  const store = new InMemoryDataBackboneStore({
+    canonical_products: [{
+      canonical_product_id: 'cp_yogurt_cup_v3',
+      canonical_display_name: '\u0419\u043e\u0433\u0443\u0440\u0442 \u043a\u043e\u0444\u0438\u0447\u043a\u0430 400 \u0433',
+      source_example_name: '\u0419\u043e\u0433\u0443\u0440\u0442 \u043a\u043e\u0444\u0438\u0447\u043a\u0430 400 \u0433',
+    }],
+    canonical_enrichment_store: [],
+    semantic_term_registry: [],
+    semantic_term_registry_proposals: [],
+    canonical_enrichment_failed_responses: [],
+  });
+
+  const summary = await runCanonicalEnrichmentPilot({
+    store,
+    env: {
+      PRICER_ENRICHMENT_VERSION: CANONICAL_SEMANTIC_V3_VERSION,
+      PRICER_ENRICHMENT_PILOT_QUERY: '\u0439\u043e\u0433\u0443\u0440\u0442',
+      PRICER_ENRICHMENT_DRY_RUN: 'false',
+      PRICER_ENRICHMENT_RUN_LLM: 'true',
+      PRICER_ENRICHMENT_PILOT_NOW: '2026-05-05T11:00:00.000Z',
+    },
+    canonicalEnrichmentBatchClient: async ({ products }) => ({
+      products: products.map((product) => ({
+        canonical_product_id: product.canonical_product_id,
+        enrichment: buildValidV3Enrichment(product),
+      })),
+    }),
+  });
+  const after = await store.load();
+
+  assert.equal(summary.enrichment_version, CANONICAL_SEMANTIC_V3_VERSION);
+  assert.equal(summary.actual_writes, 1);
+  assert.equal(summary.registry_seed_writes > 0, true);
+  assert.equal(summary.registry_proposal_writes, 1);
+  assert.equal(after.canonical_enrichment_store[0].enrichment.schema_version, CANONICAL_SEMANTIC_V3_VERSION);
+  assert.equal(after.semantic_term_registry.some((term) => term.status === 'active' && term.canonical_label === 'tub'), true);
+  assert.equal(after.semantic_term_registry_proposals.length, 1);
+  assert.equal(after.semantic_term_registry_proposals[0].status, 'pending');
+  assert.equal(after.semantic_term_registry.some((term) => term.source === 'llm_proposed'), false);
+});
+
+test('v3 duplicate registry proposals are deduped across sibling actions', async () => {
+  const product = {
+    canonical_product_id: 'cp_yogurt_cup_dedupe',
+    canonical_display_name: '\u0419\u043e\u0433\u0443\u0440\u0442 \u043a\u043e\u0444\u0438\u0447\u043a\u0430',
+    source_example_name: '\u0419\u043e\u0433\u0443\u0440\u0442 \u043a\u043e\u0444\u0438\u0447\u043a\u0430',
+  };
+  const duplicateAction = {
+    action: 'propose_alias',
+    domain: 'packaging',
+    existing_term_id: createSemanticTermId('packaging', 'tub'),
+    proposed_label: null,
+    proposed_alias: '\u043a\u043e\u0444\u0438\u0447\u043a\u0430',
+    parent_term_id: null,
+    confidence: 0.91,
+    evidence: ['\u043a\u043e\u0444\u0438\u0447\u043a\u0430'],
+    reason: 'duplicate proposal should dedupe',
+  };
+  const store = new InMemoryDataBackboneStore({
+    canonical_products: [product],
+    canonical_enrichment_store: [],
+    semantic_term_registry: [],
+    semantic_term_registry_proposals: [],
+    canonical_enrichment_failed_responses: [],
+  });
+
+  await runCanonicalEnrichmentPilot({
+    store,
+    env: {
+      PRICER_ENRICHMENT_VERSION: CANONICAL_SEMANTIC_V3_VERSION,
+      PRICER_ENRICHMENT_PILOT_QUERY: '\u0439\u043e\u0433\u0443\u0440\u0442',
+      PRICER_ENRICHMENT_DRY_RUN: 'false',
+      PRICER_ENRICHMENT_RUN_LLM: 'true',
+      PRICER_ENRICHMENT_PILOT_NOW: '2026-05-05T11:05:00.000Z',
+    },
+    canonicalEnrichmentBatchClient: async ({ products }) => ({
+      products: products.map((entry) => ({
+        canonical_product_id: entry.canonical_product_id,
+        enrichment: buildValidV3Enrichment(entry, {
+          registry_actions: [duplicateAction, duplicateAction],
+        }),
+      })),
+    }),
+  });
+  const after = await store.load();
+
+  assert.equal(after.semantic_term_registry_proposals.length, 1);
+});
+
+test('v3 malformed provider JSON is quarantined and not written', async () => {
+  const store = new InMemoryDataBackboneStore({
+    canonical_products: [{
+      canonical_product_id: 'cp_bad_json_v3',
+      canonical_display_name: 'Fresh Milk 1L',
+      source_example_name: 'Fresh Milk 1L',
+    }],
+    canonical_enrichment_store: [],
+    semantic_term_registry: [],
+    semantic_term_registry_proposals: [],
+    canonical_enrichment_failed_responses: [],
+  });
+
+  const summary = await runCanonicalEnrichmentPilot({
+    store,
+    env: {
+      PRICER_ENRICHMENT_VERSION: CANONICAL_SEMANTIC_V3_VERSION,
+      PRICER_ENRICHMENT_PILOT_QUERY: 'milk',
+      PRICER_ENRICHMENT_DRY_RUN: 'false',
+      PRICER_ENRICHMENT_RUN_LLM: 'true',
+      PRICER_ENRICHMENT_PILOT_NOW: '2026-05-05T11:10:00.000Z',
+    },
+    canonicalEnrichmentBatchClient: async () => {
+      const error = new SyntaxError('Unexpected token');
+      error.error_type = 'provider_response_error';
+      error.parse_error = 'Unexpected token';
+      error.raw_content_redacted = '```json\n{"products":[\n```';
+      throw error;
+    },
+  });
+  const after = await store.load();
+
+  assert.equal(summary.actual_writes, 0);
+  assert.equal(summary.failed_response_writes, 1);
+  assert.equal(after.canonical_enrichment_store.length, 0);
+  assert.equal(after.canonical_enrichment_failed_responses.length, 1);
+  assert.equal(after.canonical_enrichment_failed_responses[0].raw_content_redacted.includes('products'), true);
 });
 
 test('focused enrichment pilot selector finds only targeted semantic-search candidates', () => {

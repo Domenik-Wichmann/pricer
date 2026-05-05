@@ -103,6 +103,7 @@
     "phase6:publish-firestore-latest": "node --max-old-space-size=8192 scripts/publish_phase6_latest_firestore.js",
     "phase6:audit-bad-products": "node scripts/audit_phase6_bad_products_firestore.js",
     "phase6:backfill-canonical-markers": "node scripts/backfill_canonical_markers_firestore.js",
+    "debug:canonical-summary": "node scripts/debug_canonical_product_summary.js",
     "phase15:enrichment-pilot": "node scripts/run_canonical_enrichment_pilot.js",
     "phase15:enrichment-healthcheck": "node scripts/run_canonical_enrichment_healthcheck.js",
     "phase7:run": "node scripts/run_phase7_demand.js",

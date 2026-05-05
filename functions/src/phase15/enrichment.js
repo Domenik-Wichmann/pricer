@@ -11,6 +11,14 @@ const {
   mergeDietAndAttributeClaims,
   normalizeDietAndAttributeTags,
 } = require('./diet_attribute_normalization');
+const {
+  CANONICAL_SEMANTIC_V3_PROMPT_VERSION,
+  CANONICAL_SEMANTIC_V3_VERSION,
+  REGISTRY_ACTIONS,
+  SEMANTIC_REGISTRY_DOMAINS,
+  buildRegistryContext,
+  normalizeRegistryAction,
+} = require('./semantic_registry');
 
 const ENRICHMENT_PROMPT_VERSION = 'v1';
 const RICH_CANONICAL_ENRICHMENT_VERSION = 'canonical_semantic_v2';
@@ -314,6 +322,60 @@ const RICH_ALLOWED_KEYS = Object.freeze([...new Set([
   ...RICH_SCHEMA_KEYS,
 ])]);
 
+const V3_ENRICHMENT_KEYS = Object.freeze([
+  'schema_version',
+  'product_identity',
+  'category',
+  'packaging',
+  'product_form',
+  'attributes',
+  'registry_actions',
+  'warnings',
+  'confidence_overall',
+  'needs_human_review',
+]);
+
+const V3_PRODUCT_IDENTITY_KEYS = Object.freeze([
+  'canonical_product_id',
+  'canonical_name_hash',
+  'observed_name',
+  'observed_brand',
+  'brand_confidence',
+  'brand_needs_review',
+]);
+
+const V3_SEMANTIC_SECTION_KEYS = Object.freeze([
+  'raw_terms',
+  'description',
+  'registry_match',
+  'proposed_aliases',
+  'proposed_new_term',
+  'search_bucket',
+  'confidence',
+  'needs_review',
+  'evidence',
+]);
+
+const V3_CATEGORY_KEYS = Object.freeze([
+  'raw_terms',
+  'category_path_raw',
+  'registry_matches',
+  'proposed_terms',
+  'search_buckets',
+  'needs_review',
+]);
+
+const V3_ATTRIBUTES_KEYS = Object.freeze([
+  'dairy',
+  'beverage',
+  'nutrition_claims',
+  'dietary_claims',
+  'flavor_terms',
+  'preparation_state',
+  'storage',
+  'quantity',
+]);
+
 const STORAGE_TYPES = Object.freeze(['shelf_stable', 'refrigerated', 'frozen', 'unknown']);
 const QUANTITY_UNITS = Object.freeze(['g', 'kg', 'ml', 'l', 'pcs', 'unknown']);
 const BABY_STAGES = Object.freeze(['stage_1', 'stage_2', 'stage_3', 'stage_4', 'unknown']);
@@ -430,6 +492,65 @@ function buildRichCanonicalEnrichmentBatchPrompt(products = []) {
       products: [{
         canonical_product_id: 'string; must exactly match one input id',
         enrichment: responseSchema,
+      }],
+    },
+    products: products.map((product) => {
+      const markers = parseCanonicalAttributes(product.canonical_attributes_json);
+      return {
+        canonical_product_id: product.canonical_product_id,
+        canonical_name: product.canonical_display_name || null,
+        source_example_name: product.source_example_name || null,
+        canonical_brand: product.canonical_brand || null,
+        canonical_product_type: product.canonical_product_type || null,
+        canonical_category_code: product.canonical_category_code || null,
+        deterministic_markers: {
+          volume_marker: markers.volume_marker || null,
+          count_marker: markers.count_marker || null,
+          age_band_marker: markers.age_band_marker || null,
+          reserve_marker: markers.reserve_marker || null,
+          size_marker: markers.size_marker || null,
+          core_tokens: markers.core_tokens || [],
+        },
+        canonical_name_hash: canonicalNameHashForProduct(product),
+      };
+    }),
+  };
+}
+
+function buildCanonicalSemanticV3BatchPrompt(products = [], {
+  state = null,
+  registryContext = null,
+} = {}) {
+  const context = registryContext || buildRegistryContext(state, {
+    domains: SEMANTIC_REGISTRY_DOMAINS,
+  });
+  const schema = buildCanonicalSemanticV3JsonSchema();
+  return {
+    prompt_version: CANONICAL_SEMANTIC_V3_PROMPT_VERSION,
+    enrichment_version: CANONICAL_SEMANTIC_V3_VERSION,
+    task: 'Extract rich canonical product semantics with raw observed meaning, registry-aware normalization, search buckets, and pending registry proposals.',
+    strict_output_rules: [
+      'You must return exactly this JSON schema.',
+      'Do not add extra top-level keys.',
+      'Do not omit required keys.',
+      'Use null or [] when unknown.',
+      'Do not invent facts not supported by the product name or deterministic markers.',
+    ],
+    semantic_rules: [
+      'Real-world product language is messy.',
+      'Preserve raw real-world terms even when they are unfamiliar.',
+      'Do not force a raw observed term into a false canonical bucket.',
+      'Prefer existing registry terms when they accurately fit.',
+      'Do not use a registry term if it would be false.',
+      'If a raw term is meaningful but not in the registry, include it as proposed_alias or proposed_new_term.',
+      'LLM output may propose registry actions, but it must not activate new terms.',
+    ],
+    registry_context: context,
+    response_json_schema: schema,
+    response_shape: {
+      products: [{
+        canonical_product_id: 'string; must exactly match one input id',
+        enrichment: 'canonical_semantic_v3 object matching response_json_schema products.items.properties.enrichment',
       }],
     },
     products: products.map((product) => {
@@ -687,6 +808,125 @@ function validateRichCanonicalEnrichmentBatchResponseDetailed(response, {
   return {
     valid,
     rejected,
+  };
+}
+
+function validateCanonicalSemanticV3BatchResponse(response, {
+  products = [],
+} = {}) {
+  return validateCanonicalSemanticV3BatchResponseDetailed(response, { products }).valid;
+}
+
+function validateCanonicalSemanticV3BatchResponseDetailed(response, {
+  products = [],
+} = {}) {
+  const { rows, expectedById } = validateCanonicalSemanticV3BatchShape(response, {
+    products,
+  });
+  const valid = [];
+  const rejected = [];
+
+  rows.forEach((entry) => {
+    const id = typeof entry?.canonical_product_id === 'string' ? entry.canonical_product_id.trim() : '';
+    const product = expectedById.get(id);
+    try {
+      valid.push({
+        canonical_product_id: id,
+        enrichment: validateCanonicalSemanticV3Enrichment(entry.enrichment, {
+          canonicalProduct: product,
+        }),
+        validation_warnings: [],
+      });
+    } catch (error) {
+      rejected.push({
+        canonical_product_id: id,
+        error_type: 'validation_error',
+        message: error.message,
+        reason: 'validation_error',
+      });
+    }
+  });
+
+  return {
+    valid,
+    rejected,
+  };
+}
+
+function validateCanonicalSemanticV3BatchShape(response, {
+  products = [],
+} = {}) {
+  const payload = parseEnrichmentPayload(response);
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    throw new Error('v3 batch enrichment response must be an object');
+  }
+  const topLevelKeys = Object.keys(payload);
+  const extraTopLevelKeys = topLevelKeys.filter((key) => key !== 'products');
+  if (extraTopLevelKeys.length > 0) {
+    throw new Error(`v3 batch enrichment response has extra top-level keys: ${extraTopLevelKeys.join(', ')}`);
+  }
+  const rows = payload.products;
+  if (!Array.isArray(rows)) {
+    throw new Error('v3 batch enrichment response must contain products[]');
+  }
+  if (rows.length !== products.length) {
+    throw new Error(`v3 batch enrichment response count mismatch: expected ${products.length}, got ${rows.length}`);
+  }
+
+  const expectedById = new Map(products.map((product) => [product.canonical_product_id, product]));
+  const seen = new Set();
+  rows.forEach((entry) => {
+    const keys = Object.keys(entry || {});
+    const extraKeys = keys.filter((key) => !['canonical_product_id', 'enrichment'].includes(key));
+    if (extraKeys.length > 0) {
+      throw new Error(`v3 product response has uncontrolled fields: ${extraKeys.join(', ')}`);
+    }
+    const id = typeof entry?.canonical_product_id === 'string' ? entry.canonical_product_id.trim() : '';
+    if (!expectedById.has(id)) {
+      throw new Error(`v3 batch enrichment response returned unexpected product id: ${id || '<missing>'}`);
+    }
+    if (seen.has(id)) {
+      throw new Error(`v3 batch enrichment response returned duplicate product id: ${id}`);
+    }
+    seen.add(id);
+  });
+
+  return {
+    rows,
+    expectedById,
+  };
+}
+
+function validateCanonicalSemanticV3Enrichment(enrichment, {
+  canonicalProduct = null,
+} = {}) {
+  if (!enrichment || typeof enrichment !== 'object' || Array.isArray(enrichment)) {
+    throw new Error('v3 enrichment must be an object');
+  }
+  const extraKeys = Object.keys(enrichment).filter((key) => !V3_ENRICHMENT_KEYS.includes(key));
+  if (extraKeys.length > 0) {
+    throw new Error(`v3 enrichment has uncontrolled fields: ${extraKeys.join(', ')}`);
+  }
+  const missingKeys = V3_ENRICHMENT_KEYS.filter((key) => !Object.prototype.hasOwnProperty.call(enrichment, key));
+  if (missingKeys.length > 0) {
+    throw new Error(`v3 enrichment missing fields: ${missingKeys.join(', ')}`);
+  }
+  if (enrichment.schema_version !== CANONICAL_SEMANTIC_V3_VERSION) {
+    throw new Error('v3 enrichment schema_version must be canonical_semantic_v3');
+  }
+
+  const productIdentity = normalizeV3ProductIdentity(enrichment.product_identity, canonicalProduct);
+  return {
+    schema_version: CANONICAL_SEMANTIC_V3_VERSION,
+    product_identity: productIdentity,
+    category: normalizeV3Category(enrichment.category),
+    packaging: normalizeV3SemanticSection(enrichment.packaging, 'packaging'),
+    product_form: normalizeV3SemanticSection(enrichment.product_form, 'product_form'),
+    attributes: normalizeV3Attributes(enrichment.attributes),
+    registry_actions: normalizeV3RegistryActions(enrichment.registry_actions),
+    warnings: normalizeRichArray(enrichment.warnings, 'warnings'),
+    confidence_overall: requireV3Confidence(enrichment.confidence_overall, 'confidence_overall'),
+    needs_human_review: requireV3Boolean(enrichment.needs_human_review, 'needs_human_review'),
   };
 }
 
@@ -1287,17 +1527,337 @@ function validateRichSemanticConsistency(enrichment) {
   }
 }
 
+function normalizeV3ProductIdentity(value, canonicalProduct) {
+  assertExactObjectKeys(value, V3_PRODUCT_IDENTITY_KEYS, 'v3 product_identity');
+  const canonicalProductId = normalizeRequiredString(value.canonical_product_id, 'product_identity.canonical_product_id');
+  if (canonicalProduct?.canonical_product_id && canonicalProductId !== canonicalProduct.canonical_product_id) {
+    throw new Error(`v3 product_identity canonical_product_id mismatch: ${canonicalProductId}`);
+  }
+  const expectedHash = canonicalProduct ? canonicalNameHashForProduct(canonicalProduct) : null;
+  const canonicalNameHash = normalizeRequiredString(value.canonical_name_hash, 'product_identity.canonical_name_hash');
+  if (expectedHash && canonicalNameHash !== expectedHash) {
+    throw new Error('v3 product_identity canonical_name_hash mismatch');
+  }
+  return {
+    canonical_product_id: canonicalProductId,
+    canonical_name_hash: canonicalNameHash,
+    observed_name: normalizeNullableV3String(value.observed_name, 'product_identity.observed_name'),
+    observed_brand: normalizeNullableV3String(value.observed_brand, 'product_identity.observed_brand'),
+    brand_confidence: nullableV3Confidence(value.brand_confidence, 'product_identity.brand_confidence'),
+    brand_needs_review: requireV3Boolean(value.brand_needs_review, 'product_identity.brand_needs_review'),
+  };
+}
+
+function normalizeV3Category(value) {
+  assertExactObjectKeys(value, V3_CATEGORY_KEYS, 'v3 category');
+  return {
+    raw_terms: normalizeRichArray(value.raw_terms, 'category.raw_terms'),
+    category_path_raw: normalizeRichArray(value.category_path_raw, 'category.category_path_raw'),
+    registry_matches: normalizeV3RegistryMatches(value.registry_matches, 'category.registry_matches'),
+    proposed_terms: normalizeRichArray(value.proposed_terms, 'category.proposed_terms'),
+    search_buckets: normalizeRichArray(value.search_buckets, 'category.search_buckets'),
+    needs_review: requireV3Boolean(value.needs_review, 'category.needs_review'),
+  };
+}
+
+function normalizeV3SemanticSection(value, fieldName) {
+  assertExactObjectKeys(value, V3_SEMANTIC_SECTION_KEYS, `v3 ${fieldName}`);
+  return {
+    raw_terms: normalizeRichArray(value.raw_terms, `${fieldName}.raw_terms`),
+    description: normalizeNullableV3String(value.description, `${fieldName}.description`),
+    registry_match: normalizeV3RegistryMatch(value.registry_match, `${fieldName}.registry_match`),
+    proposed_aliases: normalizeRichArray(value.proposed_aliases, `${fieldName}.proposed_aliases`),
+    proposed_new_term: normalizeNullableV3String(value.proposed_new_term, `${fieldName}.proposed_new_term`),
+    search_bucket: normalizeNullableV3String(value.search_bucket, `${fieldName}.search_bucket`),
+    confidence: requireV3Confidence(value.confidence, `${fieldName}.confidence`),
+    needs_review: requireV3Boolean(value.needs_review, `${fieldName}.needs_review`),
+    evidence: normalizeRichArray(value.evidence, `${fieldName}.evidence`),
+  };
+}
+
+function normalizeV3Attributes(value) {
+  assertExactObjectKeys(value, V3_ATTRIBUTES_KEYS, 'v3 attributes');
+  return {
+    dairy: normalizeV3LooseObject(value.dairy, 'attributes.dairy'),
+    beverage: normalizeV3LooseObject(value.beverage, 'attributes.beverage'),
+    nutrition_claims: normalizeRichArray(value.nutrition_claims, 'attributes.nutrition_claims'),
+    dietary_claims: normalizeRichArray(value.dietary_claims, 'attributes.dietary_claims'),
+    flavor_terms: normalizeRichArray(value.flavor_terms, 'attributes.flavor_terms'),
+    preparation_state: normalizeRichArray(value.preparation_state, 'attributes.preparation_state'),
+    storage: normalizeV3LooseObject(value.storage, 'attributes.storage'),
+    quantity: normalizeV3LooseObject(value.quantity, 'attributes.quantity'),
+  };
+}
+
+function normalizeV3RegistryActions(value) {
+  if (!Array.isArray(value)) {
+    throw new Error('v3 registry_actions must be an array');
+  }
+  if (value.length > 40) {
+    throw new Error('v3 registry_actions has too many entries');
+  }
+  return value.map((entry, index) => {
+    const extraKeys = Object.keys(entry || {}).filter((key) => ![
+      'action',
+      'domain',
+      'existing_term_id',
+      'proposed_label',
+      'proposed_alias',
+      'parent_term_id',
+      'confidence',
+      'evidence',
+      'reason',
+    ].includes(key));
+    if (extraKeys.length > 0) {
+      throw new Error(`v3 registry_actions[${index}] has uncontrolled fields: ${extraKeys.join(', ')}`);
+    }
+    const normalized = normalizeRegistryAction(entry);
+    if (!normalized) {
+      throw new Error(`v3 registry_actions[${index}] has invalid action or domain`);
+    }
+    return {
+      action: normalized.action,
+      domain: normalized.domain,
+      existing_term_id: normalized.existing_term_id,
+      proposed_label: normalized.proposed_label,
+      proposed_alias: normalized.proposed_alias,
+      parent_term_id: normalized.parent_term_id,
+      confidence: normalized.confidence,
+      evidence: normalized.evidence,
+      reason: normalized.reason,
+    };
+  });
+}
+
+function normalizeV3RegistryMatches(value, fieldName) {
+  if (!Array.isArray(value)) {
+    throw new Error(`v3 ${fieldName} must be an array`);
+  }
+  return value.map((entry, index) => normalizeV3RegistryMatch(entry, `${fieldName}[${index}]`));
+}
+
+function normalizeV3RegistryMatch(value, fieldName) {
+  if (value === null) {
+    return null;
+  }
+  assertExactObjectKeys(value, ['domain', 'term_id', 'canonical_label', 'confidence', 'evidence'], `v3 ${fieldName}`);
+  const domain = normalizeRequiredString(value.domain, `${fieldName}.domain`);
+  if (!SEMANTIC_REGISTRY_DOMAINS.includes(domain)) {
+    throw new Error(`v3 ${fieldName}.domain is unsupported: ${domain}`);
+  }
+  return {
+    domain,
+    term_id: normalizeNullableV3String(value.term_id, `${fieldName}.term_id`),
+    canonical_label: normalizeNullableV3String(value.canonical_label, `${fieldName}.canonical_label`),
+    confidence: requireV3Confidence(value.confidence, `${fieldName}.confidence`),
+    evidence: normalizeRichArray(value.evidence, `${fieldName}.evidence`),
+  };
+}
+
+function normalizeV3LooseObject(value, fieldName) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error(`v3 ${fieldName} must be an object`);
+  }
+  return JSON.parse(JSON.stringify(value));
+}
+
+function assertExactObjectKeys(value, expectedKeys, fieldName) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error(`${fieldName} must be an object`);
+  }
+  const extraKeys = Object.keys(value).filter((key) => !expectedKeys.includes(key));
+  if (extraKeys.length > 0) {
+    throw new Error(`${fieldName} has uncontrolled fields: ${extraKeys.join(', ')}`);
+  }
+  const missingKeys = expectedKeys.filter((key) => !Object.prototype.hasOwnProperty.call(value, key));
+  if (missingKeys.length > 0) {
+    throw new Error(`${fieldName} missing fields: ${missingKeys.join(', ')}`);
+  }
+}
+
+function normalizeRequiredString(value, fieldName) {
+  if (typeof value !== 'string' || !value.trim()) {
+    throw new Error(`v3 ${fieldName} must be a non-empty string`);
+  }
+  return value.trim();
+}
+
+function normalizeNullableV3String(value, fieldName) {
+  if (value === null) {
+    return null;
+  }
+  if (typeof value !== 'string') {
+    throw new Error(`v3 ${fieldName} must be a string or null`);
+  }
+  const normalized = value.trim().replace(/\s+/gu, ' ');
+  return normalized || null;
+}
+
+function requireV3Boolean(value, fieldName) {
+  if (typeof value !== 'boolean') {
+    throw new Error(`v3 ${fieldName} must be boolean`);
+  }
+  return value;
+}
+
+function requireV3Confidence(value, fieldName) {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0 || value > 1) {
+    throw new Error(`v3 ${fieldName} must be a number from 0 to 1`);
+  }
+  return Math.round(value * 10000) / 10000;
+}
+
+function nullableV3Confidence(value, fieldName) {
+  if (value === null) {
+    return null;
+  }
+  return requireV3Confidence(value, fieldName);
+}
+
+function buildCanonicalSemanticV3JsonSchema() {
+  const registryMatchSchema = {
+    type: ['object', 'null'],
+    additionalProperties: false,
+    required: ['domain', 'term_id', 'canonical_label', 'confidence', 'evidence'],
+    properties: {
+      domain: { type: 'string', enum: SEMANTIC_REGISTRY_DOMAINS },
+      term_id: { type: ['string', 'null'] },
+      canonical_label: { type: ['string', 'null'] },
+      confidence: { type: 'number', minimum: 0, maximum: 1 },
+      evidence: { type: 'array', items: { type: 'string' } },
+    },
+  };
+  const semanticSectionSchema = {
+    type: 'object',
+    additionalProperties: false,
+    required: V3_SEMANTIC_SECTION_KEYS,
+    properties: {
+      raw_terms: { type: 'array', items: { type: 'string' } },
+      description: { type: ['string', 'null'] },
+      registry_match: registryMatchSchema,
+      proposed_aliases: { type: 'array', items: { type: 'string' } },
+      proposed_new_term: { type: ['string', 'null'] },
+      search_bucket: { type: ['string', 'null'] },
+      confidence: { type: 'number', minimum: 0, maximum: 1 },
+      needs_review: { type: 'boolean' },
+      evidence: { type: 'array', items: { type: 'string' } },
+    },
+  };
+
+  return {
+    type: 'object',
+    additionalProperties: false,
+    required: ['products'],
+    properties: {
+      products: {
+        type: 'array',
+        items: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['canonical_product_id', 'enrichment'],
+          properties: {
+            canonical_product_id: { type: 'string' },
+            enrichment: {
+              type: 'object',
+              additionalProperties: false,
+              required: V3_ENRICHMENT_KEYS,
+              properties: {
+                schema_version: { type: 'string', const: CANONICAL_SEMANTIC_V3_VERSION },
+                product_identity: {
+                  type: 'object',
+                  additionalProperties: false,
+                  required: V3_PRODUCT_IDENTITY_KEYS,
+                  properties: {
+                    canonical_product_id: { type: 'string' },
+                    canonical_name_hash: { type: 'string' },
+                    observed_name: { type: ['string', 'null'] },
+                    observed_brand: { type: ['string', 'null'] },
+                    brand_confidence: { type: ['number', 'null'], minimum: 0, maximum: 1 },
+                    brand_needs_review: { type: 'boolean' },
+                  },
+                },
+                category: {
+                  type: 'object',
+                  additionalProperties: false,
+                  required: V3_CATEGORY_KEYS,
+                  properties: {
+                    raw_terms: { type: 'array', items: { type: 'string' } },
+                    category_path_raw: { type: 'array', items: { type: 'string' } },
+                    registry_matches: {
+                      type: 'array',
+                      items: registryMatchSchema,
+                    },
+                    proposed_terms: { type: 'array', items: { type: 'string' } },
+                    search_buckets: { type: 'array', items: { type: 'string' } },
+                    needs_review: { type: 'boolean' },
+                  },
+                },
+                packaging: semanticSectionSchema,
+                product_form: semanticSectionSchema,
+                attributes: {
+                  type: 'object',
+                  additionalProperties: false,
+                  required: V3_ATTRIBUTES_KEYS,
+                  properties: {
+                    dairy: { type: 'object' },
+                    beverage: { type: 'object' },
+                    nutrition_claims: { type: 'array', items: { type: 'string' } },
+                    dietary_claims: { type: 'array', items: { type: 'string' } },
+                    flavor_terms: { type: 'array', items: { type: 'string' } },
+                    preparation_state: { type: 'array', items: { type: 'string' } },
+                    storage: { type: 'object' },
+                    quantity: { type: 'object' },
+                  },
+                },
+                registry_actions: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    additionalProperties: false,
+                    required: ['action', 'domain', 'existing_term_id', 'proposed_label', 'proposed_alias', 'parent_term_id', 'confidence', 'evidence', 'reason'],
+                    properties: {
+                      action: { type: 'string', enum: REGISTRY_ACTIONS },
+                      domain: { type: 'string', enum: SEMANTIC_REGISTRY_DOMAINS },
+                      existing_term_id: { type: ['string', 'null'] },
+                      proposed_label: { type: ['string', 'null'] },
+                      proposed_alias: { type: ['string', 'null'] },
+                      parent_term_id: { type: ['string', 'null'] },
+                      confidence: { type: ['number', 'null'], minimum: 0, maximum: 1 },
+                      evidence: { type: 'array', items: { type: 'string' } },
+                      reason: { type: ['string', 'null'] },
+                    },
+                  },
+                },
+                warnings: { type: 'array', items: { type: 'string' } },
+                confidence_overall: { type: 'number', minimum: 0, maximum: 1 },
+                needs_human_review: { type: 'boolean' },
+              },
+            },
+          },
+        },
+      },
+    },
+  };
+}
+
 module.exports = {
   CATEGORY_TREE,
+  CANONICAL_SEMANTIC_V3_PROMPT_VERSION,
+  CANONICAL_SEMANTIC_V3_VERSION,
   ENRICHMENT_PROMPT_VERSION,
   RICH_CANONICAL_ENRICHMENT_VERSION,
   RICH_CANONICAL_PROMPT_VERSION,
   RICH_ALLOWED_KEYS,
+  buildCanonicalSemanticV3BatchPrompt,
+  buildCanonicalSemanticV3JsonSchema,
   buildRichCanonicalEnrichmentBatchPrompt,
   buildEnrichmentPrompt,
   isLlmEnrichmentEnabled,
   requestCanonicalEnrichment,
   syncCanonicalEnrichmentArtifacts,
+  validateCanonicalSemanticV3BatchResponse,
+  validateCanonicalSemanticV3BatchResponseDetailed,
+  validateCanonicalSemanticV3Enrichment,
   validateRichCanonicalEnrichmentBatchResponse,
   validateRichCanonicalEnrichmentBatchResponseDetailed,
   validateRichCanonicalEnrichmentResponse,

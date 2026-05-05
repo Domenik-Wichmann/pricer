@@ -10,8 +10,8 @@ The machine-readable registry lives in [docs/test_registry.json](/c:/Users/domwi
 - `npm run test:phase16_0` verifies current-offer price lookup remains bounded after unsafe current-offer filtering and current-offer generation excludes quarantined canonical products.
 
 ## Production Firestore runtime hardening coverage
-- Product search uses scoped canonical-product prefix reads and does not request mappings, raw snapshots, or daily prices.
-- Product search attaches `current_offer_summary` from scoped `canonical_current_offer_summary` lookups for bounded search candidate ids, returns `null` when missing, and keeps legacy result fields.
+- Product search uses scoped canonical-product prefix reads and scoped mapping/source-product evidence reads, without requesting raw snapshots or daily prices.
+- Product search attaches `current_offer_summary` from scoped `canonical_current_offer_summary` lookups for bounded search candidate ids, returns zero-current-offer evidence summaries when missing, and keeps legacy result fields.
 - Product detail queries canonical mappings by requested canonical product id.
 - Product history queries `product_daily_prices` by `source_product_id`.
 - Price lookup scopes reads to requested canonical and source ids.
@@ -19,6 +19,7 @@ The machine-readable registry lives in [docs/test_registry.json](/c:/Users/domwi
 - Product detail and price lookup prefer compact current offers when they are populated and keep raw snapshot fallback bounded.
 - Gap-signal persistence upserts only `gap_signal_store` when scoped writes are available.
 - Home summary uses scoped Firestore-style reads and omits top deals/market highlights when compact read models are unavailable.
+- Recorded run: `docs/test_runs/product_summary_evidence_counts_2026-05-05.json`.
 - Market trends and nearest availability return controlled Firestore limitations instead of full-loading production runtime data.
 - Production Firestore runtime rejects legacy full load/save by default.
 
@@ -325,6 +326,7 @@ The machine-readable registry lives in [docs/test_registry.json](/c:/Users/domwi
 ## Phase 15.2 coverage
 - product detail handlers return stable product-facing shapes with canonical ids, canonical names, markers, enrichment, and explicit layer mode
 - product search handlers default to `canonical_with_enrichment` and return bounded deterministic results
+- product detail and search return `current_offer_count = 0` instead of `n/a`/missing counts when a canonical product has no current offers but has mapped source-product evidence
 - invalid layer modes are rejected safely instead of silently switching layers
 - enrichment-backed API filtering works for category, brand, base product, flavor, and attributes
 - facet handlers return deterministic counts for supported enrichment dimensions
@@ -1015,3 +1017,11 @@ The machine-readable registry lives in [docs/test_registry.json](/c:/Users/domwi
 - explicitly opted-in real pilot writes only `canonical_enrichment_store`
 - provider config healthcheck runs without Firestore writes or live LLM calls by default, and provider failures expose network cause and HTTP status/body details
 - enrichment-backed search continues to pass deterministic cookies/snacks/cola guardrail coverage
+
+## Phase 15.9 canonical semantic enrichment v3 coverage
+- v3 prompt includes exact JSON schema, registry context, and instructions to preserve raw terms, use accurate registry matches, avoid false buckets, and propose aliases/new terms when needed
+- v3 validation preserves messy raw terms such as `кофичка`, keeps `пакетирано` under review instead of forcing `packet`, and validates strict shape/types without rejecting unfamiliar raw vocabulary
+- v3 provider request bodies use strict `response_format.json_schema` by default with a `json_object` fallback flag
+- v3 real pilot seeds `semantic_term_registry`, writes `canonical_semantic_v3` enrichment records, and creates only pending `semantic_term_registry_proposals`
+- duplicate v3 registry proposals are deduped, and LLM proposals do not directly activate terms
+- malformed v3 provider JSON is stored in `canonical_enrichment_failed_responses` redacted, while affected canonical enrichment writes are skipped

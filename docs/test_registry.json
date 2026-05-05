@@ -32,7 +32,13 @@
     },
     {
       "id": "P15-CURRENT-OFFERS-SEARCH-002",
-      "description": "Scoped product search reads canonical_current_offer_summary by bounded candidate canonical_product_id values and returns null when a summary is missing.",
+      "description": "Scoped product search reads canonical_current_offer_summary by bounded candidate canonical_product_id values and returns zero-current-offer evidence summaries when a compact current summary is missing.",
+      "phase": 15.2,
+      "status": "passed"
+    },
+    {
+      "id": "P15-CURRENT-OFFERS-SEARCH-003",
+      "description": "Product detail and search keep price min/max/avg unavailable while rendering current offer counts as 0 and historical/source evidence counts for canonical products with no current offers.",
       "phase": 15.2,
       "status": "passed"
     },
@@ -93,6 +99,36 @@
     {
       "id": "P15-SEMANTIC-V2-005",
       "description": "The enrichment healthcheck validates provider configuration without Firestore writes or live LLM calls by default, and real pilot request errors expose network cause details plus HTTP status/body details.",
+      "phase": 15.9,
+      "status": "passed"
+    },
+    {
+      "id": "P15-SEMANTIC-V3-001",
+      "description": "canonical_semantic_v3 prompts include exact JSON schema, registry context, raw-term preservation, accurate-registry-match guidance, false-bucket avoidance, and proposal instructions.",
+      "phase": 15.9,
+      "status": "passed"
+    },
+    {
+      "id": "P15-SEMANTIC-V3-002",
+      "description": "canonical_semantic_v3 validation preserves messy raw terms such as кофичка and keeps пакетирано under review instead of forcing an unsafe packet mapping.",
+      "phase": 15.9,
+      "status": "passed"
+    },
+    {
+      "id": "P15-SEMANTIC-V3-003",
+      "description": "canonical_semantic_v3 provider requests use strict response_format json_schema by default and retain a json_object fallback.",
+      "phase": 15.9,
+      "status": "passed"
+    },
+    {
+      "id": "P15-SEMANTIC-V3-004",
+      "description": "Opted-in canonical_semantic_v3 pilot runs seed semantic_term_registry, write v3 canonical enrichment records, and create only pending deduped semantic_term_registry_proposals.",
+      "phase": 15.9,
+      "status": "passed"
+    },
+    {
+      "id": "P15-SEMANTIC-V3-005",
+      "description": "Malformed canonical_semantic_v3 provider JSON is quarantined in canonical_enrichment_failed_responses and does not write canonical enrichment.",
       "phase": 15.9,
       "status": "passed"
     },

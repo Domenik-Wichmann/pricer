@@ -7,11 +7,21 @@ const {
 const { isRuntimeSafeCanonicalProduct } = require('../phase6/product_validation');
 const {
   ENRICHMENT_PROMPT_VERSION,
+  CANONICAL_SEMANTIC_V3_VERSION,
   RICH_CANONICAL_ENRICHMENT_VERSION,
   RICH_CANONICAL_PROMPT_VERSION,
+  buildCanonicalSemanticV3BatchPrompt,
+  buildCanonicalSemanticV3JsonSchema,
   buildRichCanonicalEnrichmentBatchPrompt,
+  validateCanonicalSemanticV3BatchResponseDetailed,
   validateRichCanonicalEnrichmentBatchResponseDetailed,
 } = require('./enrichment');
+const {
+  buildFailedEnrichmentResponseRecord,
+  buildRegistryContext,
+  seedSemanticTermRegistry,
+  writeRegistryProposalsFromActions,
+} = require('./semantic_registry');
 const { buildGroceryQueryExpansion } = require('./search_synonyms');
 
 const PILOT_ENRICHMENT_VERSION = RICH_CANONICAL_ENRICHMENT_VERSION;
@@ -157,10 +167,21 @@ function buildPilotConfig(env = process.env) {
     provider: providerConfig.provider,
     endpointHost: providerConfig.endpoint_host,
     modelName: providerConfig.model || 'pilot-disabled',
-    promptVersion: RICH_CANONICAL_PROMPT_VERSION,
+    enrichmentVersion: resolvePilotEnrichmentVersion(env),
+    promptVersion: resolvePilotEnrichmentVersion(env) === CANONICAL_SEMANTIC_V3_VERSION
+      ? 'canonical_semantic_v3_prompt_v1'
+      : RICH_CANONICAL_PROMPT_VERSION,
     estimatedUsdPer1kTokens: Number.parseFloat(env.PRICER_ENRICHMENT_PILOT_USD_PER_1K_TOKENS || '') ||
       DEFAULT_ESTIMATED_USD_PER_1K_TOKENS,
   };
+}
+
+function resolvePilotEnrichmentVersion(env = process.env) {
+  const requested = String(env.PRICER_ENRICHMENT_VERSION || '').trim();
+  if (requested === CANONICAL_SEMANTIC_V3_VERSION) {
+    return CANONICAL_SEMANTIC_V3_VERSION;
+  }
+  return RICH_CANONICAL_ENRICHMENT_VERSION;
 }
 
 function resolveEnrichmentEndpoint(env = process.env) {
@@ -213,16 +234,29 @@ async function runCanonicalEnrichmentPilot({
   }
 
   const config = buildPilotConfig(env);
-  const state = await store.loadCollections(['canonical_products', 'canonical_enrichment_store']);
+  const requestedCollections = ['canonical_products', 'canonical_enrichment_store'];
+  if (config.enrichmentVersion === CANONICAL_SEMANTIC_V3_VERSION) {
+    requestedCollections.push(
+      'semantic_term_registry',
+      'semantic_term_registry_proposals',
+      'canonical_enrichment_failed_responses'
+    );
+  }
+  const state = await store.loadCollections(requestedCollections);
+  let seededRegistryTerms = [];
+  if (config.enrichmentVersion === CANONICAL_SEMANTIC_V3_VERSION) {
+    seededRegistryTerms = seedSemanticTermRegistry(state, { now: config.now });
+  }
   const selection = buildPilotCandidateSelection({
     state,
     limit: config.limit,
     query: config.query,
     group: config.group,
+    enrichmentVersion: config.enrichmentVersion,
   });
   const candidates = selection.candidates;
   const promptBatches = chunk(candidates, config.batchSize).map((products) =>
-    buildBatchEnrichmentPrompt(products)
+    buildBatchEnrichmentPrompt(products, { state, enrichmentVersion: config.enrichmentVersion })
   );
   const summary = {
     dry_run: config.dryRun,
@@ -230,6 +264,7 @@ async function runCanonicalEnrichmentPilot({
     provider: config.provider,
     endpoint_host: config.endpointHost,
     model: config.modelName,
+    enrichment_version: config.enrichmentVersion,
     selected_count: candidates.length,
     skipped_same_cache_count: selection.skipped_same_cache_count,
     batch_count: promptBatches.length,
@@ -248,8 +283,15 @@ async function runCanonicalEnrichmentPilot({
     validation_warnings: [],
     run_warnings: [],
     errors: [],
-    touched_collections: ['canonical_products', 'canonical_enrichment_store'],
-    write_collections: config.dryRun || !config.runLlm ? [] : ['canonical_enrichment_store'],
+    registry_proposal_writes: 0,
+    registry_seed_writes: config.dryRun || !config.runLlm ? 0 : seededRegistryTerms.length,
+    failed_response_writes: 0,
+    touched_collections: requestedCollections,
+    write_collections: config.dryRun || !config.runLlm
+      ? []
+      : config.enrichmentVersion === CANONICAL_SEMANTIC_V3_VERSION
+        ? ['canonical_enrichment_store', 'semantic_term_registry', 'semantic_term_registry_proposals', 'canonical_enrichment_failed_responses']
+        : ['canonical_enrichment_store'],
   };
   summary.estimated_cost_usd = roundCurrency(
     (summary.estimated_tokens / 1000) * config.estimatedUsdPer1kTokens
@@ -267,6 +309,12 @@ async function runCanonicalEnrichmentPilot({
     return summary;
   }
 
+  if (config.enrichmentVersion === CANONICAL_SEMANTIC_V3_VERSION) {
+    for (const term of seededRegistryTerms) {
+      await store.upsertRecord('semantic_term_registry', term);
+    }
+  }
+
   const client = canonicalEnrichmentBatchClient || requestCanonicalEnrichmentBatch;
   for (const [batchIndex, batch] of promptBatches.entries()) {
     let validation;
@@ -276,11 +324,23 @@ async function runCanonicalEnrichmentPilot({
         products: batch.products,
         env,
         batchIndex: batchIndex + 1,
+        enrichmentVersion: config.enrichmentVersion,
       });
-      validation = validateRichCanonicalEnrichmentBatchResponseDetailed(responses, {
-        products: batch.products,
-      });
+      validation = config.enrichmentVersion === CANONICAL_SEMANTIC_V3_VERSION
+        ? validateCanonicalSemanticV3BatchResponseDetailed(responses, { products: batch.products })
+        : validateRichCanonicalEnrichmentBatchResponseDetailed(responses, { products: batch.products });
     } catch (error) {
+      if (config.enrichmentVersion === CANONICAL_SEMANTIC_V3_VERSION && error.raw_content_redacted) {
+        await persistFailedResponseArtifact({
+          store,
+          state,
+          error,
+          batch,
+          batchIndex: batchIndex + 1,
+          config,
+        });
+        summary.failed_response_writes += 1;
+      }
       summary.errors.push(buildBatchErrorReport(error, {
         batchIndex: batchIndex + 1,
         batch,
@@ -324,8 +384,10 @@ async function runCanonicalEnrichmentPilot({
         const enrichment = {
           ...response.enrichment,
           enrichment_source: response.enrichment?.enrichment_source || 'llm',
-          enrichment_version: PILOT_ENRICHMENT_VERSION,
-          canonical_name_hash: response.enrichment?.canonical_name_hash || canonicalNameHash(product),
+          enrichment_version: config.enrichmentVersion,
+          canonical_name_hash: response.enrichment?.canonical_name_hash ||
+            response.enrichment?.product_identity?.canonical_name_hash ||
+            canonicalNameHash(product),
         };
         const record = buildPilotEnrichmentRecord({
           product,
@@ -333,6 +395,17 @@ async function runCanonicalEnrichmentPilot({
           config,
         });
         await store.upsertRecord('canonical_enrichment_store', record);
+        if (config.enrichmentVersion === CANONICAL_SEMANTIC_V3_VERSION) {
+          const proposals = writeRegistryProposalsFromActions(state, {
+            actions: response.enrichment.registry_actions || [],
+            evidenceProductIds: [response.canonical_product_id],
+            now: config.now,
+          });
+          for (const proposal of proposals) {
+            await store.upsertRecord('semantic_term_registry_proposals', proposal);
+          }
+          summary.registry_proposal_writes += proposals.length;
+        }
         summary.actual_writes += 1;
       } catch (error) {
         summary.rejected_count += 1;
@@ -355,12 +428,14 @@ function selectEnrichmentPilotCandidates({
   limit = DEFAULT_PILOT_LIMIT,
   query = '',
   group = null,
+  enrichmentVersion = PILOT_ENRICHMENT_VERSION,
 } = {}) {
   return buildPilotCandidateSelection({
     state,
     limit,
     query,
     group,
+    enrichmentVersion,
   }).candidates;
 }
 
@@ -369,6 +444,7 @@ function buildPilotCandidateSelection({
   limit = DEFAULT_PILOT_LIMIT,
   query = '',
   group = null,
+  enrichmentVersion = PILOT_ENRICHMENT_VERSION,
 } = {}) {
   const existingById = new Map((state?.canonical_enrichment_store || [])
     .map((record) => [record.canonical_fingerprint, record]));
@@ -379,6 +455,7 @@ function buildPilotCandidateSelection({
       product,
       existing: existingById.get(product.canonical_product_id) || null,
       plan,
+      enrichmentVersion,
     }));
   const skippedSameCache = entries.filter((entry) => entry.cacheFresh && entry.candidateMatched);
   const excludedByGuardrail = entries.filter((entry) => entry.candidateMatched && entry.guardrail.excluded);
@@ -422,6 +499,7 @@ function scorePilotCandidate({
   product,
   existing,
   plan,
+  enrichmentVersion = PILOT_ENRICHMENT_VERSION,
 }) {
   const evidence = buildPilotCandidateEvidence(product, existing);
   const matchedQueryTerms = plan.query_terms.filter((term) => termMatchesEvidence(term, evidence));
@@ -442,7 +520,7 @@ function scorePilotCandidate({
     plan,
   });
   const candidateMatched = matchedTerms.length > 0 || matchedGroupKeys.length > 0;
-  const cacheFresh = isSameVersionNameHashCache(existing, product);
+  const cacheFresh = isSameVersionNameHashCache(existing, product, enrichmentVersion);
   const selectionReasons = [];
   let score = 0;
 
@@ -914,8 +992,15 @@ function escapeRegex(value) {
   return String(value).replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
 }
 
-function buildBatchEnrichmentPrompt(products) {
-  const prompt = buildRichCanonicalEnrichmentBatchPrompt(products);
+function buildBatchEnrichmentPrompt(products, {
+  state = null,
+  enrichmentVersion = RICH_CANONICAL_ENRICHMENT_VERSION,
+} = {}) {
+  const prompt = enrichmentVersion === CANONICAL_SEMANTIC_V3_VERSION
+    ? buildCanonicalSemanticV3BatchPrompt(products, {
+      registryContext: buildRegistryContext(state),
+    })
+    : buildRichCanonicalEnrichmentBatchPrompt(products);
   prompt.pilot_context = products.map((product) => ({
       canonical_product_id: product.canonical_product_id,
       pilot_match: product.pilot_match || null,
@@ -932,6 +1017,7 @@ async function requestCanonicalEnrichmentBatch({
   env = process.env,
   fetchImpl = globalThis.fetch,
   batchIndex = null,
+  enrichmentVersion = resolvePilotEnrichmentVersion(env),
 }) {
   const providerConfig = buildEnrichmentLlmProviderConfig(env);
   const apiKey = String(env.XAI_API_KEY || '').trim();
@@ -971,6 +1057,7 @@ async function requestCanonicalEnrichmentBatch({
       headers: buildProviderHeaders(apiKey),
       body: JSON.stringify(buildProviderRequestBody({
         model: providerConfig.model,
+        responseFormat: buildProviderResponseFormat({ env, enrichmentVersion }),
         messages: [
           {
             role: 'system',
@@ -1027,10 +1114,13 @@ async function requestCanonicalEnrichmentBatch({
   try {
     parsed = JSON.parse(stripJsonCodeFence(content.trim()));
   } catch (error) {
-    throw enrichProviderError(error, providerConfig, {
+    const enriched = enrichProviderError(error, providerConfig, {
       error_type: 'provider_response_error',
       batch_index: batchIndex,
     });
+    enriched.parse_error = error.message;
+    enriched.raw_content_redacted = content.slice(0, 4000);
+    throw enriched;
   }
   const productResponses = Array.isArray(parsed?.products) ? parsed.products : parsed;
   if (!Array.isArray(productResponses)) {
@@ -1041,7 +1131,7 @@ async function requestCanonicalEnrichmentBatch({
     );
   }
 
-  return productResponses;
+  return enrichmentVersion === CANONICAL_SEMANTIC_V3_VERSION ? parsed : productResponses;
 }
 
 async function runCanonicalEnrichmentHealthcheck({
@@ -1169,13 +1259,38 @@ function buildProviderRequestBody({
   model,
   messages,
   maxTokens = null,
+  responseFormat = null,
 }) {
   return {
     model,
     temperature: 0,
     ...(maxTokens ? { max_tokens: maxTokens } : {}),
+    ...(responseFormat ? { response_format: responseFormat } : {}),
     messages,
   };
+}
+
+function buildProviderResponseFormat({
+  env = process.env,
+  enrichmentVersion = RICH_CANONICAL_ENRICHMENT_VERSION,
+} = {}) {
+  if (String(env.PRICER_ENRICHMENT_STRUCTURED_OUTPUT || '').trim().toLowerCase() === 'false') {
+    return { type: 'json_object' };
+  }
+  if (enrichmentVersion === CANONICAL_SEMANTIC_V3_VERSION) {
+    return {
+      type: 'json_schema',
+      json_schema: {
+        name: 'canonical_semantic_v3_batch',
+        strict: true,
+        schema: buildCanonicalSemanticV3JsonSchema(),
+      },
+    };
+  }
+  if (String(env.PRICER_ENRICHMENT_RESPONSE_FORMAT || '').trim().toLowerCase() === 'json_object') {
+    return { type: 'json_object' };
+  }
+  return null;
 }
 
 async function safeReadResponseBody(response) {
@@ -1261,6 +1376,31 @@ function buildBatchErrorReport(error, {
   };
 }
 
+async function persistFailedResponseArtifact({
+  store,
+  state,
+  error,
+  batch,
+  batchIndex,
+  config,
+}) {
+  const record = buildFailedEnrichmentResponseRecord({
+    runId: config.now,
+    batchIndex,
+    productIds: batch.products.map((product) => product.canonical_product_id),
+    provider: config.provider,
+    model: config.modelName,
+    errorType: error.error_type || 'provider_response_error',
+    parseError: error.parse_error || error.message,
+    rawContent: error.raw_content_redacted || '',
+    now: config.now,
+  });
+  state.canonical_enrichment_failed_responses = state.canonical_enrichment_failed_responses || [];
+  state.canonical_enrichment_failed_responses.push(record);
+  await store.upsertRecord('canonical_enrichment_failed_responses', record);
+  return record;
+}
+
 function buildProviderErrorSummary(error) {
   return {
     error_type: error.error_type || inferErrorType(error),
@@ -1276,6 +1416,7 @@ function buildProviderErrorSummary(error) {
     status: error.status ?? null,
     status_text: error.status_text ?? null,
     response_body: error.response_body ?? null,
+    parse_error: error.parse_error ?? null,
   };
 }
 
@@ -1318,7 +1459,7 @@ function buildPilotEnrichmentRecord({
     model_name: config.modelName,
     prompt_version: config.promptVersion,
     enrichment_source: 'llm',
-    enrichment_version: PILOT_ENRICHMENT_VERSION,
+    enrichment_version: config.enrichmentVersion || PILOT_ENRICHMENT_VERSION,
     created_at: config.now,
     updated_at: config.now,
   };
@@ -1335,14 +1476,14 @@ function canonicalNameHash(product) {
     .digest('hex');
 }
 
-function isSameVersionNameHashCache(existing, product) {
+function isSameVersionNameHashCache(existing, product, enrichmentVersion = PILOT_ENRICHMENT_VERSION) {
   if (!existing || !product?.canonical_product_id) {
     return false;
   }
   const expectedHash = canonicalNameHash(product);
   const existingHash = existing.canonical_name_hash || existing.enrichment?.canonical_name_hash || null;
   const existingVersion = existing.enrichment_version || existing.enrichment?.enrichment_version || null;
-  return existingHash === expectedHash && existingVersion === PILOT_ENRICHMENT_VERSION;
+  return existingHash === expectedHash && existingVersion === enrichmentVersion;
 }
 
 function toCandidateSummary(product) {
@@ -1430,8 +1571,10 @@ module.exports = {
   buildEnrichmentLlmProviderConfig,
   buildPilotConfig,
   buildProviderErrorSummary,
+  buildProviderResponseFormat,
   canonicalNameHash,
   requestCanonicalEnrichmentBatch,
+  resolvePilotEnrichmentVersion,
   runCanonicalEnrichmentHealthcheck,
   runCanonicalEnrichmentPilot,
   selectEnrichmentPilotCandidates,

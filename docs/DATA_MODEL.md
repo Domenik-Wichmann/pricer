@@ -292,8 +292,14 @@ The local file intentionally omits bulky `fingerprint_payload` and offer display
 - `max_current_price`
 - `avg_current_price`
 - `offer_count`
+- `current_offer_count`
+- `historical_offer_count`
+- `source_row_count`
 - `chain_count`
+- `current_chain_count`
 - `retailer_count`
+- `current_retailer_count`
+- `historical_retailer_count`
 - `cheapest_offer_id`
 - `cheapest_source_product_id`
 - `cheapest_chain_id`
@@ -302,11 +308,12 @@ The local file intentionally omits bulky `fingerprint_payload` and offer display
 - `cheapest_price`
 - `currency`
 - `snapshot_date`
+- `last_seen_at`
 - `updated_at`
 - `available_chains[]`
 - `rules_version`
 
-`canonical_current_offer_summary` is keyed by `canonical_product_id` and gives product detail, price lookup, watchlist, and basket routes a bounded summary over current offers.
+`canonical_current_offer_summary` is keyed by `canonical_product_id` and gives product detail, price lookup, watchlist, and basket routes a bounded summary over current offers. Phase 15 product detail/search keeps price fields unavailable when no current price exists, but supplements missing compact current summaries with route-scoped canonical mapping/source-product evidence so count fields can still show `0` current offers plus historical/source counts and `last_seen_at`.
 
 ### Phase 6 incremental ingest modes
 
@@ -523,6 +530,57 @@ The local file intentionally omits bulky `fingerprint_payload` and offer display
 The canonical marker backfill may read a single enrichment document by `canonical_fingerprint` only after a canonical brand cleanup is planned. In a real run it patches `enrichment.brand` only when the enrichment brand is missing or equal to the stale canonical brand; it does not create enrichment records, call LLMs, or enrich raw/source rows.
 
 Phase 15.9 extends canonical enrichment for a focused semantic-search pilot. The new fields are optional and backward-compatible: existing v1 records without `product_type`, `search_aliases_*`, boolean category flags, or name-hash metadata remain valid. Rich v2 records use `enrichment.enrichment_version = "canonical_semantic_v2"` and cache by `canonical_product_id + canonical_name_hash + enrichment_version`, so unchanged v2 records are skipped by the pilot. The pilot selector reads only `canonical_products` plus existing `canonical_enrichment_store` and real opt-in runs write only `canonical_enrichment_store`; they must never update raw/source/offer rows, prices, mappings, or canonical product grouping.
+
+Phase 15 LLM hardening adds optional `canonical_semantic_v3` records behind `PRICER_ENRICHMENT_VERSION=canonical_semantic_v3`. V3 records still live in `canonical_enrichment_store`, but `enrichment.schema_version = "canonical_semantic_v3"` separates raw observed terms, descriptions, registry matches, proposed aliases/new terms, search buckets, confidence, warnings, and review flags. V3 may write pending registry proposals and failed-response artifacts, but it remains additive and must not activate new terms or mutate canonical grouping truth.
+
+### `semantic_term_registry`
+- `term_id`
+- `domain`
+- `canonical_label`
+- `display_label`
+- `definition`
+- `aliases[]`
+- `parent_term_id`
+- `related_term_ids[]`
+- `status`
+- `source`
+- `confidence`
+- `evidence_examples[]`
+- `created_at`
+- `updated_at`
+
+`semantic_term_registry` is the reusable normalization vocabulary for `canonical_semantic_v3`. Initial seed domains are `packaging`, `product_form`, `food_category`, `dairy_type`, `milk_source`, `quality_tier`, `storage_type`, `flavor`, `dietary_claim`, `material`, and `preparation_state`. Seed rows are reviewable vocabulary, not product truth.
+
+### `semantic_term_registry_proposals`
+- `proposal_id`
+- `domain`
+- `action`
+- `proposed_label`
+- `proposed_alias`
+- `existing_term_id`
+- `parent_term_id`
+- `evidence_product_ids[]`
+- `evidence_terms[]`
+- `confidence`
+- `status`
+- `created_at`
+- `updated_at`
+
+`semantic_term_registry_proposals` stores pending LLM-proposed aliases, terms, and relationships. Proposals are deduped by domain/action/label-or-alias/existing term and default to `pending`; LLM output must never directly create an active registry term.
+
+### `canonical_enrichment_failed_responses`
+- `failed_response_id`
+- `run_id`
+- `batch_index`
+- `product_ids[]`
+- `provider`
+- `model`
+- `error_type`
+- `parse_error`
+- `raw_content_redacted`
+- `created_at`
+
+`canonical_enrichment_failed_responses` stores redacted provider content only when a batch-level parse/provider response failure prevents canonical enrichment writes. It is a debug artifact collection and must not contain secrets.
 
 ### `retailer_locations`
 - `location_id`
@@ -2446,7 +2504,7 @@ Every DB5C review or promotion decision appends a history row. This remains appe
 ## Notes on Phase 15 Grocery Search QA
 - Phase 15 product search includes a deterministic in-code BG/EN grocery synonym table for query expansion and ranking only. It does not add persistence and does not merge or canonicalize products.
 - Product search results may include backward-compatible `search_debug` metadata with normalized query, expanded terms, matched concepts, match tier, matched tokens, matched enrichment category/product type/aliases, demotion reason, and score for Admin QA visibility.
-- Product search results include backward-compatible `current_offer_summary` metadata when `canonical_current_offer_summary` has a row for a bounded search candidate canonical product id. Missing summaries are returned as `null`, and the search path must not scan `raw_price_snapshots` or `current_product_offers` to invent a fallback.
+- Product search results include backward-compatible `current_offer_summary` metadata for bounded search candidate canonical product ids. Price min/max/avg come from `canonical_current_offer_summary` when present. Missing compact current summaries are returned as evidence summaries with `current_offer_count = 0`, historical/source counts from scoped `canonical_product_mappings` plus `source_products`, and no raw snapshot/current-offer scan.
 - Phase 15.9 adds deterministic cookies/snacks/cola/soft-drink aliases before any LLM enrichment, plus enrichment-backed ranking over optional canonical fields such as `product_type`, `product_family`, `search_aliases_bg`, `search_aliases_en`, `synonym_terms`, `should_match_queries`, `negative_match_hints`, `do_not_match_queries`, `is_beverage`, `is_personal_care`, `dairy_type`, and `beverage_type`.
 - Phase 15.9 adds `npm run phase15:enrichment-pilot`, which defaults to dry-run and selects a bounded pilot set for `milk_dairy_eval`, `bread_bakery_eval`, `cola_beverage_eval`, `cookies_snacks_eval`, `personal_care_false_positive_eval`, `baby_food_eval`, and `search_quality_eval` plus legacy group aliases. Real runs require explicit opt-in and write only `canonical_enrichment_store`.
 - Parser fixes for brand/unit/age markers affect future Phase 6 generated canonical records; existing production records can be refreshed by the canonical-only marker backfill without re-ingesting raw snapshots or rewriting offer/history rows. Phase 15 product detail/search expose structured `markers.size_marker` when the backfill has populated `canonical_attributes_json.size_marker`.

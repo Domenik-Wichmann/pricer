@@ -1,0 +1,26 @@
+{
+  "name": "product_summary_evidence_counts",
+  "date": "2026-05-05",
+  "status": "passed",
+  "commands": [
+    {
+      "command": "npm run test:phase15_2",
+      "status": "passed",
+      "result": "Phase 15.2 tests: 26 passed, 0 failed, 26 total"
+    },
+    {
+      "command": "npm run admin-web:build",
+      "status": "passed",
+      "result": "TypeScript check and Vite production build passed"
+    },
+    {
+      "command": "npm run validate:docs",
+      "status": "passed",
+      "result": "JSON docs parse successfully"
+    }
+  ],
+  "notes": [
+    "Product detail and search now return zero-current-offer evidence summaries when compact current summaries are missing.",
+    "Admin Product Search/Product Detail count fields render 0 or historical/source counts instead of n/a while price fields remain unavailable without current prices."
+  ]
+}

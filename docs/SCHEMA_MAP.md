@@ -84,7 +84,7 @@ Every collection is represented as an array in the local/in-memory store and as 
 | `current_offer_fingerprints` | `source_product_id` | Incremental latest-update baseline, one stable hash per current source-product offer. | Compared by daily diff jobs to skip unchanged offers and avoid rewriting the current read model. |
 | `offer_change_events` | `event_id` | Planned append-only latest-offer change stream for new, changed, and missing/removed offer observations. | Produced only by the future real incremental writer; dry-runs currently estimate event counts. |
 | `snapshot_manifests` | `manifest_id` | Per-snapshot diff/run summary for dry-runs and future committed incremental updates. | Records scanned counts, diff categories, affected canonical ids, estimated writes, and delete policy. |
-| `canonical_current_offer_summary` | `canonical_product_id` | Compact current-price summary per canonical product. | Derived from `current_product_offers`; stores min/max/avg, offer count, chain count, and cheapest offer pointers. |
+| `canonical_current_offer_summary` | `canonical_product_id` | Compact current-price summary per canonical product. | Derived from `current_product_offers`; stores min/max/avg, current offer count, chain/retailer count, and cheapest offer pointers. Phase 15 may supplement missing rows with scoped mapping/source-product evidence for zero-current-offer display counts. |
 | `category_daily_aggregates` | `category_code + date` | Category-level daily aggregate prices. | Derived from snapshots/source products. |
 | `sql_products` | `source_product_id` | Flat sync target for SQL-like product reads. | Mirrors selected `source_products` fields. |
 | `sql_product_prices_daily` | `source_product_id + date` | Flat sync target for product daily prices. | Mirrors `product_daily_prices`. |
@@ -93,6 +93,9 @@ Every collection is represented as an array in the local/in-memory store and as 
 | `canonical_products` | `canonical_product_id` | Deterministic cross-source product groups. | Target of `canonical_product_mappings`; referenced by product catalog, basket planning, saved lists, watchlist tracker, and meal bridge. Invalid records may carry additive no-delete `data_quality_status = "invalid"` quarantine markers. |
 | `canonical_product_mappings` | `source_product_id` | Link from source product to canonical product. | Connects `source_products.source_product_id` to `canonical_products.canonical_product_id`. |
 | `canonical_enrichment_store` | `canonical_fingerprint` | Additive LLM/cached enrichment for canonical product concepts, including optional Phase 15.9 search aliases/category flags. | Fingerprint currently aligns with canonical product ID. Must not mutate canonical grouping truth. Pilot writes are limited to this collection and may cache canonical-name hash metadata. |
+| `semantic_term_registry` | `term_id` | Reusable semantic normalization vocabulary for `canonical_semantic_v3`. | Seeded from existing Phase 15 enum-like terms; referenced by v3 registry matches and proposal `existing_term_id` values. |
+| `semantic_term_registry_proposals` | `proposal_id` | Pending review queue for LLM-proposed aliases, new terms, and relationships. | Written from v3 `registry_actions`; proposals are pending by default and never directly activate registry terms. |
+| `canonical_enrichment_failed_responses` | `failed_response_id` | Redacted malformed provider-response artifacts for canonical enrichment batches. | References run/batch/product ids for debugging; no secrets, no canonical writes on parse failure. |
 | `retailer_locations` | `location_id` | Deterministic store/location read model extracted from raw store names where source text contains city/address hints. | Derived from `raw_price_snapshots` and `source_products`; preserves provenance and leaves coordinates null until geocoding. |
 | `retailer_location_geocodes` | `geocode_id` | Additive geocoding cache/read model for retailer locations. | References `retailer_locations.location_id`; keyed by normalized country/city/raw address/store identity; provider results must not mutate raw location fields. |
 | `manual_location_geocodes` | `geocode_id` | Additive cache/read model for user-triggered manual-address coordinate lookup. | User-scoped provenance over raw address text; matched coordinates require explicit confirmation before use or saving. |
@@ -166,6 +169,7 @@ Owner:
 Rules:
 - Source prices are treated as EUR.
 - Current-price display should prefer `current_product_offers` and `canonical_current_offer_summary` because they are compact and route-safe.
+- Product catalog detail/search may read scoped `canonical_product_mappings` and `source_products` for canonical products that lack a compact current summary, exposing `current_offer_count = 0`, historical/source counts, retailer evidence, and `last_seen_at` while leaving price min/max/avg unavailable.
 - Legacy mappings/source/snapshot lookup remains bounded fallback behavior until the compact model is populated.
 - Staleness and missing-price state must be explicit in responses.
 - Invalid/quarantined `source_products` or invalid offer rows are excluded from compact current-offer reads and legacy fallback price records; current-offer summaries are not rewritten by quarantine mode.
@@ -300,10 +304,25 @@ Canonical marker backfill ownership:
 
 `canonical_enrichment_store`:
 - Identity: `canonical_fingerprint`
-- Enrichment payload: nested `enrichment.*`; rich v2 records use `enrichment.enrichment_version = "canonical_semantic_v2"` and may include identity/classification, food/beverage/dairy/baby/package/search/shopping-intent/quality fields.
+- Enrichment payload: nested `enrichment.*`; rich v2 records use `enrichment.enrichment_version = "canonical_semantic_v2"` and may include identity/classification, food/beverage/dairy/baby/package/search/shopping-intent/quality fields. Optional v3 records use `enrichment.schema_version = "canonical_semantic_v3"` and preserve raw terms/descriptions separately from registry matches, proposed aliases/new terms, search buckets, warnings, and review flags.
 - Cache metadata: `canonical_product_id`, `canonical_name_hash`, `enrichment_version`, and `enrichment_source`; the Phase 15.9 pilot skips records whose canonical id, name hash, and v2 version already match.
 - Explicit claim provenance: `explicit_claim_evidence[]` for deterministic diet/attribute alias matches where available
 - Provenance: `model_name`, `prompt_version`, `created_at`
+
+`semantic_term_registry`:
+- Identity: `term_id`
+- Domain fields: `domain`, `canonical_label`, `display_label`, `definition`, `aliases[]`
+- Relationships: `parent_term_id`, `related_term_ids[]`
+- Workflow/provenance: `status`, `source`, `confidence`, `evidence_examples[]`, timestamps
+
+`semantic_term_registry_proposals`:
+- Identity: `proposal_id`
+- Proposal fields: `domain`, `action`, `proposed_label`, `proposed_alias`, `existing_term_id`, `parent_term_id`
+- Evidence/workflow: `evidence_product_ids[]`, `evidence_terms[]`, `confidence`, `status`, timestamps
+
+`canonical_enrichment_failed_responses`:
+- Identity: `failed_response_id`
+- Debug fields: `run_id`, `batch_index`, `product_ids[]`, `provider`, `model`, `error_type`, `parse_error`, `raw_content_redacted`, `created_at`
 
 `canonical_disambiguation_queue`:
 - Identity: `warning_id`

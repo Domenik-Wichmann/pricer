@@ -235,6 +235,11 @@ test('product detail uses scoped catalog reads without raw snapshots', async () 
   assert.equal(scopedStore.loadedCollections.has('product_daily_prices'), false);
   assert.equal(scopedStore.calls.some((call) =>
     call.type === 'queryCollectionByFieldValues' &&
+    call.collectionName === 'source_products' &&
+    call.fieldName === 'source_product_id'
+  ), true);
+  assert.equal(scopedStore.calls.some((call) =>
+    call.type === 'queryCollectionByFieldValues' &&
     call.collectionName === 'current_product_offers' &&
     call.fieldName === 'canonical_product_id'
   ), true);
@@ -337,7 +342,16 @@ test('search uses scoped catalog reads and gap-signal upsert without raw snapsho
     call.type === 'queryCollectionPrefix' &&
     call.collectionName === 'canonical_products'
   ), true);
-  assert.equal(scopedStore.loadedCollections.has('canonical_product_mappings'), false);
+  assert.equal(scopedStore.calls.some((call) =>
+    call.type === 'queryCollectionByFieldValues' &&
+    call.collectionName === 'canonical_product_mappings' &&
+    call.fieldName === 'canonical_product_id'
+  ), true);
+  assert.equal(scopedStore.calls.some((call) =>
+    call.type === 'queryCollectionByFieldValues' &&
+    call.collectionName === 'source_products' &&
+    call.fieldName === 'source_product_id'
+  ), true);
   assert.equal(scopedStore.loadedCollections.has('raw_price_snapshots'), false);
   assert.equal(scopedStore.loadedCollections.has('product_daily_prices'), false);
   assert.equal(scopedStore.loadedCollections.has('canonical_current_offer_summary'), false);
@@ -351,7 +365,7 @@ test('search uses scoped catalog reads and gap-signal upsert without raw snapsho
   assert.equal(scopedStore.calls.some((call) => call.type === 'upsertRecord' && call.collectionName === 'gap_signal_store'), true);
 });
 
-test('search returns null price summary when the compact summary is missing', async () => {
+test('search returns source evidence summary when the compact current summary is missing', async () => {
   const { store } = await createApiStore();
   const state = await store.load();
   state.canonical_current_offer_summary = [];
@@ -367,7 +381,100 @@ test('search returns null price summary when the compact summary is missing', as
 
   assert.equal(response.status, 200);
   assert.equal(response.body.results.length > 0, true);
-  assert.equal(response.body.results[0].current_offer_summary, null);
+  assert.equal(response.body.results[0].current_offer_summary.current_offer_count, 0);
+  assert.equal(response.body.results[0].current_offer_summary.offer_count, 0);
+  assert.equal(response.body.results[0].current_offer_summary.historical_offer_count, 1);
+  assert.equal(response.body.results[0].current_offer_summary.source_row_count, 1);
+  assert.equal(response.body.results[0].current_offer_summary.retailer_count, 1);
+  assert.equal(response.body.results[0].current_offer_summary.min_current_price, null);
+  assert.equal(response.body.results[0].current_offer_summary.max_current_price, null);
+  assert.equal(response.body.results[0].current_offer_summary.avg_current_price, null);
+});
+
+test('product detail and search keep zero current-offer counts with historical source evidence', async () => {
+  const store = new InMemoryDataBackboneStore({
+    canonical_products: [{
+      canonical_product_id: 'cp_archived_beef',
+      canonical_display_name: 'Archived Beef 1 kg',
+      canonical_brand: 'Sarandiev',
+      canonical_product_type: 'beef',
+      canonical_category_code: '28',
+      canonical_attributes_json: JSON.stringify({}),
+      source_example_name: 'Archived Beef 1 kg',
+      source_product_count: 2,
+    }],
+    canonical_product_mappings: [
+      {
+        source_product_id: 'src_archived_beef_a',
+        canonical_product_id: 'cp_archived_beef',
+        mapping_confidence: 0.94,
+        mapping_method: 'fixture',
+        mapped_at: '2026-04-20T10:00:00.000Z',
+      },
+      {
+        source_product_id: 'src_archived_beef_b',
+        canonical_product_id: 'cp_archived_beef',
+        mapping_confidence: 0.93,
+        mapping_method: 'fixture',
+        mapped_at: '2026-04-21T10:00:00.000Z',
+      },
+    ],
+    source_products: [
+      {
+        source_product_id: 'src_archived_beef_a',
+        latest_product_name_raw: 'Телешко месо за готвене Сарандиев 1 кг',
+        source_chain_name_raw: 'Store A',
+        source_chain_name_normalized: 'store-a',
+        store_name_raw: 'Store A Sofia',
+        last_seen_date: '2026-04-20',
+      },
+      {
+        source_product_id: 'src_archived_beef_b',
+        latest_product_name_raw: 'Телешко месо за готвене Сарандиев 1 кг',
+        source_chain_name_raw: 'Store B',
+        source_chain_name_normalized: 'store-b',
+        store_name_raw: 'Store B Sofia',
+        last_seen_date: '2026-04-22',
+      },
+    ],
+    canonical_enrichment_store: [],
+    current_product_offers: [],
+    canonical_current_offer_summary: [],
+    gap_signal_store: [],
+  });
+
+  const detail = await handleGetCanonicalProductRequest({
+    store,
+    params: { id: 'cp_archived_beef' },
+  });
+  const search = await handleSearchCanonicalProductsRequest({
+    store,
+    body: {
+      query: 'Archived Beef',
+      limit: 5,
+    },
+  });
+  const detailSummary = detail.body.current_offer_summary;
+  const searchSummary = search.body.results[0].current_offer_summary;
+
+  assert.equal(detail.status, 200);
+  assert.equal(detail.body.current_offers.length, 0);
+  assert.equal(detailSummary.offer_count, 0);
+  assert.equal(detailSummary.current_offer_count, 0);
+  assert.equal(detailSummary.historical_offer_count, 2);
+  assert.equal(detailSummary.source_row_count, 2);
+  assert.equal(detailSummary.retailer_count, 2);
+  assert.equal(detailSummary.last_seen_at, '2026-04-22');
+  assert.equal(detailSummary.min_current_price, null);
+  assert.equal(detailSummary.max_current_price, null);
+  assert.equal(detailSummary.avg_current_price, null);
+  assert.equal(search.status, 200);
+  assert.equal(searchSummary.offer_count, 0);
+  assert.equal(searchSummary.current_offer_count, 0);
+  assert.equal(searchSummary.historical_offer_count, 2);
+  assert.equal(searchSummary.source_row_count, 2);
+  assert.equal(searchSummary.retailer_count, 2);
+  assert.equal(searchSummary.last_seen_at, '2026-04-22');
 });
 
 test('search result shape remains backward-compatible after price summary is added', async () => {

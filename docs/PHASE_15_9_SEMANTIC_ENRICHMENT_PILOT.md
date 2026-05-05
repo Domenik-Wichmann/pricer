@@ -1,7 +1,7 @@
 # Phase 15.9 Semantic Enrichment Pilot
 
 Date: 2026-05-05
-Status: IMPLEMENTED - DRY-RUN FIRST
+Status: IMPLEMENTED - DRY-RUN FIRST; V3 REGISTRY HARDENING ADDED
 
 ## Goal
 
@@ -64,6 +64,46 @@ Validation still rejects uncontrolled fields and invalid controlled category hie
 
 The prompt is batch-first. It requires strict JSON with one `products[]` entry per input `canonical_product_id`, says the work is classification/metadata only and not canonical merging, requires conservative output, and tells the model to use null/unknown/false/empty arrays when the product name does not strongly support a value. It explicitly calls out fresh milk versus yogurt, baby formula, body-care/shampoo milk wording, Milka chocolate, cola beverages, collagen, chocolate, and shampoo false positives.
 
+## Semantic Registry V3
+
+`canonical_semantic_v3` is additive and opt-in:
+
+```powershell
+$env:PRICER_ENRICHMENT_VERSION='canonical_semantic_v3'
+```
+
+V3 keeps v2 readable and separates raw product meaning from registry-backed normalization:
+
+- raw observed terms and descriptions are preserved in `packaging`, `product_form`, `category`, and attributes
+- registry matches point to `semantic_term_registry` terms when accurate
+- search buckets are stored separately from the raw truth
+- `registry_actions` propose aliases, new terms, relationships, or review work
+- LLM output never activates registry terms directly
+
+New runtime collections:
+
+- `semantic_term_registry`: canonical reusable terms seeded from existing enum-like Phase 15 values across packaging, product form, food category, dairy type, milk source, quality tier, storage type, flavor, dietary claim, material, and preparation state.
+- `semantic_term_registry_proposals`: pending review proposals deduped by domain/action/label/alias/existing term.
+- `canonical_enrichment_failed_responses`: redacted malformed provider responses with run id, batch index, product ids, provider/model, parse error, and creation time.
+
+The v3 prompt includes an exact JSON schema and a registry snapshot. It tells the model to use existing registry terms only when accurate, preserve unfamiliar real-world terms such as `кофичка`, avoid unsafe mappings such as blindly treating `пакетирано` as `packet`, and propose aliases/new terms instead of inventing activated canonical terms.
+
+xAI requests include strict structured output for v3 by default:
+
+```json
+{
+  "response_format": {
+    "type": "json_schema",
+    "json_schema": {
+      "name": "canonical_semantic_v3_batch",
+      "strict": true
+    }
+  }
+}
+```
+
+Set `PRICER_ENRICHMENT_STRUCTURED_OUTPUT=false` to fall back to `response_format: { "type": "json_object" }` when a provider endpoint does not support schema mode.
+
 ## Pilot Selector
 
 The pilot command is:
@@ -98,6 +138,8 @@ $env:PRICER_ENRICHMENT_RUN_LLM='true'
 ```
 
 Real runs update only `canonical_enrichment_store`. They cache by `canonical_product_id` plus canonical-name hash plus `canonical_semantic_v2`; existing same-version/same-name records are skipped and reported. They never apply LLM output to canonical merges.
+
+When `PRICER_ENRICHMENT_VERSION=canonical_semantic_v3`, real runs may also seed `semantic_term_registry`, write pending `semantic_term_registry_proposals`, and store malformed provider responses in `canonical_enrichment_failed_responses`. They still do not update raw/source/offer rows, prices, mappings, or canonical product grouping.
 
 ## Cost Controls
 

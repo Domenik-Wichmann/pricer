@@ -7,11 +7,21 @@ const {
 const { isRuntimeSafeCanonicalProduct } = require('../phase6/product_validation');
 const {
   ENRICHMENT_PROMPT_VERSION,
+  CANONICAL_SEMANTIC_V3_VERSION,
   RICH_CANONICAL_ENRICHMENT_VERSION,
   RICH_CANONICAL_PROMPT_VERSION,
+  buildCanonicalSemanticV3BatchPrompt,
+  buildCanonicalSemanticV3JsonSchema,
   buildRichCanonicalEnrichmentBatchPrompt,
+  validateCanonicalSemanticV3BatchResponseDetailed,
   validateRichCanonicalEnrichmentBatchResponseDetailed,
 } = require('./enrichment');
+const {
+  buildFailedEnrichmentResponseRecord,
+  buildRegistryContext,
+  seedSemanticTermRegistry,
+  writeRegistryProposalsFromActions,
+} = require('./semantic_registry');
 const { buildGroceryQueryExpansion } = require('./search_synonyms');
 
 const PILOT_ENRICHMENT_VERSION = RICH_CANONICAL_ENRICHMENT_VERSION;
@@ -21,6 +31,11 @@ const DEFAULT_ESTIMATED_USD_PER_1K_TOKENS = 0.002;
 const LLM_PROVIDER = 'xai';
 const HEALTHCHECK_PROMPT_VERSION = 'phase15_enrichment_healthcheck_v1';
 const MAX_ERROR_BODY_CHARS = 1200;
+const DEFAULT_LLM_MAX_RETRIES = 3;
+const DEFAULT_LLM_RETRY_BASE_MS = 750;
+const DEFAULT_LLM_RETRY_MAX_MS = 8000;
+const DEFAULT_LLM_REQUEST_TIMEOUT_MS = 60000;
+const RETRYABLE_HTTP_STATUSES = Object.freeze([408, 425, 429, 500, 502, 503, 504]);
 
 const PILOT_GROUPS = Object.freeze({
   milk_dairy_eval: Object.freeze({
@@ -157,10 +172,21 @@ function buildPilotConfig(env = process.env) {
     provider: providerConfig.provider,
     endpointHost: providerConfig.endpoint_host,
     modelName: providerConfig.model || 'pilot-disabled',
-    promptVersion: RICH_CANONICAL_PROMPT_VERSION,
+    enrichmentVersion: resolvePilotEnrichmentVersion(env),
+    promptVersion: resolvePilotEnrichmentVersion(env) === CANONICAL_SEMANTIC_V3_VERSION
+      ? 'canonical_semantic_v3_prompt_v1'
+      : RICH_CANONICAL_PROMPT_VERSION,
     estimatedUsdPer1kTokens: Number.parseFloat(env.PRICER_ENRICHMENT_PILOT_USD_PER_1K_TOKENS || '') ||
       DEFAULT_ESTIMATED_USD_PER_1K_TOKENS,
   };
+}
+
+function resolvePilotEnrichmentVersion(env = process.env) {
+  const requested = String(env.PRICER_ENRICHMENT_VERSION || '').trim();
+  if (requested === CANONICAL_SEMANTIC_V3_VERSION) {
+    return CANONICAL_SEMANTIC_V3_VERSION;
+  }
+  return RICH_CANONICAL_ENRICHMENT_VERSION;
 }
 
 function resolveEnrichmentEndpoint(env = process.env) {
@@ -213,16 +239,29 @@ async function runCanonicalEnrichmentPilot({
   }
 
   const config = buildPilotConfig(env);
-  const state = await store.loadCollections(['canonical_products', 'canonical_enrichment_store']);
+  const requestedCollections = ['canonical_products', 'canonical_enrichment_store'];
+  if (config.enrichmentVersion === CANONICAL_SEMANTIC_V3_VERSION) {
+    requestedCollections.push(
+      'semantic_term_registry',
+      'semantic_term_registry_proposals',
+      'canonical_enrichment_failed_responses'
+    );
+  }
+  const state = await store.loadCollections(requestedCollections);
+  let seededRegistryTerms = [];
+  if (config.enrichmentVersion === CANONICAL_SEMANTIC_V3_VERSION) {
+    seededRegistryTerms = seedSemanticTermRegistry(state, { now: config.now });
+  }
   const selection = buildPilotCandidateSelection({
     state,
     limit: config.limit,
     query: config.query,
     group: config.group,
+    enrichmentVersion: config.enrichmentVersion,
   });
   const candidates = selection.candidates;
   const promptBatches = chunk(candidates, config.batchSize).map((products) =>
-    buildBatchEnrichmentPrompt(products)
+    buildBatchEnrichmentPrompt(products, { state, enrichmentVersion: config.enrichmentVersion })
   );
   const summary = {
     dry_run: config.dryRun,
@@ -230,6 +269,7 @@ async function runCanonicalEnrichmentPilot({
     provider: config.provider,
     endpoint_host: config.endpointHost,
     model: config.modelName,
+    enrichment_version: config.enrichmentVersion,
     selected_count: candidates.length,
     skipped_same_cache_count: selection.skipped_same_cache_count,
     batch_count: promptBatches.length,
@@ -248,8 +288,19 @@ async function runCanonicalEnrichmentPilot({
     validation_warnings: [],
     run_warnings: [],
     errors: [],
-    touched_collections: ['canonical_products', 'canonical_enrichment_store'],
-    write_collections: config.dryRun || !config.runLlm ? [] : ['canonical_enrichment_store'],
+    registry_proposal_writes: 0,
+    registry_seed_writes: config.dryRun || !config.runLlm ? 0 : seededRegistryTerms.length,
+    failed_response_writes: 0,
+    provider_attempt_count: 0,
+    retry_count: 0,
+    retryable_error_count: 0,
+    provider_attempt_history: [],
+    touched_collections: requestedCollections,
+    write_collections: config.dryRun || !config.runLlm
+      ? []
+      : config.enrichmentVersion === CANONICAL_SEMANTIC_V3_VERSION
+        ? ['canonical_enrichment_store', 'semantic_term_registry', 'semantic_term_registry_proposals', 'canonical_enrichment_failed_responses']
+        : ['canonical_enrichment_store'],
   };
   summary.estimated_cost_usd = roundCurrency(
     (summary.estimated_tokens / 1000) * config.estimatedUsdPer1kTokens
@@ -267,6 +318,12 @@ async function runCanonicalEnrichmentPilot({
     return summary;
   }
 
+  if (config.enrichmentVersion === CANONICAL_SEMANTIC_V3_VERSION) {
+    for (const term of seededRegistryTerms) {
+      await store.upsertRecord('semantic_term_registry', term);
+    }
+  }
+
   const client = canonicalEnrichmentBatchClient || requestCanonicalEnrichmentBatch;
   for (const [batchIndex, batch] of promptBatches.entries()) {
     let validation;
@@ -276,11 +333,33 @@ async function runCanonicalEnrichmentPilot({
         products: batch.products,
         env,
         batchIndex: batchIndex + 1,
+        enrichmentVersion: config.enrichmentVersion,
       });
-      validation = validateRichCanonicalEnrichmentBatchResponseDetailed(responses, {
-        products: batch.products,
+      recordProviderAttemptHistory(summary, {
+        batchIndex: batchIndex + 1,
+        batch,
+        carrier: responses,
       });
+      validation = config.enrichmentVersion === CANONICAL_SEMANTIC_V3_VERSION
+        ? validateCanonicalSemanticV3BatchResponseDetailed(responses, { products: batch.products })
+        : validateRichCanonicalEnrichmentBatchResponseDetailed(responses, { products: batch.products });
     } catch (error) {
+      recordProviderAttemptHistory(summary, {
+        batchIndex: batchIndex + 1,
+        batch,
+        carrier: error,
+      });
+      if (config.enrichmentVersion === CANONICAL_SEMANTIC_V3_VERSION && error.raw_content_redacted) {
+        await persistFailedResponseArtifact({
+          store,
+          state,
+          error,
+          batch,
+          batchIndex: batchIndex + 1,
+          config,
+        });
+        summary.failed_response_writes += 1;
+      }
       summary.errors.push(buildBatchErrorReport(error, {
         batchIndex: batchIndex + 1,
         batch,
@@ -324,8 +403,10 @@ async function runCanonicalEnrichmentPilot({
         const enrichment = {
           ...response.enrichment,
           enrichment_source: response.enrichment?.enrichment_source || 'llm',
-          enrichment_version: PILOT_ENRICHMENT_VERSION,
-          canonical_name_hash: response.enrichment?.canonical_name_hash || canonicalNameHash(product),
+          enrichment_version: config.enrichmentVersion,
+          canonical_name_hash: response.enrichment?.canonical_name_hash ||
+            response.enrichment?.product_identity?.canonical_name_hash ||
+            canonicalNameHash(product),
         };
         const record = buildPilotEnrichmentRecord({
           product,
@@ -333,6 +414,17 @@ async function runCanonicalEnrichmentPilot({
           config,
         });
         await store.upsertRecord('canonical_enrichment_store', record);
+        if (config.enrichmentVersion === CANONICAL_SEMANTIC_V3_VERSION) {
+          const proposals = writeRegistryProposalsFromActions(state, {
+            actions: response.enrichment.registry_actions || [],
+            evidenceProductIds: [response.canonical_product_id],
+            now: config.now,
+          });
+          for (const proposal of proposals) {
+            await store.upsertRecord('semantic_term_registry_proposals', proposal);
+          }
+          summary.registry_proposal_writes += proposals.length;
+        }
         summary.actual_writes += 1;
       } catch (error) {
         summary.rejected_count += 1;
@@ -355,12 +447,14 @@ function selectEnrichmentPilotCandidates({
   limit = DEFAULT_PILOT_LIMIT,
   query = '',
   group = null,
+  enrichmentVersion = PILOT_ENRICHMENT_VERSION,
 } = {}) {
   return buildPilotCandidateSelection({
     state,
     limit,
     query,
     group,
+    enrichmentVersion,
   }).candidates;
 }
 
@@ -369,6 +463,7 @@ function buildPilotCandidateSelection({
   limit = DEFAULT_PILOT_LIMIT,
   query = '',
   group = null,
+  enrichmentVersion = PILOT_ENRICHMENT_VERSION,
 } = {}) {
   const existingById = new Map((state?.canonical_enrichment_store || [])
     .map((record) => [record.canonical_fingerprint, record]));
@@ -379,6 +474,7 @@ function buildPilotCandidateSelection({
       product,
       existing: existingById.get(product.canonical_product_id) || null,
       plan,
+      enrichmentVersion,
     }));
   const skippedSameCache = entries.filter((entry) => entry.cacheFresh && entry.candidateMatched);
   const excludedByGuardrail = entries.filter((entry) => entry.candidateMatched && entry.guardrail.excluded);
@@ -422,6 +518,7 @@ function scorePilotCandidate({
   product,
   existing,
   plan,
+  enrichmentVersion = PILOT_ENRICHMENT_VERSION,
 }) {
   const evidence = buildPilotCandidateEvidence(product, existing);
   const matchedQueryTerms = plan.query_terms.filter((term) => termMatchesEvidence(term, evidence));
@@ -442,7 +539,7 @@ function scorePilotCandidate({
     plan,
   });
   const candidateMatched = matchedTerms.length > 0 || matchedGroupKeys.length > 0;
-  const cacheFresh = isSameVersionNameHashCache(existing, product);
+  const cacheFresh = isSameVersionNameHashCache(existing, product, enrichmentVersion);
   const selectionReasons = [];
   let score = 0;
 
@@ -914,8 +1011,15 @@ function escapeRegex(value) {
   return String(value).replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
 }
 
-function buildBatchEnrichmentPrompt(products) {
-  const prompt = buildRichCanonicalEnrichmentBatchPrompt(products);
+function buildBatchEnrichmentPrompt(products, {
+  state = null,
+  enrichmentVersion = RICH_CANONICAL_ENRICHMENT_VERSION,
+} = {}) {
+  const prompt = enrichmentVersion === CANONICAL_SEMANTIC_V3_VERSION
+    ? buildCanonicalSemanticV3BatchPrompt(products, {
+      registryContext: buildRegistryContext(state),
+    })
+    : buildRichCanonicalEnrichmentBatchPrompt(products);
   prompt.pilot_context = products.map((product) => ({
       canonical_product_id: product.canonical_product_id,
       pilot_match: product.pilot_match || null,
@@ -932,6 +1036,7 @@ async function requestCanonicalEnrichmentBatch({
   env = process.env,
   fetchImpl = globalThis.fetch,
   batchIndex = null,
+  enrichmentVersion = resolvePilotEnrichmentVersion(env),
 }) {
   const providerConfig = buildEnrichmentLlmProviderConfig(env);
   const apiKey = String(env.XAI_API_KEY || '').trim();
@@ -964,84 +1069,79 @@ async function requestCanonicalEnrichmentBatch({
     );
   }
 
-  let response;
-  try {
-    response = await fetchImpl(providerConfig.endpoint, {
-      method: 'POST',
-      headers: buildProviderHeaders(apiKey),
-      body: JSON.stringify(buildProviderRequestBody({
-        model: providerConfig.model,
-        messages: [
-          {
-            role: 'system',
-            content: 'You enrich selected canonical product meaning for search. Return strict JSON only.',
-          },
-          {
-            role: 'user',
-            content: JSON.stringify(prompt),
-          },
-        ],
-      })),
-    });
-  } catch (error) {
-    throw enrichProviderError(error, providerConfig, {
-      error_type: 'provider_network_error',
-      batch_index: batchIndex,
-    });
-  }
-
-  if (!response.ok) {
-    const body = await safeReadResponseBody(response);
-    throw enrichProviderError(
-      new Error(`pilot enrichment request failed with status ${response.status}`),
-      providerConfig,
+  const requestBody = buildProviderRequestBody({
+    model: providerConfig.model,
+    responseFormat: buildProviderResponseFormat({ env, enrichmentVersion }),
+    messages: [
       {
-        error_type: 'provider_http_error',
-        batch_index: batchIndex,
-        status: response.status,
-        status_text: response.statusText || null,
-        response_body: body,
-      }
-    );
-  }
+        role: 'system',
+        content: 'You enrich selected canonical product meaning for search. Return strict JSON only.',
+      },
+      {
+        role: 'user',
+        content: JSON.stringify(prompt),
+      },
+    ],
+  });
+  const providerResult = await requestProviderChatCompletionWithRetry({
+    providerConfig,
+    apiKey,
+    requestBody,
+    env,
+    fetchImpl,
+    batchIndex,
+  });
+  const { response, attemptMetadata } = providerResult;
 
   let payload;
   try {
     payload = await response.json();
   } catch (error) {
-    throw enrichProviderError(error, providerConfig, {
+    const enriched = enrichProviderError(error, providerConfig, {
       error_type: 'provider_response_error',
       batch_index: batchIndex,
     });
+    attachAttemptMetadata(enriched, attemptMetadata);
+    throw enriched;
   }
   const content = payload?.choices?.[0]?.message?.content;
   if (typeof content !== 'string' || !content.trim()) {
-    throw enrichProviderError(
+    const enriched = enrichProviderError(
       new Error('pilot enrichment model response missing content'),
       providerConfig,
       { error_type: 'provider_response_error', batch_index: batchIndex }
     );
+    attachAttemptMetadata(enriched, attemptMetadata);
+    throw enriched;
   }
 
   let parsed;
   try {
     parsed = JSON.parse(stripJsonCodeFence(content.trim()));
   } catch (error) {
-    throw enrichProviderError(error, providerConfig, {
+    const enriched = enrichProviderError(error, providerConfig, {
       error_type: 'provider_response_error',
       batch_index: batchIndex,
     });
+    enriched.parse_error = error.message;
+    enriched.raw_content_redacted = content.slice(0, 4000);
+    attachAttemptMetadata(enriched, attemptMetadata);
+    throw enriched;
   }
   const productResponses = Array.isArray(parsed?.products) ? parsed.products : parsed;
   if (!Array.isArray(productResponses)) {
-    throw enrichProviderError(
+    const enriched = enrichProviderError(
       new Error('pilot enrichment response must contain products[]'),
       providerConfig,
       { error_type: 'provider_response_error', batch_index: batchIndex }
     );
+    attachAttemptMetadata(enriched, attemptMetadata);
+    throw enriched;
   }
 
-  return productResponses;
+  const result = enrichmentVersion === CANONICAL_SEMANTIC_V3_VERSION ? parsed : productResponses;
+  attachAttemptMetadata(result, attemptMetadata);
+  return result;
 }
 
 async function runCanonicalEnrichmentHealthcheck({
@@ -1106,12 +1206,18 @@ async function runCanonicalEnrichmentHealthcheck({
 
   try {
     result.live_request_made = true;
-    const response = await fetchImpl(providerConfig.endpoint, {
-      method: 'POST',
-      headers: buildProviderHeaders(String(env.XAI_API_KEY || '').trim()),
-      body: JSON.stringify(buildProviderRequestBody({
+    const enrichmentVersion = resolvePilotEnrichmentVersion(env);
+    const responseFormat = buildProviderResponseFormat({ env, enrichmentVersion });
+    const providerResult = await requestProviderChatCompletionWithRetry({
+      providerConfig,
+      apiKey: String(env.XAI_API_KEY || '').trim(),
+      env,
+      fetchImpl,
+      batchIndex: 'healthcheck',
+      requestBody: buildProviderRequestBody({
         model: providerConfig.model,
-        maxTokens: 12,
+        maxTokens: responseFormat?.type === 'json_schema' ? 256 : 12,
+        responseFormat,
         messages: [
           {
             role: 'system',
@@ -1119,39 +1225,29 @@ async function runCanonicalEnrichmentHealthcheck({
           },
           {
             role: 'user',
-            content: 'Return {"ok":true}.',
+            content: responseFormat?.type === 'json_schema'
+              ? 'Return {"products":[]}.'
+              : 'Return {"ok":true}.',
           },
         ],
-      })),
+      }),
     });
+    const { response, attemptMetadata } = providerResult;
+    result.enrichment_version = enrichmentVersion;
+    result.response_format_type = responseFormat?.type || null;
+    result.provider_attempt_count = attemptMetadata.provider_attempt_count;
+    result.retry_count = attemptMetadata.retry_count;
+    result.retryable_error_count = attemptMetadata.retryable_error_count;
+    result.attempt_history = attemptMetadata.attempt_history;
     result.status = response.status;
     result.status_text = response.statusText || null;
-    if (!response.ok) {
-      result.errors.push({
-        ...buildProviderErrorSummary(
-          enrichProviderError(
-            new Error(`healthcheck request failed with status ${response.status}`),
-            providerConfig,
-            {
-              error_type: 'provider_http_error',
-              status: response.status,
-              status_text: response.statusText || null,
-              response_body: await safeReadResponseBody(response),
-            }
-          )
-        ),
-      });
-      result.ok = false;
-      return result;
-    }
-
     const payload = await response.json();
     result.response_has_content = typeof payload?.choices?.[0]?.message?.content === 'string';
     result.ok = true;
     return result;
   } catch (error) {
     result.errors.push(buildProviderErrorSummary(enrichProviderError(error, providerConfig, {
-      error_type: 'provider_network_error',
+      error_type: error.error_type || inferErrorType(error),
     })));
     result.ok = false;
     return result;
@@ -1162,6 +1258,7 @@ function buildProviderHeaders(apiKey) {
   return {
     Authorization: `Bearer ${apiKey}`,
     'Content-Type': 'application/json',
+    Connection: 'close',
   };
 }
 
@@ -1169,13 +1266,281 @@ function buildProviderRequestBody({
   model,
   messages,
   maxTokens = null,
+  responseFormat = null,
 }) {
   return {
     model,
     temperature: 0,
     ...(maxTokens ? { max_tokens: maxTokens } : {}),
+    ...(responseFormat ? { response_format: responseFormat } : {}),
     messages,
   };
+}
+
+function buildProviderResponseFormat({
+  env = process.env,
+  enrichmentVersion = RICH_CANONICAL_ENRICHMENT_VERSION,
+} = {}) {
+  if (String(env.PRICER_ENRICHMENT_STRUCTURED_OUTPUT || '').trim().toLowerCase() === 'false') {
+    return { type: 'json_object' };
+  }
+  if (enrichmentVersion === CANONICAL_SEMANTIC_V3_VERSION) {
+    return {
+      type: 'json_schema',
+      json_schema: {
+        name: 'canonical_semantic_v3_batch',
+        strict: true,
+        schema: buildCanonicalSemanticV3JsonSchema(),
+      },
+    };
+  }
+  if (String(env.PRICER_ENRICHMENT_RESPONSE_FORMAT || '').trim().toLowerCase() === 'json_object') {
+    return { type: 'json_object' };
+  }
+  return null;
+}
+
+async function requestProviderChatCompletionWithRetry({
+  providerConfig,
+  apiKey,
+  requestBody,
+  env = process.env,
+  fetchImpl = globalThis.fetch,
+  batchIndex = null,
+} = {}) {
+  const retryConfig = buildLlmRetryConfig(env);
+  const attemptHistory = [];
+  let lastError = null;
+  const maxAttempts = retryConfig.maxRetries + 1;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => {
+      controller.abort(new Error(`provider request timed out after ${retryConfig.requestTimeoutMs}ms`));
+    }, retryConfig.requestTimeoutMs);
+    let response = null;
+    try {
+      response = await fetchImpl(providerConfig.endpoint, {
+        method: 'POST',
+        headers: buildProviderHeaders(apiKey),
+        body: JSON.stringify(requestBody),
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+
+      if (response.ok) {
+        attemptHistory.push({
+          attempt,
+          success: true,
+          status: response.status,
+          retryable: false,
+        });
+        return {
+          response,
+          attemptMetadata: buildAttemptMetadata(attemptHistory),
+        };
+      }
+
+      const body = await safeReadResponseBody(response);
+      const retryable = isRetryableHttpFailure(response.status, body);
+      const error = enrichProviderError(
+        new Error(`pilot enrichment request failed with status ${response.status}`),
+        providerConfig,
+        {
+          error_type: 'provider_http_error',
+          batch_index: batchIndex,
+          status: response.status,
+          status_text: response.statusText || null,
+          response_body: body,
+        }
+      );
+      lastError = error;
+      const canRetry = retryable && attempt <= retryConfig.maxRetries;
+      attemptHistory.push(buildAttemptHistoryEntry({
+        attempt,
+        error,
+        retryable,
+        retry_after_ms: canRetry ? computeRetryDelayMs(attempt, retryConfig) : null,
+      }));
+      if (canRetry) {
+        await sleep(attemptHistory[attemptHistory.length - 1].retry_after_ms);
+        continue;
+      }
+      throw finalizeProviderAttemptError(error, attemptHistory);
+    } catch (error) {
+      clearTimeout(timeout);
+      if (response && error?.attempt_history) {
+        throw error;
+      }
+      const enriched = enrichProviderError(error, providerConfig, {
+        error_type: 'provider_network_error',
+        batch_index: batchIndex,
+      });
+      if (isAbortLikeError(error)) {
+        enriched.timed_out = true;
+        enriched.timeout_ms = retryConfig.requestTimeoutMs;
+      }
+      const retryable = isRetryableNetworkFailure(enriched);
+      const retryLimit = isEnotfoundError(enriched) ? Math.min(1, retryConfig.maxRetries) : retryConfig.maxRetries;
+      const canRetry = retryable && attempt <= retryLimit;
+      lastError = enriched;
+      attemptHistory.push(buildAttemptHistoryEntry({
+        attempt,
+        error: enriched,
+        retryable,
+        retry_after_ms: canRetry ? computeRetryDelayMs(attempt, retryConfig) : null,
+      }));
+      if (canRetry) {
+        await sleep(attemptHistory[attemptHistory.length - 1].retry_after_ms);
+        continue;
+      }
+      throw finalizeProviderAttemptError(enriched, attemptHistory);
+    }
+  }
+
+  throw finalizeProviderAttemptError(lastError || new Error('provider request failed'), attemptHistory);
+}
+
+function buildLlmRetryConfig(env = process.env) {
+  return {
+    maxRetries: parseNonNegativeInteger(env.PRICER_LLM_MAX_RETRIES, DEFAULT_LLM_MAX_RETRIES),
+    retryBaseMs: parseNonNegativeInteger(env.PRICER_LLM_RETRY_BASE_MS, DEFAULT_LLM_RETRY_BASE_MS),
+    retryMaxMs: parsePositiveInteger(env.PRICER_LLM_RETRY_MAX_MS, DEFAULT_LLM_RETRY_MAX_MS),
+    requestTimeoutMs: parsePositiveInteger(env.PRICER_LLM_REQUEST_TIMEOUT_MS, DEFAULT_LLM_REQUEST_TIMEOUT_MS),
+  };
+}
+
+function buildAttemptMetadata(attemptHistory) {
+  return {
+    attempt_history: attemptHistory,
+    provider_attempt_count: attemptHistory.length,
+    retry_count: Math.max(0, attemptHistory.length - 1),
+    retryable_error_count: attemptHistory.filter((entry) => entry.retryable && !entry.success).length,
+  };
+}
+
+function buildAttemptHistoryEntry({
+  attempt,
+  error,
+  retryable,
+  retry_after_ms,
+}) {
+  return {
+    attempt,
+    success: false,
+    error_type: error.error_type || inferErrorType(error),
+    message: error.message,
+    status: error.status ?? null,
+    status_text: error.status_text ?? null,
+    error_name: error.name || null,
+    error_code: error.code || null,
+    cause_name: error.cause?.name || null,
+    cause_code: error.cause?.code || null,
+    cause_message: error.cause?.message || null,
+    timed_out: Boolean(error.timed_out),
+    retryable: Boolean(retryable),
+    retry_after_ms,
+  };
+}
+
+function finalizeProviderAttemptError(error, attemptHistory) {
+  const enriched = error instanceof Error ? error : new Error(String(error || 'provider request failed'));
+  attachAttemptMetadata(enriched, buildAttemptMetadata(attemptHistory));
+  if (attemptHistory.some((entry) => entry.retryable)) {
+    enriched.exhausted_retries = true;
+    enriched.error_type = 'provider_network_error';
+  }
+  return enriched;
+}
+
+function attachAttemptMetadata(target, metadata) {
+  if (!target || !metadata) {
+    return target;
+  }
+  Object.defineProperties(target, {
+    attempt_history: {
+      value: metadata.attempt_history || [],
+      enumerable: false,
+      configurable: true,
+    },
+    provider_attempt_count: {
+      value: metadata.provider_attempt_count || 0,
+      enumerable: false,
+      configurable: true,
+    },
+    retry_count: {
+      value: metadata.retry_count || 0,
+      enumerable: false,
+      configurable: true,
+    },
+    retryable_error_count: {
+      value: metadata.retryable_error_count || 0,
+      enumerable: false,
+      configurable: true,
+    },
+  });
+  return target;
+}
+
+function isRetryableHttpFailure(status, body = '') {
+  if (RETRYABLE_HTTP_STATUSES.includes(status)) {
+    return true;
+  }
+  if (status === 409) {
+    return /retryable|try again|temporar|conflict_retryable/iu.test(String(body || ''));
+  }
+  return false;
+}
+
+function isRetryableNetworkFailure(error) {
+  if (isAbortLikeError(error)) {
+    return true;
+  }
+  const text = [
+    error?.message,
+    error?.name,
+    error?.code,
+    error?.cause?.name,
+    error?.cause?.code,
+    error?.cause?.message,
+  ].filter(Boolean).join(' ');
+  return /UND_ERR_SOCKET|ECONNRESET|ETIMEDOUT|ENOTFOUND|EAI_AGAIN|fetch failed|SocketError|socket hang up|network/iu.test(text);
+}
+
+function isAbortLikeError(error) {
+  const text = [
+    error?.message,
+    error?.name,
+    error?.code,
+    error?.cause?.name,
+    error?.cause?.code,
+    error?.cause?.message,
+  ].filter(Boolean).join(' ');
+  return /AbortError|aborted|timed out|timeout/iu.test(text);
+}
+
+function isEnotfoundError(error) {
+  const text = [
+    error?.code,
+    error?.cause?.code,
+    error?.message,
+    error?.cause?.message,
+  ].filter(Boolean).join(' ');
+  return /ENOTFOUND/iu.test(text);
+}
+
+function computeRetryDelayMs(attempt, retryConfig) {
+  const exponential = retryConfig.retryBaseMs * (2 ** Math.max(0, attempt - 1));
+  const capped = Math.min(retryConfig.retryMaxMs, exponential);
+  const jitter = capped * (0.25 + Math.random() * 0.5);
+  return Math.max(0, Math.round(jitter));
+}
+
+function sleep(ms) {
+  if (!ms || ms <= 0) {
+    return Promise.resolve();
+  }
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 async function safeReadResponseBody(response) {
@@ -1261,6 +1626,58 @@ function buildBatchErrorReport(error, {
   };
 }
 
+function recordProviderAttemptHistory(summary, {
+  batchIndex,
+  batch,
+  carrier,
+}) {
+  const attemptHistory = carrier?.attempt_history;
+  if (!Array.isArray(attemptHistory) || attemptHistory.length === 0) {
+    return;
+  }
+  const providerAttemptCount = carrier.provider_attempt_count || attemptHistory.length;
+  const retryCount = carrier.retry_count ?? Math.max(0, attemptHistory.length - 1);
+  const retryableErrorCount = carrier.retryable_error_count ??
+    attemptHistory.filter((entry) => entry.retryable && !entry.success).length;
+  summary.provider_attempt_count += providerAttemptCount;
+  summary.retry_count += retryCount;
+  summary.retryable_error_count += retryableErrorCount;
+  summary.provider_attempt_history.push({
+    batch_index: batchIndex,
+    product_ids: batch.products.map((product) => product.canonical_product_id),
+    provider_attempt_count: providerAttemptCount,
+    retry_count: retryCount,
+    retryable_error_count: retryableErrorCount,
+    exhausted_retries: Boolean(carrier.exhausted_retries),
+    attempts: attemptHistory,
+  });
+}
+
+async function persistFailedResponseArtifact({
+  store,
+  state,
+  error,
+  batch,
+  batchIndex,
+  config,
+}) {
+  const record = buildFailedEnrichmentResponseRecord({
+    runId: config.now,
+    batchIndex,
+    productIds: batch.products.map((product) => product.canonical_product_id),
+    provider: config.provider,
+    model: config.modelName,
+    errorType: error.error_type || 'provider_response_error',
+    parseError: error.parse_error || error.message,
+    rawContent: error.raw_content_redacted || '',
+    now: config.now,
+  });
+  state.canonical_enrichment_failed_responses = state.canonical_enrichment_failed_responses || [];
+  state.canonical_enrichment_failed_responses.push(record);
+  await store.upsertRecord('canonical_enrichment_failed_responses', record);
+  return record;
+}
+
 function buildProviderErrorSummary(error) {
   return {
     error_type: error.error_type || inferErrorType(error),
@@ -1276,6 +1693,14 @@ function buildProviderErrorSummary(error) {
     status: error.status ?? null,
     status_text: error.status_text ?? null,
     response_body: error.response_body ?? null,
+    parse_error: error.parse_error ?? null,
+    timed_out: Boolean(error.timed_out),
+    timeout_ms: error.timeout_ms ?? null,
+    exhausted_retries: Boolean(error.exhausted_retries),
+    provider_attempt_count: error.provider_attempt_count ?? null,
+    retry_count: error.retry_count ?? null,
+    retryable_error_count: error.retryable_error_count ?? null,
+    attempt_history: Array.isArray(error.attempt_history) ? error.attempt_history : [],
   };
 }
 
@@ -1318,7 +1743,7 @@ function buildPilotEnrichmentRecord({
     model_name: config.modelName,
     prompt_version: config.promptVersion,
     enrichment_source: 'llm',
-    enrichment_version: PILOT_ENRICHMENT_VERSION,
+    enrichment_version: config.enrichmentVersion || PILOT_ENRICHMENT_VERSION,
     created_at: config.now,
     updated_at: config.now,
   };
@@ -1335,14 +1760,14 @@ function canonicalNameHash(product) {
     .digest('hex');
 }
 
-function isSameVersionNameHashCache(existing, product) {
+function isSameVersionNameHashCache(existing, product, enrichmentVersion = PILOT_ENRICHMENT_VERSION) {
   if (!existing || !product?.canonical_product_id) {
     return false;
   }
   const expectedHash = canonicalNameHash(product);
   const existingHash = existing.canonical_name_hash || existing.enrichment?.canonical_name_hash || null;
   const existingVersion = existing.enrichment_version || existing.enrichment?.enrichment_version || null;
-  return existingHash === expectedHash && existingVersion === PILOT_ENRICHMENT_VERSION;
+  return existingHash === expectedHash && existingVersion === enrichmentVersion;
 }
 
 function toCandidateSummary(product) {
@@ -1411,6 +1836,11 @@ function parsePositiveInteger(value, defaultValue) {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : defaultValue;
 }
 
+function parseNonNegativeInteger(value, defaultValue) {
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : defaultValue;
+}
+
 function chunk(items, size) {
   const chunks = [];
   for (let index = 0; index < items.length; index += size) {
@@ -1428,10 +1858,13 @@ module.exports = {
   PILOT_GROUPS,
   buildBatchEnrichmentPrompt,
   buildEnrichmentLlmProviderConfig,
+  buildLlmRetryConfig,
   buildPilotConfig,
   buildProviderErrorSummary,
+  buildProviderResponseFormat,
   canonicalNameHash,
   requestCanonicalEnrichmentBatch,
+  resolvePilotEnrichmentVersion,
   runCanonicalEnrichmentHealthcheck,
   runCanonicalEnrichmentPilot,
   selectEnrichmentPilotCandidates,

@@ -269,6 +269,8 @@ async function buildProductDetailResponse({
   const currentOffers = await loadBoundedCurrentOffersForDetail({
     store,
     canonicalProductId: view.canonical_product_id,
+    canonicalProduct: view.canonical_truth,
+    canonicalMappings: view.canonical_mappings,
   });
   return {
     layer_mode: view.layer_selection,
@@ -290,6 +292,8 @@ async function buildProductDetailResponse({
 async function loadBoundedCurrentOffersForDetail({
   store,
   canonicalProductId,
+  canonicalProduct = null,
+  canonicalMappings = [],
 }) {
   try {
     const [offers, summaries] = await Promise.all([
@@ -302,6 +306,16 @@ async function loadBoundedCurrentOffersForDetail({
         canonicalProductIds: [canonicalProductId],
       }),
     ]);
+    const evidenceByCanonicalId = await loadSourceEvidenceByCanonicalId({
+      store,
+      views: [{
+        canonical_product_id: canonicalProductId,
+        canonical_truth: canonicalProduct,
+        canonical_mappings: canonicalMappings,
+      }],
+      canonicalProductIds: [canonicalProductId],
+      mappingsByCanonicalId: new Map([[canonicalProductId, canonicalMappings]]),
+    });
     const sortedOffers = offers
       .map(buildProductDetailOffer)
       .sort((left, right) => {
@@ -311,9 +325,14 @@ async function loadBoundedCurrentOffersForDetail({
         return String(left.offer_id || '').localeCompare(String(right.offer_id || ''));
       })
       .slice(0, 25);
+    const evidence = evidenceByCanonicalId.get(canonicalProductId) || null;
     return {
       current_offers: sortedOffers,
-      current_offer_summary: summaries[0] || null,
+      current_offer_summary: mergeCurrentOfferSummaryWithEvidence({
+        summary: summaries[0] || null,
+        evidence,
+        currentOfferCount: offers.length,
+      }),
     };
   } catch (error) {
     if (/Unknown data backbone collection/u.test(String(error?.message || ''))) {
@@ -372,13 +391,35 @@ function buildCompactCurrentOfferSummary(summary) {
     return null;
   }
 
+  const currentOfferCount = normalizeCount(
+    summary.current_offer_count ?? summary.offer_count,
+    0
+  );
+  const currentChainCount = normalizeCount(
+    summary.current_chain_count ?? summary.chain_count,
+    0
+  );
+  const currentRetailerCount = normalizeCount(
+    summary.current_retailer_count ?? summary.retailer_count,
+    0
+  );
+
   return {
     min_current_price: summary.min_current_price ?? null,
     max_current_price: summary.max_current_price ?? null,
     avg_current_price: summary.avg_current_price ?? null,
-    offer_count: summary.offer_count ?? null,
-    chain_count: summary.chain_count ?? null,
-    retailer_count: summary.retailer_count ?? null,
+    offer_count: currentOfferCount,
+    current_offer_count: currentOfferCount,
+    historical_offer_count: normalizeCount(summary.historical_offer_count, 0),
+    source_row_count: normalizeCount(summary.source_row_count, 0),
+    chain_count: currentChainCount,
+    current_chain_count: currentChainCount,
+    retailer_count: normalizeCount(
+      summary.retailer_count ?? summary.historical_retailer_count,
+      currentRetailerCount
+    ),
+    current_retailer_count: currentRetailerCount,
+    historical_retailer_count: normalizeCount(summary.historical_retailer_count, 0),
     cheapest_offer_id: summary.cheapest_offer_id || null,
     cheapest_source_product_id: summary.cheapest_source_product_id || null,
     cheapest_chain_id: summary.cheapest_chain_id || null,
@@ -387,6 +428,7 @@ function buildCompactCurrentOfferSummary(summary) {
     cheapest_price: summary.cheapest_price ?? summary.min_current_price ?? null,
     currency: summary.currency || null,
     snapshot_date: summary.snapshot_date || null,
+    last_seen_at: summary.last_seen_at || summary.snapshot_date || null,
     updated_at: summary.updated_at || null,
   };
 }
@@ -527,11 +569,19 @@ async function buildProductSearchResponseWithCurrentOfferSummaries({
     store,
     canonicalProductIds,
   });
+  const evidenceById = await loadSourceEvidenceByCanonicalId({
+    store,
+    views,
+    canonicalProductIds,
+  });
   const entries = (views || []).map((view, index) => {
-    const currentOfferSummary = summariesById.get(view.canonical_product_id) || null;
+    const currentOfferSummary = mergeCurrentOfferSummaryWithEvidence({
+      summary: summariesById.get(view.canonical_product_id) || null,
+      evidence: evidenceById.get(view.canonical_product_id) || null,
+    });
     return {
       index,
-      has_current_offer_summary: Boolean(currentOfferSummary),
+      has_current_offer_summary: hasCurrentPriceSummary(currentOfferSummary),
       item: buildProductListItem({
         ...view,
         current_offer_summary: currentOfferSummary,
@@ -553,6 +603,195 @@ async function buildProductSearchResponseWithCurrentOfferSummaries({
       .slice(offset, offset + limit)
       .map((entry) => entry.item),
   };
+}
+
+async function loadSourceEvidenceByCanonicalId({
+  store,
+  views = [],
+  canonicalProductIds = [],
+  mappingsByCanonicalId = null,
+}) {
+  const ids = [...new Set((canonicalProductIds || [])
+    .filter((value) => typeof value === 'string')
+    .map((value) => value.trim())
+    .filter(Boolean))].sort();
+  if (!ids.length) {
+    return new Map();
+  }
+
+  const canonicalProductsById = new Map((views || [])
+    .filter((view) => view?.canonical_product_id)
+    .map((view) => [view.canonical_product_id, view.canonical_truth || null]));
+  const mappingsById = mappingsByCanonicalId || await loadCanonicalMappingsByCanonicalIds({
+    store,
+    canonicalProductIds: ids,
+  });
+  const sourceProductIds = [...new Set([...mappingsById.values()]
+    .flat()
+    .map((mapping) => mapping?.source_product_id)
+    .filter((value) => typeof value === 'string' && value.trim())
+    .map((value) => value.trim()))].sort();
+  const sourceProducts = await loadSourceProductsByIds({
+    store,
+    sourceProductIds,
+  });
+  const sourceProductsById = new Map(sourceProducts
+    .filter((row) => row?.source_product_id)
+    .map((row) => [row.source_product_id, row]));
+
+  return new Map(ids.map((canonicalProductId) => {
+    const mappings = mappingsById.get(canonicalProductId) || [];
+    const product = canonicalProductsById.get(canonicalProductId) || null;
+    return [canonicalProductId, buildSourceEvidenceSummary({
+      canonicalProduct: product,
+      mappings,
+      sourceProductsById,
+    })];
+  }));
+}
+
+async function loadCanonicalMappingsByCanonicalIds({
+  store,
+  canonicalProductIds = [],
+}) {
+  const ids = [...new Set((canonicalProductIds || [])
+    .filter((value) => typeof value === 'string')
+    .map((value) => value.trim())
+    .filter(Boolean))].sort();
+  if (!ids.length) {
+    return new Map();
+  }
+
+  let mappings = [];
+  if (typeof store.queryCollectionByFieldValues === 'function') {
+    mappings = await store.queryCollectionByFieldValues('canonical_product_mappings', {
+      fieldName: 'canonical_product_id',
+      values: ids,
+    });
+  } else {
+    const state = await store.load();
+    mappings = (state.canonical_product_mappings || [])
+      .filter((mapping) => ids.includes(mapping.canonical_product_id));
+  }
+
+  const grouped = new Map(ids.map((id) => [id, []]));
+  (mappings || []).forEach((mapping) => {
+    if (!mapping?.canonical_product_id || !grouped.has(mapping.canonical_product_id)) {
+      return;
+    }
+    grouped.get(mapping.canonical_product_id).push(mapping);
+  });
+  return grouped;
+}
+
+async function loadSourceProductsByIds({
+  store,
+  sourceProductIds = [],
+}) {
+  const ids = [...new Set((sourceProductIds || [])
+    .filter((value) => typeof value === 'string')
+    .map((value) => value.trim())
+    .filter(Boolean))].sort();
+  if (!ids.length) {
+    return [];
+  }
+
+  if (typeof store.queryCollectionByFieldValues === 'function') {
+    return store.queryCollectionByFieldValues('source_products', {
+      fieldName: 'source_product_id',
+      values: ids,
+    });
+  }
+
+  const state = await store.load();
+  return (state.source_products || [])
+    .filter((sourceProduct) => ids.includes(sourceProduct.source_product_id));
+}
+
+function buildSourceEvidenceSummary({
+  canonicalProduct,
+  mappings = [],
+  sourceProductsById = new Map(),
+}) {
+  const sourceProductIds = [...new Set((mappings || [])
+    .map((mapping) => mapping?.source_product_id)
+    .filter((value) => typeof value === 'string' && value.trim())
+    .map((value) => value.trim()))];
+  const sourceProducts = sourceProductIds
+    .map((sourceProductId) => sourceProductsById.get(sourceProductId))
+    .filter(Boolean);
+  const canonicalSourceCount = normalizeCount(canonicalProduct?.source_product_count, 0);
+  const sourceRowCount = Math.max(sourceProductIds.length, sourceProducts.length, canonicalSourceCount);
+  const retailerKeys = new Set(sourceProducts
+    .map((sourceProduct) =>
+      sourceProduct.source_chain_name_normalized ||
+      sourceProduct.source_chain_name_raw ||
+      sourceProduct.store_name_raw
+    )
+    .map((value) => String(value || '').trim().toLowerCase())
+    .filter(Boolean));
+  const lastSeenAt = maxTextValue(sourceProducts.flatMap((sourceProduct) => [
+    sourceProduct.last_seen_at,
+    sourceProduct.last_seen_date,
+    sourceProduct.updated_at,
+  ]));
+
+  return {
+    current_offer_count: 0,
+    historical_offer_count: sourceRowCount,
+    source_row_count: sourceRowCount,
+    retailer_count: retailerKeys.size,
+    historical_retailer_count: retailerKeys.size,
+    last_seen_at: lastSeenAt,
+  };
+}
+
+function mergeCurrentOfferSummaryWithEvidence({
+  summary,
+  evidence,
+  currentOfferCount = null,
+}) {
+  const base = buildCompactCurrentOfferSummary(summary || {});
+  const evidenceSummary = evidence && typeof evidence === 'object' ? evidence : {};
+  const normalizedCurrentOfferCount = normalizeCount(
+    currentOfferCount ?? base.current_offer_count ?? base.offer_count,
+    0
+  );
+
+  return {
+    ...base,
+    offer_count: normalizedCurrentOfferCount,
+    current_offer_count: normalizedCurrentOfferCount,
+    historical_offer_count: Math.max(
+      normalizeCount(base.historical_offer_count, 0),
+      normalizeCount(evidenceSummary.historical_offer_count, 0),
+      normalizedCurrentOfferCount
+    ),
+    source_row_count: Math.max(
+      normalizeCount(base.source_row_count, 0),
+      normalizeCount(evidenceSummary.source_row_count, 0)
+    ),
+    retailer_count: Math.max(
+      normalizeCount(base.retailer_count, 0),
+      normalizeCount(evidenceSummary.retailer_count, 0)
+    ),
+    historical_retailer_count: Math.max(
+      normalizeCount(base.historical_retailer_count, 0),
+      normalizeCount(evidenceSummary.historical_retailer_count, 0)
+    ),
+    last_seen_at: base.last_seen_at || evidenceSummary.last_seen_at || null,
+  };
+}
+
+function hasCurrentPriceSummary(summary) {
+  if (!summary || typeof summary !== 'object') {
+    return false;
+  }
+  return normalizeCount(summary.current_offer_count ?? summary.offer_count, 0) > 0 ||
+    summary.min_current_price !== null ||
+    summary.max_current_price !== null ||
+    summary.avg_current_price !== null ||
+    summary.cheapest_price !== null;
 }
 
 async function loadCurrentOfferSummariesByCanonicalId({
@@ -874,6 +1113,19 @@ function buildLayerFilterError(error) {
 
 function normalizeFacetValue(value) {
   return typeof value === 'string' ? value.trim().toLowerCase() : '';
+}
+
+function normalizeCount(value, fallback = 0) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 0 ? Math.trunc(parsed) : fallback;
+}
+
+function maxTextValue(values) {
+  return (values || [])
+    .filter((value) => typeof value === 'string' && value.trim())
+    .map((value) => value.trim())
+    .sort()
+    .at(-1) || null;
 }
 
 module.exports = {

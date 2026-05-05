@@ -1,5 +1,23 @@
 # Changelog
 
+## 2026-05-05 - Canonical Product Source Evidence Counts
+
+- Changed Phase 15 product detail/search summaries so canonical products with no current offers return `current_offer_count: 0` instead of a missing/null count summary.
+- Added `historical_offer_count`, `source_row_count`, `current_retailer_count`, `historical_retailer_count`, and `last_seen_at` evidence fields derived from scoped `canonical_product_mappings` and `source_products`.
+- Kept price min/max/avg unavailable when no current price exists, preserving the distinction between no current price and known historical/source evidence.
+- Updated Admin Console Product Search/Product Detail rendering to display zero counts and evidence counts instead of `n/a` for count fields.
+- Added `npm run debug:canonical-summary -- <canonical_product_id...>` to print the exact API summary, mapped source ids, and optional configured-store evidence counts for canonical products.
+- Added Phase 15.2 regression coverage for a canonical product with zero current offers but mapped source-product evidence.
+
+## 2026-05-05 - Canonical Semantic Enrichment V3 Registry Hardening
+
+- Added additive `canonical_semantic_v3` enrichment support behind `PRICER_ENRICHMENT_VERSION=canonical_semantic_v3`, leaving `canonical_semantic_v2` as the default pilot path.
+- Added runtime collections for `semantic_term_registry`, `semantic_term_registry_proposals`, and `canonical_enrichment_failed_responses`, with deterministic IDs and mirrored backend source trees.
+- Added seedable semantic registry terms for packaging, product form, food category, dairy type, milk source, quality tier, storage type, flavor, dietary claim, material, and preparation state.
+- Added v3 prompts with exact JSON schema, registry context, raw-term preservation rules, false-match avoidance, pending registry actions, and xAI strict `response_format` schema support.
+- Added v3 validation that preserves unfamiliar raw values such as `кофичка` and `пакетирано`, accepts valid sibling items when another item fails, writes pending proposals only, and quarantines malformed provider JSON without canonical writes.
+- Added Phase 15 tests for v3 prompt/schema context, messy raw values, structured output, pending/deduped registry proposals, LLM non-activation, and failed-response quarantine.
+
 ## 2026-05-05 - Canonical Semantic Enrichment V2 Pilot
 
 - Extended Phase 15 canonical enrichment with backward-compatible `canonical_semantic_v2` fields for richer product identity, classification, food/beverage/dairy/baby/package/search/shopping-intent, and quality/audit semantics.

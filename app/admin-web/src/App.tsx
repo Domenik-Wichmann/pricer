@@ -271,6 +271,13 @@ function formatPriceAmount(value: unknown, currency: unknown): string {
   return `${String(value)}${currencyText}`;
 }
 
+function formatCount(value: unknown, fallback = 0): string {
+  if (value === null || value === undefined || value === '') {
+    return String(fallback);
+  }
+  return String(value);
+}
+
 function parsePriceNumber(value: unknown): number | null {
   if (typeof value === 'number' && Number.isFinite(value)) {
     return value;
@@ -296,15 +303,32 @@ function formatSearchPriceSummary(summary: Record<string, unknown>): string {
     return 'No current price summary';
   }
   const currency = summary.currency;
-  const offerCount = summary.offer_count ?? 0;
+  const offerCount = summary.current_offer_count ?? summary.offer_count ?? 0;
+  const historicalOfferCount = summary.historical_offer_count;
+  const sourceRowCount = summary.source_row_count;
+  const retailerCount = summary.retailer_count;
+  const lastSeenAt = summary.last_seen_at;
   const cheapestRetailer = summary.cheapest_chain || summary.cheapest_retailer || 'n/a';
-  return [
+  const fields = [
     `cheapest ${formatPriceAmount(summary.min_current_price ?? summary.cheapest_price, currency)}`,
     `highest ${formatPriceAmount(summary.max_current_price, currency)}`,
     `avg ${formatPriceAmount(summary.avg_current_price, currency)}`,
-    `${String(offerCount)} offers`,
+    `${formatCount(offerCount)} current offers`,
     `retailer ${String(cheapestRetailer)}`,
-  ].join(' | ');
+  ];
+  if (historicalOfferCount !== null && historicalOfferCount !== undefined) {
+    fields.push(`${formatCount(historicalOfferCount)} historical offers`);
+  }
+  if (sourceRowCount !== null && sourceRowCount !== undefined) {
+    fields.push(`${formatCount(sourceRowCount)} source rows`);
+  }
+  if (retailerCount !== null && retailerCount !== undefined) {
+    fields.push(`${formatCount(retailerCount)} retailers`);
+  }
+  if (lastSeenAt) {
+    fields.push(`last seen ${String(lastSeenAt)}`);
+  }
+  return fields.join(' | ');
 }
 
 function getProductSearchResults(body: Record<string, unknown>): Array<Record<string, unknown>> {
@@ -518,7 +542,7 @@ function ProductSearchResultRow({ item }: { item: Record<string, unknown> }) {
         <SummaryField label="Cheapest" value={formatPriceAmount(price, currency)} className={lowPriceClassName} />
         <SummaryField label="Highest" value={formatPriceAmount(highestPrice, currency)} className={highPriceClassName} />
         <SummaryField label="Average" value={formatPriceAmount(averagePrice, currency)} className={averagePriceClassName} />
-        <SummaryField label="Offers" value={currentOfferSummary.offer_count} />
+        <SummaryField label="Offers" value={formatCount(currentOfferSummary.current_offer_count ?? currentOfferSummary.offer_count)} />
       </div>
       <div className="product-result-meta">
         <span>{formatSearchPriceSummary(currentOfferSummary)}</span>
@@ -609,7 +633,14 @@ function ProductDetailSummary({
 
       <div className="mapping-header">
         <h3>Current offers</h3>
-        <span>{formatFieldValue(offerSummary.offer_count || offers.length)} offers</span>
+        <span>{formatCount(offerSummary.current_offer_count ?? offerSummary.offer_count ?? offers.length)} offers</span>
+        {offerSummary.historical_offer_count !== null && offerSummary.historical_offer_count !== undefined
+          ? <span>{formatCount(offerSummary.historical_offer_count)} historical</span>
+          : null}
+        {offerSummary.source_row_count !== null && offerSummary.source_row_count !== undefined
+          ? <span>{formatCount(offerSummary.source_row_count)} source rows</span>
+          : null}
+        {offerSummary.last_seen_at ? <span>last seen: {formatFieldValue(offerSummary.last_seen_at)}</span> : null}
         {offerSummary.cheapest_chain ? <span>cheapest: {formatFieldValue(offerSummary.cheapest_chain)}</span> : null}
       </div>
       {offers.length ? (
