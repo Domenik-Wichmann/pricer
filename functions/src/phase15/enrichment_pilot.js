@@ -17,9 +17,11 @@ const {
   validateRichCanonicalEnrichmentBatchResponseDetailed,
 } = require('./enrichment');
 const {
+  SEMANTIC_REGISTRY_DOMAINS,
   buildFailedEnrichmentResponseRecord,
   buildRegistryContext,
   seedSemanticTermRegistry,
+  writeTaxonomyTermProposals,
   writeRegistryProposalsFromActions,
 } = require('./semantic_registry');
 const { buildGroceryQueryExpansion } = require('./search_synonyms');
@@ -27,6 +29,7 @@ const { buildGroceryQueryExpansion } = require('./search_synonyms');
 const PILOT_ENRICHMENT_VERSION = RICH_CANONICAL_ENRICHMENT_VERSION;
 const DEFAULT_PILOT_LIMIT = 50;
 const DEFAULT_BATCH_SIZE = 10;
+const DEFAULT_V3_BATCH_SIZE = 5;
 const DEFAULT_ESTIMATED_USD_PER_1K_TOKENS = 0.002;
 const LLM_PROVIDER = 'xai';
 const HEALTHCHECK_PROMPT_VERSION = 'phase15_enrichment_healthcheck_v1';
@@ -34,7 +37,10 @@ const MAX_ERROR_BODY_CHARS = 1200;
 const DEFAULT_LLM_MAX_RETRIES = 3;
 const DEFAULT_LLM_RETRY_BASE_MS = 750;
 const DEFAULT_LLM_RETRY_MAX_MS = 8000;
-const DEFAULT_LLM_REQUEST_TIMEOUT_MS = 60000;
+const DEFAULT_LLM_REQUEST_TIMEOUT_MS = 300000;
+const DEFAULT_REQUEST_BLOAT_CHAR_THRESHOLD = 100000;
+const DEFAULT_REGISTRY_CONTEXT_MAX_TERMS_PER_DOMAIN = 12;
+const DEFAULT_REGISTRY_CONTEXT_MAX_TOTAL_TERMS = 48;
 const RETRYABLE_HTTP_STATUSES = Object.freeze([408, 425, 429, 500, 502, 503, 504]);
 
 const PILOT_GROUPS = Object.freeze({
@@ -161,19 +167,23 @@ const QUERY_CATEGORY_GROUPS = Object.freeze({
 
 function buildPilotConfig(env = process.env) {
   const providerConfig = buildEnrichmentLlmProviderConfig(env);
+  const enrichmentVersion = resolvePilotEnrichmentVersion(env);
+  const defaultBatchSize = enrichmentVersion === CANONICAL_SEMANTIC_V3_VERSION
+    ? DEFAULT_V3_BATCH_SIZE
+    : DEFAULT_BATCH_SIZE;
   return {
     limit: parsePositiveInteger(env.PRICER_ENRICHMENT_PILOT_LIMIT || env.PRICER_ENRICHMENT_LIMIT, DEFAULT_PILOT_LIMIT),
     query: String(env.PRICER_ENRICHMENT_PILOT_QUERY || '').trim(),
     group: normalizeGroup(env.PRICER_ENRICHMENT_PILOT_GROUP || env.PRICER_ENRICHMENT_PILOT_QUERY),
     dryRun: parseBoolean(env.PRICER_ENRICHMENT_DRY_RUN, true),
     runLlm: parseBoolean(env.PRICER_ENRICHMENT_RUN_LLM, false),
-    batchSize: parsePositiveInteger(env.PRICER_ENRICHMENT_PILOT_BATCH_SIZE || env.PRICER_ENRICHMENT_BATCH_SIZE, DEFAULT_BATCH_SIZE),
+    batchSize: parsePositiveInteger(env.PRICER_ENRICHMENT_PILOT_BATCH_SIZE || env.PRICER_ENRICHMENT_BATCH_SIZE, defaultBatchSize),
     now: env.PRICER_ENRICHMENT_PILOT_NOW || new Date().toISOString(),
     provider: providerConfig.provider,
     endpointHost: providerConfig.endpoint_host,
     modelName: providerConfig.model || 'pilot-disabled',
-    enrichmentVersion: resolvePilotEnrichmentVersion(env),
-    promptVersion: resolvePilotEnrichmentVersion(env) === CANONICAL_SEMANTIC_V3_VERSION
+    enrichmentVersion,
+    promptVersion: enrichmentVersion === CANONICAL_SEMANTIC_V3_VERSION
       ? 'canonical_semantic_v3_prompt_v1'
       : RICH_CANONICAL_PROMPT_VERSION,
     estimatedUsdPer1kTokens: Number.parseFloat(env.PRICER_ENRICHMENT_PILOT_USD_PER_1K_TOKENS || '') ||
@@ -259,10 +269,16 @@ async function runCanonicalEnrichmentPilot({
     group: config.group,
     enrichmentVersion: config.enrichmentVersion,
   });
+  const selectionWarnings = selection.evidence_warnings || [];
   const candidates = selection.candidates;
   const promptBatches = chunk(candidates, config.batchSize).map((products) =>
-    buildBatchEnrichmentPrompt(products, { state, enrichmentVersion: config.enrichmentVersion })
+    buildBatchEnrichmentPrompt(products, { state, env, enrichmentVersion: config.enrichmentVersion })
   );
+  const responseFormat = buildProviderResponseFormat({ env, enrichmentVersion: config.enrichmentVersion });
+  const promptMetrics = summarizePromptBatches(promptBatches, {
+    responseFormat,
+    model: config.modelName,
+  });
   const summary = {
     dry_run: config.dryRun,
     real_run_opted_in: !config.dryRun && config.runLlm,
@@ -278,7 +294,17 @@ async function runCanonicalEnrichmentPilot({
     group: config.group || null,
     selected_products: candidates.map(toCandidateSummary),
     quality_report: selection.quality_report,
-    estimated_tokens: estimateTokenCount(promptBatches),
+    prompt_char_count: promptMetrics.prompt_char_count,
+    request_body_char_count: promptMetrics.request_body_char_count,
+    estimated_prompt_tokens: promptMetrics.estimated_prompt_tokens,
+    estimated_request_tokens: promptMetrics.estimated_request_tokens,
+    estimated_tokens: promptMetrics.estimated_request_tokens,
+    registry_context_term_count: promptMetrics.registry_context_term_count,
+    registry_context_domains: promptMetrics.registry_context_domains,
+    json_schema_char_count: promptMetrics.json_schema_char_count,
+    per_batch_token_estimate: promptMetrics.per_batch_token_estimate,
+    response_format_json_schema_included: promptMetrics.response_format_json_schema_included,
+    total_request_count: promptMetrics.total_request_count,
     estimated_cost_usd: 0,
     planned_writes: config.dryRun || !config.runLlm ? 0 : candidates.length,
     actual_writes: 0,
@@ -286,7 +312,7 @@ async function runCanonicalEnrichmentPilot({
     rejected_product_ids: [],
     rejected_items: [],
     validation_warnings: [],
-    run_warnings: [],
+    run_warnings: [...selectionWarnings],
     errors: [],
     registry_proposal_writes: 0,
     registry_seed_writes: config.dryRun || !config.runLlm ? 0 : seededRegistryTerms.length,
@@ -340,9 +366,18 @@ async function runCanonicalEnrichmentPilot({
         batch,
         carrier: responses,
       });
-      validation = config.enrichmentVersion === CANONICAL_SEMANTIC_V3_VERSION
-        ? validateCanonicalSemanticV3BatchResponseDetailed(responses, { products: batch.products })
-        : validateRichCanonicalEnrichmentBatchResponseDetailed(responses, { products: batch.products });
+      try {
+        validation = config.enrichmentVersion === CANONICAL_SEMANTIC_V3_VERSION
+          ? validateCanonicalSemanticV3BatchResponseDetailed(responses, { products: batch.products })
+          : validateRichCanonicalEnrichmentBatchResponseDetailed(responses, { products: batch.products });
+      } catch (error) {
+        if (config.enrichmentVersion === CANONICAL_SEMANTIC_V3_VERSION && typeof responses === 'string') {
+          error.error_type = error.error_type || 'provider_response_error';
+          error.parse_error = error.parse_error || error.message;
+          error.raw_content_redacted = responses.slice(0, 4000);
+        }
+        throw error;
+      }
     } catch (error) {
       recordProviderAttemptHistory(summary, {
         batchIndex: batchIndex + 1,
@@ -412,6 +447,9 @@ async function runCanonicalEnrichmentPilot({
           product,
           enrichment,
           config,
+          repairStatus: response.enrichment_repair_status || 'clean',
+          repairWarnings: response.repair_warnings || [],
+          discardedFields: response.discarded_fields || [],
         });
         await store.upsertRecord('canonical_enrichment_store', record);
         if (config.enrichmentVersion === CANONICAL_SEMANTIC_V3_VERSION) {
@@ -420,10 +458,15 @@ async function runCanonicalEnrichmentPilot({
             evidenceProductIds: [response.canonical_product_id],
             now: config.now,
           });
-          for (const proposal of proposals) {
+          const taxonomyProposals = writeTaxonomyTermProposals(state, {
+            taxonomyClassification: response.enrichment.taxonomy_classification,
+            evidenceProductIds: [response.canonical_product_id],
+            now: config.now,
+          });
+          for (const proposal of [...proposals, ...taxonomyProposals]) {
             await store.upsertRecord('semantic_term_registry_proposals', proposal);
           }
-          summary.registry_proposal_writes += proposals.length;
+          summary.registry_proposal_writes += proposals.length + taxonomyProposals.length;
         }
         summary.actual_writes += 1;
       } catch (error) {
@@ -468,6 +511,7 @@ function buildPilotCandidateSelection({
   const existingById = new Map((state?.canonical_enrichment_store || [])
     .map((record) => [record.canonical_fingerprint, record]));
   const plan = buildPilotSelectionPlan({ query, group });
+  const evidenceWarnings = [];
   const entries = (state?.canonical_products || [])
     .filter(isRuntimeSafeCanonicalProduct)
     .map((product) => scorePilotCandidate({
@@ -475,6 +519,7 @@ function buildPilotCandidateSelection({
       existing: existingById.get(product.canonical_product_id) || null,
       plan,
       enrichmentVersion,
+      evidenceWarnings,
     }));
   const skippedSameCache = entries.filter((entry) => entry.cacheFresh && entry.candidateMatched);
   const excludedByGuardrail = entries.filter((entry) => entry.candidateMatched && entry.guardrail.excluded);
@@ -511,6 +556,7 @@ function buildPilotCandidateSelection({
       skippedSameCache,
       plan,
     }),
+    evidence_warnings: evidenceWarnings,
   };
 }
 
@@ -519,8 +565,11 @@ function scorePilotCandidate({
   existing,
   plan,
   enrichmentVersion = PILOT_ENRICHMENT_VERSION,
+  evidenceWarnings = null,
 }) {
-  const evidence = buildPilotCandidateEvidence(product, existing);
+  const evidence = buildPilotCandidateEvidence(product, existing, {
+    warnings: evidenceWarnings,
+  });
   const matchedQueryTerms = plan.query_terms.filter((term) => termMatchesEvidence(term, evidence));
   const matchedConceptTerms = plan.concept_terms.filter((term) => termMatchesEvidence(term, evidence));
   const matchedGroupTerms = plan.group_terms.filter((term) => termMatchesEvidence(term, evidence));
@@ -600,7 +649,9 @@ function buildPilotSelectionPlan({ query = '', group = null } = {}) {
   const groupKeys = normalizedQuery || explicitGroup
     ? inferredGroups
     : Object.keys(PILOT_GROUPS);
-  const queryTerms = normalizedQuery ? [normalizedQuery] : [];
+  const queryTerms = normalizedQuery
+    ? [normalizedQuery, ...tokenizeText(normalizedQuery)]
+    : [];
   const conceptTerms = normalizedQuery
     ? dedupeNormalizedTerms([
       ...expansion.expanded_terms,
@@ -636,43 +687,545 @@ function inferPilotGroupKeys({ expansion, normalizedQuery }) {
   return [...keys];
 }
 
-function buildPilotCandidateEvidence(product, existing) {
+function buildPilotCandidateEvidence(product, existing, {
+  warnings = null,
+} = {}) {
   const enrichment = existing?.enrichment || {};
-  const values = [
-    product.canonical_display_name,
-    product.source_example_name,
-    product.canonical_brand,
-    product.canonical_product_type,
-    product.canonical_category_code,
-    enrichment.base_product,
-    enrichment.product_type,
-    enrichment.product_family,
-    enrichment.category,
-    enrichment.subcategory,
-    enrichment.category_l1,
-    enrichment.category_l2,
-    enrichment.category_l3,
-    enrichment.category_l4,
-    enrichment.brand,
-    enrichment.brand_normalized,
-    enrichment.product_line,
-    ...(enrichment.flavor || []),
-    ...(enrichment.flavor_terms || []),
-    ...(enrichment.search_aliases_bg || []),
-    ...(enrichment.search_aliases_en || []),
-    ...(enrichment.exclusion_terms || []),
-    ...(enrichment.attributes || []),
-    ...(enrichment.usage_context || []),
-  ].map(normalizeText).filter(Boolean);
-  const text = values.join(' ');
+  const values = [];
+  const warningContext = {
+    canonical_product_id: product?.canonical_product_id || existing?.canonical_product_id || existing?.canonical_fingerprint || null,
+  };
+
+  addScalarEvidence(values, product.canonical_display_name);
+  addScalarEvidence(values, product.source_example_name);
+  addScalarEvidence(values, product.canonical_brand);
+  addScalarEvidence(values, product.canonical_product_type);
+  addScalarEvidence(values, product.canonical_category_code);
+
+  [
+    'base_product',
+    'product_type',
+    'product_family',
+    'category',
+    'subcategory',
+    'category_l1',
+    'category_l2',
+    'category_l3',
+    'category_l4',
+    'brand',
+    'brand_normalized',
+    'product_line',
+    'dairy_type',
+    'milk_source',
+    'beverage_type',
+  ].forEach((field) => {
+    if (isV3ObjectField(enrichment, field)) {
+      return;
+    }
+    addScalarEvidence(values, enrichment[field], {
+      warnings,
+      field,
+      warningContext,
+    });
+  });
+
+  [
+    'flavor',
+    'flavor_terms',
+    'search_aliases_bg',
+    'search_aliases_en',
+    'exclusion_terms',
+    'usage_context',
+    'synonym_terms',
+    'negative_match_hints',
+    'do_not_match_queries',
+    'should_match_queries',
+    'category_path',
+  ].forEach((field) => addArrayEvidence(values, enrichment[field], {
+    warnings,
+    field,
+    warningContext,
+  }));
+
+  addV2OrV3AttributesEvidence(values, enrichment.attributes, {
+    warnings,
+    warningContext,
+  });
+  addV3TaxonomyEvidence(values, enrichment.taxonomy_classification, {
+    warnings,
+    warningContext,
+  });
+  addV3CategoryEvidence(values, enrichment.category, {
+    warnings,
+    warningContext,
+  });
+  addV3SemanticSectionEvidence(values, enrichment.packaging, 'packaging', {
+    warnings,
+    warningContext,
+  });
+  addV3SemanticSectionEvidence(values, enrichment.product_form, 'product_form', {
+    warnings,
+    warningContext,
+  });
+  addV3SemanticUsageProfileEvidence(values, enrichment.semantic_usage_profile, {
+    warnings,
+    warningContext,
+  });
+  addV3SemanticEmbeddingSummaryEvidence(values, enrichment.semantic_embedding_summary, {
+    warnings,
+    warningContext,
+  });
+  addRegistryActionEvidence(values, enrichment.registry_actions, {
+    warnings,
+    warningContext,
+  });
+
+  const normalizedValues = values.map(normalizeText).filter(Boolean);
+  const text = normalizedValues.join(' ');
   const tokens = new Set(tokenizeText(text));
 
   return {
     text,
-    values,
+    values: normalizedValues,
     tokens,
     enrichment,
   };
+}
+
+function isV3ObjectField(enrichment, field) {
+  return enrichment?.schema_version === CANONICAL_SEMANTIC_V3_VERSION &&
+    enrichment[field] &&
+    typeof enrichment[field] === 'object' &&
+    !Array.isArray(enrichment[field]);
+}
+
+function addScalarEvidence(values, value, {
+  warnings = null,
+  field = null,
+  warningContext = {},
+} = {}) {
+  if (value === undefined || value === null || value === '') {
+    return;
+  }
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+    values.push(String(value));
+    return;
+  }
+  addEvidenceShapeWarning(warnings, {
+    ...warningContext,
+    field,
+    reason: 'unexpected_scalar_evidence_shape',
+    observed_type: Array.isArray(value) ? 'array' : typeof value,
+  });
+}
+
+function addArrayEvidence(values, value, {
+  warnings = null,
+  field = null,
+  warningContext = {},
+} = {}) {
+  if (value === undefined || value === null) {
+    return;
+  }
+  if (!Array.isArray(value)) {
+    addEvidenceShapeWarning(warnings, {
+      ...warningContext,
+      field,
+      reason: 'unexpected_array_evidence_shape',
+      observed_type: typeof value,
+    });
+    return;
+  }
+  value.forEach((entry) => addScalarEvidence(values, entry, {
+    warnings,
+    field,
+    warningContext,
+  }));
+}
+
+function addV2OrV3AttributesEvidence(values, attributes, {
+  warnings = null,
+  warningContext = {},
+} = {}) {
+  if (attributes === undefined || attributes === null) {
+    return;
+  }
+  if (Array.isArray(attributes)) {
+    addArrayEvidence(values, attributes, {
+      warnings,
+      field: 'attributes',
+      warningContext,
+    });
+    return;
+  }
+  if (typeof attributes !== 'object') {
+    addEvidenceShapeWarning(warnings, {
+      ...warningContext,
+      field: 'attributes',
+      reason: 'unexpected_attributes_shape',
+      observed_type: typeof attributes,
+    });
+    return;
+  }
+
+  addNestedObjectEvidence(values, attributes.dairy, 'attributes.dairy', {
+    warnings,
+    warningContext,
+  });
+  addNestedObjectEvidence(values, attributes.beverage, 'attributes.beverage', {
+    warnings,
+    warningContext,
+  });
+  addNestedObjectEvidence(values, attributes.storage, 'attributes.storage', {
+    warnings,
+    warningContext,
+  });
+  addNestedObjectEvidence(values, attributes.quantity, 'attributes.quantity', {
+    warnings,
+    warningContext,
+  });
+  addArrayEvidence(values, attributes.nutrition_claims, {
+    warnings,
+    field: 'attributes.nutrition_claims',
+    warningContext,
+  });
+  addArrayEvidence(values, attributes.dietary_claims, {
+    warnings,
+    field: 'attributes.dietary_claims',
+    warningContext,
+  });
+  addArrayEvidence(values, attributes.flavor_terms, {
+    warnings,
+    field: 'attributes.flavor_terms',
+    warningContext,
+  });
+  addArrayEvidence(values, attributes.preparation_state, {
+    warnings,
+    field: 'attributes.preparation_state',
+    warningContext,
+  });
+}
+
+function addNestedObjectEvidence(values, objectValue, field, {
+  warnings = null,
+  warningContext = {},
+} = {}) {
+  if (objectValue === undefined || objectValue === null) {
+    return;
+  }
+  if (Array.isArray(objectValue) || typeof objectValue !== 'object') {
+    addEvidenceShapeWarning(warnings, {
+      ...warningContext,
+      field,
+      reason: 'unexpected_object_evidence_shape',
+      observed_type: Array.isArray(objectValue) ? 'array' : typeof objectValue,
+    });
+    return;
+  }
+  Object.entries(objectValue).forEach(([key, value]) => {
+    addScalarEvidence(values, key);
+    if (Array.isArray(value)) {
+      addArrayEvidence(values, value, { warnings, field, warningContext });
+      return;
+    }
+    if (value && typeof value === 'object') {
+      addNestedObjectEvidence(values, value, `${field}.${key}`, { warnings, warningContext });
+      return;
+    }
+    addScalarEvidence(values, value, { warnings, field, warningContext });
+  });
+}
+
+function addV3CategoryEvidence(values, category, {
+  warnings = null,
+  warningContext = {},
+} = {}) {
+  if (category === undefined || category === null || typeof category === 'string') {
+    return;
+  }
+  if (Array.isArray(category) || typeof category !== 'object') {
+    addEvidenceShapeWarning(warnings, {
+      ...warningContext,
+      field: 'category',
+      reason: 'unexpected_category_shape',
+      observed_type: Array.isArray(category) ? 'array' : typeof category,
+    });
+    return;
+  }
+  addArrayEvidence(values, category.raw_terms, { warnings, field: 'category.raw_terms', warningContext });
+  addArrayEvidence(values, category.category_path_raw, { warnings, field: 'category.category_path_raw', warningContext });
+  addArrayEvidence(values, category.proposed_terms, { warnings, field: 'category.proposed_terms', warningContext });
+  addArrayEvidence(values, category.search_buckets, { warnings, field: 'category.search_buckets', warningContext });
+  addRegistryMatchArrayEvidence(values, category.registry_matches, 'category.registry_matches', {
+    warnings,
+    warningContext,
+  });
+}
+
+function addV3TaxonomyEvidence(values, taxonomy, {
+  warnings = null,
+  warningContext = {},
+} = {}) {
+  if (taxonomy === undefined || taxonomy === null) {
+    return;
+  }
+  if (Array.isArray(taxonomy) || typeof taxonomy !== 'object') {
+    addEvidenceShapeWarning(warnings, {
+      ...warningContext,
+      field: 'taxonomy_classification',
+      reason: 'unexpected_taxonomy_classification_shape',
+      observed_type: Array.isArray(taxonomy) ? 'array' : typeof taxonomy,
+    });
+    return;
+  }
+  addArrayEvidence(values, taxonomy.taxonomy_path_raw, { warnings, field: 'taxonomy_classification.taxonomy_path_raw', warningContext });
+  addArrayEvidence(values, taxonomy.taxonomy_path_labels, { warnings, field: 'taxonomy_classification.taxonomy_path_labels', warningContext });
+  addScalarEvidence(values, taxonomy.primary_taxonomy_label, { warnings, field: 'taxonomy_classification.primary_taxonomy_label', warningContext });
+  addArrayEvidence(values, taxonomy.raw_category_terms, { warnings, field: 'taxonomy_classification.raw_category_terms', warningContext });
+  addRegistryMatchArrayEvidence(values, taxonomy.registry_matches, 'taxonomy_classification.registry_matches', {
+    warnings,
+    warningContext,
+  });
+  if (Array.isArray(taxonomy.proposed_terms)) {
+    taxonomy.proposed_terms.forEach((term) => {
+      if (!term || typeof term !== 'object' || Array.isArray(term)) {
+        return;
+      }
+      addScalarEvidence(values, term.proposed_label, { warnings, field: 'taxonomy_classification.proposed_terms.proposed_label', warningContext });
+      addScalarEvidence(values, term.parent_label, { warnings, field: 'taxonomy_classification.proposed_terms.parent_label', warningContext });
+      addArrayEvidence(values, term.aliases, { warnings, field: 'taxonomy_classification.proposed_terms.aliases', warningContext });
+      addArrayEvidence(values, term.evidence, { warnings, field: 'taxonomy_classification.proposed_terms.evidence', warningContext });
+    });
+  }
+  addArrayEvidence(values, taxonomy.evidence, { warnings, field: 'taxonomy_classification.evidence', warningContext });
+}
+
+function addV3SemanticSectionEvidence(values, section, field, {
+  warnings = null,
+  warningContext = {},
+} = {}) {
+  if (section === undefined || section === null || typeof section === 'string') {
+    addScalarEvidence(values, section);
+    return;
+  }
+  if (Array.isArray(section) || typeof section !== 'object') {
+    addEvidenceShapeWarning(warnings, {
+      ...warningContext,
+      field,
+      reason: 'unexpected_semantic_section_shape',
+      observed_type: Array.isArray(section) ? 'array' : typeof section,
+    });
+    return;
+  }
+  addArrayEvidence(values, section.raw_terms, { warnings, field: `${field}.raw_terms`, warningContext });
+  addScalarEvidence(values, section.description, { warnings, field: `${field}.description`, warningContext });
+  addRegistryMatchEvidence(values, section.registry_match, `${field}.registry_match`, { warnings, warningContext });
+  addArrayEvidence(values, section.proposed_aliases, { warnings, field: `${field}.proposed_aliases`, warningContext });
+  addScalarEvidence(values, section.proposed_new_term, { warnings, field: `${field}.proposed_new_term`, warningContext });
+  addScalarEvidence(values, section.search_bucket, { warnings, field: `${field}.search_bucket`, warningContext });
+  addArrayEvidence(values, section.evidence, { warnings, field: `${field}.evidence`, warningContext });
+}
+
+function addV3SemanticUsageProfileEvidence(values, profile, {
+  warnings = null,
+  warningContext = {},
+} = {}) {
+  if (profile === undefined || profile === null) {
+    return;
+  }
+  if (Array.isArray(profile) || typeof profile !== 'object') {
+    addEvidenceShapeWarning(warnings, {
+      ...warningContext,
+      field: 'semantic_usage_profile',
+      reason: 'unexpected_semantic_usage_profile_shape',
+      observed_type: Array.isArray(profile) ? 'array' : typeof profile,
+    });
+    return;
+  }
+  [
+    'cuisine_contexts',
+    'culinary_roles',
+    'dish_roles',
+    'meal_contexts',
+    'common_uses',
+    'preparation_contexts',
+    'pairing_suggestions',
+    'substitute_terms',
+    'consumer_search_intents',
+    'not_for',
+    'evidence',
+  ].forEach((field) => addArrayEvidence(values, profile[field], {
+    warnings,
+    field: `semantic_usage_profile.${field}`,
+    warningContext,
+  }));
+
+  const flavorProfile = profile.flavor_profile;
+  if (flavorProfile === undefined || flavorProfile === null) {
+    return;
+  }
+  if (Array.isArray(flavorProfile) || typeof flavorProfile !== 'object') {
+    addEvidenceShapeWarning(warnings, {
+      ...warningContext,
+      field: 'semantic_usage_profile.flavor_profile',
+      reason: 'unexpected_flavor_profile_shape',
+      observed_type: Array.isArray(flavorProfile) ? 'array' : typeof flavorProfile,
+    });
+    return;
+  }
+  addArrayEvidence(values, flavorProfile.primary_tastes, {
+    warnings,
+    field: 'semantic_usage_profile.flavor_profile.primary_tastes',
+    warningContext,
+  });
+  addArrayEvidence(values, flavorProfile.descriptors, {
+    warnings,
+    field: 'semantic_usage_profile.flavor_profile.descriptors',
+    warningContext,
+  });
+  addScalarEvidence(values, flavorProfile.intensity, {
+    warnings,
+    field: 'semantic_usage_profile.flavor_profile.intensity',
+    warningContext,
+  });
+}
+
+function addV3SemanticEmbeddingSummaryEvidence(values, summary, {
+  warnings = null,
+  warningContext = {},
+} = {}) {
+  if (summary === undefined || summary === null) {
+    return;
+  }
+  if (Array.isArray(summary) || typeof summary !== 'object') {
+    addEvidenceShapeWarning(warnings, {
+      ...warningContext,
+      field: 'semantic_embedding_summary',
+      reason: 'unexpected_semantic_embedding_summary_shape',
+      observed_type: Array.isArray(summary) ? 'array' : typeof summary,
+    });
+    return;
+  }
+  addScalarEvidence(values, summary.summary, {
+    warnings,
+    field: 'semantic_embedding_summary.summary',
+    warningContext,
+  });
+  addScalarEvidence(values, summary.summary_language, {
+    warnings,
+    field: 'semantic_embedding_summary.summary_language',
+    warningContext,
+  });
+  addArrayEvidence(values, summary.included_aspects, {
+    warnings,
+    field: 'semantic_embedding_summary.included_aspects',
+    warningContext,
+  });
+  addArrayEvidence(values, summary.evidence, {
+    warnings,
+    field: 'semantic_embedding_summary.evidence',
+    warningContext,
+  });
+}
+
+function addRegistryMatchArrayEvidence(values, matches, field, {
+  warnings = null,
+  warningContext = {},
+} = {}) {
+  if (matches === undefined || matches === null) {
+    return;
+  }
+  if (!Array.isArray(matches)) {
+    addEvidenceShapeWarning(warnings, {
+      ...warningContext,
+      field,
+      reason: 'unexpected_registry_matches_shape',
+      observed_type: typeof matches,
+    });
+    return;
+  }
+  matches.forEach((match) => addRegistryMatchEvidence(values, match, field, { warnings, warningContext }));
+}
+
+function addRegistryMatchEvidence(values, match, field, {
+  warnings = null,
+  warningContext = {},
+} = {}) {
+  if (match === undefined || match === null) {
+    return;
+  }
+  if (Array.isArray(match) || typeof match !== 'object') {
+    addEvidenceShapeWarning(warnings, {
+      ...warningContext,
+      field,
+      reason: 'unexpected_registry_match_shape',
+      observed_type: Array.isArray(match) ? 'array' : typeof match,
+    });
+    return;
+  }
+  addScalarEvidence(values, match.domain, { warnings, field: `${field}.domain`, warningContext });
+  addScalarEvidence(values, match.term_id, { warnings, field: `${field}.term_id`, warningContext });
+  addScalarEvidence(values, match.canonical_label, { warnings, field: `${field}.canonical_label`, warningContext });
+  addArrayEvidence(values, match.evidence, { warnings, field: `${field}.evidence`, warningContext });
+}
+
+function addRegistryActionEvidence(values, actions, {
+  warnings = null,
+  warningContext = {},
+} = {}) {
+  if (actions === undefined || actions === null) {
+    return;
+  }
+  if (!Array.isArray(actions)) {
+    addEvidenceShapeWarning(warnings, {
+      ...warningContext,
+      field: 'registry_actions',
+      reason: 'unexpected_registry_actions_shape',
+      observed_type: typeof actions,
+    });
+    return;
+  }
+  actions.forEach((action) => {
+    if (!action || typeof action !== 'object' || Array.isArray(action)) {
+      addEvidenceShapeWarning(warnings, {
+        ...warningContext,
+        field: 'registry_actions',
+        reason: 'unexpected_registry_action_shape',
+        observed_type: Array.isArray(action) ? 'array' : typeof action,
+      });
+      return;
+    }
+    [
+      'action',
+      'domain',
+      'existing_term_id',
+      'proposed_label',
+      'proposed_alias',
+      'parent_term_id',
+      'reason',
+    ].forEach((field) => addScalarEvidence(values, action[field], {
+      warnings,
+      field: `registry_actions.${field}`,
+      warningContext,
+    }));
+    addArrayEvidence(values, action.evidence, { warnings, field: 'registry_actions.evidence', warningContext });
+  });
+}
+
+function addEvidenceShapeWarning(warnings, warning) {
+  if (!Array.isArray(warnings)) {
+    return;
+  }
+  const normalized = {
+    canonical_product_id: warning.canonical_product_id || null,
+    field: warning.field || null,
+    reason: warning.reason || 'unexpected_enrichment_evidence_shape',
+    observed_type: warning.observed_type || null,
+  };
+  const key = JSON.stringify(normalized);
+  if (!warnings.some((entry) => JSON.stringify(entry) === key)) {
+    warnings.push(normalized);
+  }
 }
 
 function evaluatePilotGuardrail({
@@ -1013,11 +1566,13 @@ function escapeRegex(value) {
 
 function buildBatchEnrichmentPrompt(products, {
   state = null,
+  env = process.env,
   enrichmentVersion = RICH_CANONICAL_ENRICHMENT_VERSION,
 } = {}) {
   const prompt = enrichmentVersion === CANONICAL_SEMANTIC_V3_VERSION
     ? buildCanonicalSemanticV3BatchPrompt(products, {
-      registryContext: buildRegistryContext(state),
+      registryContext: buildRelevantV3RegistryContext(products, state, env),
+      includeResponseJsonSchema: false,
     })
     : buildRichCanonicalEnrichmentBatchPrompt(products);
   prompt.pilot_context = products.map((product) => ({
@@ -1028,6 +1583,136 @@ function buildBatchEnrichmentPrompt(products, {
     prompt,
     products,
   };
+}
+
+function buildRelevantV3RegistryContext(products = [], state = null, env = process.env) {
+  const relevantText = buildRegistryRelevantText(products);
+  const domains = inferRelevantRegistryDomains(products, relevantText);
+  return buildRegistryContext(state, {
+    domains,
+    limitPerDomain: parsePositiveInteger(
+      env.PRICER_REGISTRY_CONTEXT_MAX_TERMS_PER_DOMAIN,
+      DEFAULT_REGISTRY_CONTEXT_MAX_TERMS_PER_DOMAIN
+    ),
+    maxTotalTerms: parsePositiveInteger(
+      env.PRICER_REGISTRY_CONTEXT_MAX_TOTAL_TERMS,
+      DEFAULT_REGISTRY_CONTEXT_MAX_TOTAL_TERMS
+    ),
+    relevantText,
+    proposedMode: 'relevant',
+  });
+}
+
+function compactPromptForProviderRequest(prompt, {
+  responseFormat = null,
+  enrichmentVersion = RICH_CANONICAL_ENRICHMENT_VERSION,
+} = {}) {
+  if (
+    enrichmentVersion !== CANONICAL_SEMANTIC_V3_VERSION ||
+    responseFormat?.type !== 'json_schema' ||
+    !prompt ||
+    typeof prompt !== 'object' ||
+    Array.isArray(prompt) ||
+    !prompt.response_json_schema
+  ) {
+    return prompt;
+  }
+  const strictOutputRules = Array.isArray(prompt.strict_output_rules)
+    ? prompt.strict_output_rules.map((rule) =>
+      String(rule).includes('exactly this JSON schema')
+        ? 'Follow the provided response_format json_schema exactly.'
+        : rule
+    )
+    : ['Follow the provided response_format json_schema exactly.'];
+  return {
+    ...prompt,
+    strict_output_rules: strictOutputRules,
+    semantic_usage_profile_guidance: prompt.semantic_usage_profile_guidance
+      ? {
+        ...prompt.semantic_usage_profile_guidance,
+        conservative_examples: undefined,
+      }
+      : undefined,
+    semantic_embedding_summary_guidance: prompt.semantic_embedding_summary_guidance
+      ? {
+        ...prompt.semantic_embedding_summary_guidance,
+        examples: undefined,
+      }
+      : undefined,
+    response_shape: {
+      products: [{
+        canonical_product_id: 'string; must exactly match one input id',
+        enrichment: 'canonical_semantic_v3 object matching the provided response_format json_schema',
+      }],
+    },
+    response_schema_transport: 'response_format.json_schema',
+    response_json_schema: undefined,
+  };
+}
+
+function inferRelevantRegistryDomains(products = [], relevantText = '') {
+  const text = normalizeText(relevantText);
+  const domains = new Set([
+    'product_taxonomy',
+    'product_category',
+    'food_category',
+    'packaging',
+    'product_form',
+    'storage_type',
+    'quality_tier',
+  ]);
+  const groupKeys = new Set();
+  products.forEach((product) => {
+    (product?.pilot_match?.groups || []).forEach((group) => groupKeys.add(normalizeGroup(group) || normalizeText(group)));
+  });
+  const hasGroup = (...keys) => keys.some((key) => groupKeys.has(key));
+  const hasText = (pattern) => pattern.test(text);
+
+  if (
+    hasGroup('milk_dairy_eval') ||
+    hasText(/\b(milk|dairy|yogurt|yoghurt|cheese|sirene|kashkaval|butter|cream)\b/u) ||
+    hasText(/мляко|кисело|сирене|кашкавал/u)
+  ) {
+    domains.add('dairy_type');
+    domains.add('milk_source');
+  }
+  if (
+    hasGroup('cola_beverage_eval', 'beverages') ||
+    hasText(/\b(cola|coke|coca|beverage|drink|soda|juice|water|coffee|tea)\b/u) ||
+    hasText(/кола|напитка|сок|вода/u)
+  ) {
+    domains.add('flavor');
+  }
+  if (hasText(/\b(chocolate|vanilla|strawberry|plain|natural|flavor|flavour)\b/u) || hasText(/шоколад|ванилия|ягода/u)) {
+    domains.add('flavor');
+  }
+  if (
+    hasText(/\b(organic|bio|vegan|vegetarian|gluten|lactose|sugar free|diet)\b/u) ||
+    hasText(/био|веган|глутен|лактоза|захар/u)
+  ) {
+    domains.add('dietary_claim');
+  }
+  if (hasText(/\b(plastic|glass|paper|paperboard|metal|aluminum|steel)\b/u) || hasText(/пласт|стък|метал/u)) {
+    domains.add('material');
+  }
+  if (hasText(/\b(fresh|uht|frozen|ready|cook|cooking|ambient|refrigerated)\b/u) || hasText(/прясно|замраз|готов|охлад/u)) {
+    domains.add('preparation_state');
+  }
+
+  return SEMANTIC_REGISTRY_DOMAINS.filter((domain) => domains.has(domain));
+}
+
+function buildRegistryRelevantText(products = []) {
+  return products.map((product) => [
+    product?.canonical_display_name,
+    product?.source_example_name,
+    product?.canonical_brand,
+    product?.canonical_product_type,
+    product?.canonical_category_code,
+    ...(product?.pilot_match?.groups || []),
+    ...(product?.pilot_match?.matched_terms || []),
+    ...(product?.pilot_match?.selection_reasons || []),
+  ].filter(Boolean).join(' ')).join(' ');
 }
 
 async function requestCanonicalEnrichmentBatch({
@@ -1069,9 +1754,14 @@ async function requestCanonicalEnrichmentBatch({
     );
   }
 
+  const responseFormat = buildProviderResponseFormat({ env, enrichmentVersion });
+  const outboundPrompt = compactPromptForProviderRequest(prompt, {
+    responseFormat,
+    enrichmentVersion,
+  });
   const requestBody = buildProviderRequestBody({
     model: providerConfig.model,
-    responseFormat: buildProviderResponseFormat({ env, enrichmentVersion }),
+    responseFormat,
     messages: [
       {
         role: 'system',
@@ -1079,14 +1769,19 @@ async function requestCanonicalEnrichmentBatch({
       },
       {
         role: 'user',
-        content: JSON.stringify(prompt),
+        content: JSON.stringify(outboundPrompt),
       },
     ],
+  });
+  const requestMetrics = summarizeProviderRequestBody(requestBody, {
+    prompt: outboundPrompt,
+    responseFormat,
   });
   const providerResult = await requestProviderChatCompletionWithRetry({
     providerConfig,
     apiKey,
     requestBody,
+    requestMetrics,
     env,
     fetchImpl,
     batchIndex,
@@ -1141,6 +1836,7 @@ async function requestCanonicalEnrichmentBatch({
 
   const result = enrichmentVersion === CANONICAL_SEMANTIC_V3_VERSION ? parsed : productResponses;
   attachAttemptMetadata(result, attemptMetadata);
+  attachRequestMetrics(result, requestMetrics);
   return result;
 }
 
@@ -1304,16 +2000,24 @@ async function requestProviderChatCompletionWithRetry({
   providerConfig,
   apiKey,
   requestBody,
+  requestMetrics = null,
   env = process.env,
   fetchImpl = globalThis.fetch,
   batchIndex = null,
 } = {}) {
   const retryConfig = buildLlmRetryConfig(env);
+  const bodyText = JSON.stringify(requestBody);
+  const metrics = requestMetrics || summarizeProviderRequestBody(requestBody);
+  const bloatThreshold = parsePositiveInteger(
+    env.PRICER_LLM_REQUEST_BLOAT_CHAR_THRESHOLD,
+    DEFAULT_REQUEST_BLOAT_CHAR_THRESHOLD
+  );
   const attemptHistory = [];
   let lastError = null;
   const maxAttempts = retryConfig.maxRetries + 1;
 
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    const attemptStartedAt = Date.now();
     const controller = new AbortController();
     const timeout = setTimeout(() => {
       controller.abort(new Error(`provider request timed out after ${retryConfig.requestTimeoutMs}ms`));
@@ -1323,7 +2027,7 @@ async function requestProviderChatCompletionWithRetry({
       response = await fetchImpl(providerConfig.endpoint, {
         method: 'POST',
         headers: buildProviderHeaders(apiKey),
-        body: JSON.stringify(requestBody),
+        body: bodyText,
         signal: controller.signal,
       });
       clearTimeout(timeout);
@@ -1334,6 +2038,8 @@ async function requestProviderChatCompletionWithRetry({
           success: true,
           status: response.status,
           retryable: false,
+          duration_ms: Date.now() - attemptStartedAt,
+          ...metricsForAttempt(metrics),
         });
         return {
           response,
@@ -1354,6 +2060,10 @@ async function requestProviderChatCompletionWithRetry({
           response_body: body,
         }
       );
+      if (metrics.request_body_char_count >= bloatThreshold && retryable) {
+        error.error_type = 'possible_local_request_bloat';
+        error.request_size_classification = 'possible_local_request_bloat';
+      }
       lastError = error;
       const canRetry = retryable && attempt <= retryConfig.maxRetries;
       attemptHistory.push(buildAttemptHistoryEntry({
@@ -1361,6 +2071,8 @@ async function requestProviderChatCompletionWithRetry({
         error,
         retryable,
         retry_after_ms: canRetry ? computeRetryDelayMs(attempt, retryConfig) : null,
+        duration_ms: Date.now() - attemptStartedAt,
+        requestMetrics: metrics,
       }));
       if (canRetry) {
         await sleep(attemptHistory[attemptHistory.length - 1].retry_after_ms);
@@ -1380,6 +2092,10 @@ async function requestProviderChatCompletionWithRetry({
         enriched.timed_out = true;
         enriched.timeout_ms = retryConfig.requestTimeoutMs;
       }
+      if (metrics.request_body_char_count >= bloatThreshold) {
+        enriched.error_type = 'possible_local_request_bloat';
+        enriched.request_size_classification = 'possible_local_request_bloat';
+      }
       const retryable = isRetryableNetworkFailure(enriched);
       const retryLimit = isEnotfoundError(enriched) ? Math.min(1, retryConfig.maxRetries) : retryConfig.maxRetries;
       const canRetry = retryable && attempt <= retryLimit;
@@ -1389,6 +2105,8 @@ async function requestProviderChatCompletionWithRetry({
         error: enriched,
         retryable,
         retry_after_ms: canRetry ? computeRetryDelayMs(attempt, retryConfig) : null,
+        duration_ms: Date.now() - attemptStartedAt,
+        requestMetrics: metrics,
       }));
       if (canRetry) {
         await sleep(attemptHistory[attemptHistory.length - 1].retry_after_ms);
@@ -1424,6 +2142,8 @@ function buildAttemptHistoryEntry({
   error,
   retryable,
   retry_after_ms,
+  duration_ms = null,
+  requestMetrics = null,
 }) {
   return {
     attempt,
@@ -1440,6 +2160,9 @@ function buildAttemptHistoryEntry({
     timed_out: Boolean(error.timed_out),
     retryable: Boolean(retryable),
     retry_after_ms,
+    duration_ms,
+    request_size_classification: error.request_size_classification || null,
+    ...metricsForAttempt(requestMetrics),
   };
 }
 
@@ -1448,9 +2171,27 @@ function finalizeProviderAttemptError(error, attemptHistory) {
   attachAttemptMetadata(enriched, buildAttemptMetadata(attemptHistory));
   if (attemptHistory.some((entry) => entry.retryable)) {
     enriched.exhausted_retries = true;
-    enriched.error_type = 'provider_network_error';
+    enriched.error_type = attemptHistory.some((entry) => entry.error_type === 'possible_local_request_bloat')
+      ? 'possible_local_request_bloat'
+      : 'provider_network_error';
   }
   return enriched;
+}
+
+function metricsForAttempt(requestMetrics = null) {
+  if (!requestMetrics) {
+    return {};
+  }
+  return {
+    prompt_char_count: requestMetrics.prompt_char_count ?? null,
+    request_body_char_count: requestMetrics.request_body_char_count ?? null,
+    estimated_prompt_tokens: requestMetrics.estimated_prompt_tokens ?? null,
+    estimated_request_tokens: requestMetrics.estimated_request_tokens ?? null,
+    registry_context_term_count: requestMetrics.registry_context_term_count ?? null,
+    registry_context_domains: requestMetrics.registry_context_domains || [],
+    json_schema_char_count: requestMetrics.json_schema_char_count ?? null,
+    response_format_json_schema_included: Boolean(requestMetrics.response_format_json_schema_included),
+  };
 }
 
 function attachAttemptMetadata(target, metadata) {
@@ -1733,7 +2474,11 @@ function buildPilotEnrichmentRecord({
   product,
   enrichment,
   config,
+  repairStatus = 'clean',
+  repairWarnings = [],
+  discardedFields = [],
 }) {
+  const needsHumanReview = repairStatus !== 'clean' || Boolean(enrichment?.needs_human_review);
   return {
     canonical_fingerprint: product.canonical_product_id,
     canonical_product_id: product.canonical_product_id,
@@ -1744,6 +2489,10 @@ function buildPilotEnrichmentRecord({
     prompt_version: config.promptVersion,
     enrichment_source: 'llm',
     enrichment_version: config.enrichmentVersion || PILOT_ENRICHMENT_VERSION,
+    enrichment_repair_status: repairStatus,
+    repair_warnings: repairWarnings,
+    discarded_fields: discardedFields,
+    needs_human_review: needsHumanReview,
     created_at: config.now,
     updated_at: config.now,
   };
@@ -1784,6 +2533,106 @@ function toCandidateSummary(product) {
 function estimateTokenCount(promptBatches) {
   const chars = JSON.stringify(promptBatches.map((batch) => batch.prompt)).length;
   return Math.ceil(chars / 4);
+}
+
+function summarizePromptBatches(promptBatches = [], {
+  responseFormat = null,
+  model = 'pilot-disabled',
+} = {}) {
+  const batchMetrics = promptBatches.map((batch) => {
+    const requestBody = buildProviderRequestBody({
+      model,
+      responseFormat,
+      messages: [
+        {
+          role: 'system',
+          content: 'You enrich selected canonical product meaning for search. Return strict JSON only.',
+        },
+        {
+          role: 'user',
+          content: JSON.stringify(batch.prompt),
+        },
+      ],
+    });
+    return summarizeProviderRequestBody(requestBody, {
+      prompt: batch.prompt,
+      responseFormat,
+    });
+  });
+  const domainSet = new Set();
+  batchMetrics.forEach((metrics) => {
+    (metrics.registry_context_domains || []).forEach((domain) => domainSet.add(domain));
+  });
+  return {
+    prompt_char_count: sumBy(batchMetrics, 'prompt_char_count'),
+    request_body_char_count: sumBy(batchMetrics, 'request_body_char_count'),
+    estimated_prompt_tokens: sumBy(batchMetrics, 'estimated_prompt_tokens'),
+    estimated_request_tokens: sumBy(batchMetrics, 'estimated_request_tokens'),
+    registry_context_term_count: sumBy(batchMetrics, 'registry_context_term_count'),
+    registry_context_domains: [...domainSet].sort(),
+    json_schema_char_count: batchMetrics.length > 0 ? batchMetrics[0].json_schema_char_count : 0,
+    per_batch_token_estimate: batchMetrics.map((metrics, index) => ({
+      batch_index: index + 1,
+      prompt_char_count: metrics.prompt_char_count,
+      request_body_char_count: metrics.request_body_char_count,
+      estimated_prompt_tokens: metrics.estimated_prompt_tokens,
+      estimated_request_tokens: metrics.estimated_request_tokens,
+      registry_context_term_count: metrics.registry_context_term_count,
+      registry_context_domains: metrics.registry_context_domains,
+      json_schema_char_count: metrics.json_schema_char_count,
+      response_format_json_schema_included: metrics.response_format_json_schema_included,
+    })),
+    response_format_json_schema_included: batchMetrics.some((metrics) => metrics.response_format_json_schema_included),
+    total_request_count: promptBatches.length,
+  };
+}
+
+function summarizeProviderRequestBody(requestBody, {
+  prompt = null,
+  responseFormat = null,
+} = {}) {
+  const promptText = JSON.stringify(prompt ?? {});
+  const requestBodyText = JSON.stringify(requestBody ?? {});
+  const jsonSchema = responseFormat?.type === 'json_schema'
+    ? responseFormat.json_schema?.schema
+    : null;
+  const registryContext = prompt?.registry_context || {};
+  const registryDomains = Object.keys(registryContext)
+    .filter((domain) => Array.isArray(registryContext[domain]) && registryContext[domain].length > 0)
+    .sort();
+  return {
+    prompt_char_count: prompt ? promptText.length : 0,
+    request_body_char_count: requestBodyText.length,
+    estimated_prompt_tokens: prompt ? Math.ceil(promptText.length / 4) : 0,
+    estimated_request_tokens: Math.ceil(requestBodyText.length / 4),
+    registry_context_term_count: countRegistryContextTerms(registryContext),
+    registry_context_domains: registryDomains,
+    json_schema_char_count: jsonSchema ? JSON.stringify(jsonSchema).length : 0,
+    response_format_json_schema_included: responseFormat?.type === 'json_schema',
+  };
+}
+
+function attachRequestMetrics(target, metrics) {
+  if (!target || !metrics) {
+    return target;
+  }
+  Object.defineProperties(target, {
+    request_metrics: {
+      value: metrics,
+      enumerable: false,
+      configurable: true,
+    },
+  });
+  return target;
+}
+
+function countRegistryContextTerms(registryContext = {}) {
+  return Object.values(registryContext || {}).reduce((total, terms) =>
+    total + (Array.isArray(terms) ? terms.length : 0), 0);
+}
+
+function sumBy(items, field) {
+  return items.reduce((total, item) => total + (Number.isFinite(item?.[field]) ? item[field] : 0), 0);
 }
 
 function normalizeGroup(value) {

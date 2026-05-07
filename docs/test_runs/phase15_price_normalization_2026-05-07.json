@@ -1,0 +1,35 @@
+{
+  "run_id": "phase15_price_normalization_2026-05-07",
+  "date": "2026-05-07",
+  "commands": [
+    "npm run test:phase15",
+    "npm run test:phase15_2",
+    "npm run test:phase16_0"
+  ],
+  "status": "passed",
+  "summary": {
+    "phase15": {
+      "passed": 69,
+      "failed": 0,
+      "total": 69
+    },
+    "phase15_2": {
+      "passed": 27,
+      "failed": 0,
+      "total": 27
+    },
+    "phase16_0": {
+      "passed": 12,
+      "failed": 0,
+      "total": 12
+    }
+  },
+  "coverage": [
+    "Inferred kg/per_kg metadata for chicken fillet without explicit quantity.",
+    "Inferred kg/per_kg metadata for loose produce without explicit quantity.",
+    "Explicit 400 g cheese metadata with per_kg calculation when current price is present.",
+    "Explicit 250 ml shampoo metadata with per_liter calculation when current price is present.",
+    "Ambiguous no-size product remains unknown and needs UOM review.",
+    "Product detail/search and canonical current-offer summaries expose price-normalization metadata without fabricating missing prices."
+  ]
+}

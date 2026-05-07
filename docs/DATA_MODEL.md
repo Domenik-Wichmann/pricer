@@ -182,6 +182,9 @@
 - `retail_price`
 - `promo_price`
 - `unit_price`
+- `price_normalization`
+- `comparison_basis`
+- `price_per_comparison_basis`
 - `is_sale`
 - `is_promotion`
 - `observed_at`
@@ -201,6 +204,19 @@
 - `rules_version`
 
 `current_product_offers` is a compact runtime read model with one latest/current offer per `source_product_id`. It is derived from existing Phase 6 local runtime state, using latest `raw_price_snapshots`, `source_products`, `canonical_product_mappings`, and `canonical_products`; live routes query it by `canonical_product_id` or `source_product_id` and must not full-load it.
+
+`price_normalization` is additive Phase 15 metadata. It records deterministic explicit quantity detection and conservative inferred selling-unit/comparison-basis hints:
+
+- `explicit_quantity_detected`
+- `inferred_selling_unit`: `kg`, `g`, `l`, `ml`, `pcs`, `pack`, or `unknown`
+- `comparison_basis`: `per_kg`, `per_liter`, `per_piece`, `per_pack`, or `unknown`
+- `uom_inference_confidence`
+- `uom_inference_reason`
+- `needs_uom_review`
+- `explicit_quantity` when a deterministic `size_marker` exists
+- `price_per_comparison_basis` only when a current price plus explicit comparable quantity supports it
+
+Loose-weight inference, such as meat/produce/deli/fish/loose cheese inferred as kg/per_kg, must not create fake `weight_g = 1000` or any factual package quantity.
 
 ### `current_offer_fingerprints`
 - `source_product_id`
@@ -233,13 +249,23 @@
 
 `current_offer_fingerprints` is the planned incremental latest-update baseline. One row is keyed by `source_product_id` and carries a stable hash over the fields that determine whether a current offer needs to be rewritten. Daily diff jobs should compare new snapshot fingerprints to this collection or to a local exported baseline before writing current read models.
 
-The local baseline export format is JSONL, one compact row per current offer:
+The local baseline export format is JSONL, one row per current offer. `PRICER_INCREMENTAL_BASELINE_MODE=compact` writes the compact comparison shape:
 
 ```json
 {"source_product_id":"...","canonical_product_id":"...","offer_fingerprint":"sha256...","price":1.23,"current_price":1.23,"retail_price":1.49,"promo_price":1.23,"unit_price":null,"is_sale":true,"is_promotion":true,"snapshot_date":"2026-05-05","first_seen_snapshot_date":"2026-05-05","last_seen_snapshot_date":"2026-05-05","updated_at":"...","rules_version":"phase6_incremental_ingest_v1"}
 ```
 
-The local file intentionally omits bulky `fingerprint_payload` and offer display metadata. It is a comparison/cache artifact, not app-facing runtime state.
+The compact local file intentionally omits bulky `fingerprint_payload` and offer display metadata. It is a comparison/cache artifact, not app-facing runtime state.
+
+`PRICER_INCREMENTAL_BASELINE_MODE=rich` keeps the same fingerprint fields and adds old-side diagnostic fields for churn analysis:
+
+```json
+{"source_product_id":"...","canonical_product_id":"...","offer_fingerprint":"sha256...","price":1.23,"is_sale":true,"snapshot_date":"2026-05-05","last_seen_snapshot_date":"2026-05-05","baseline_mode":"rich","offer_id":"offer_...","source_product_name_raw":"...","source_product_name":"...","source_name":"...","canonical_name":"...","category_code":"27","canonical_category_code":null,"chain_id":"...","chain_name":"...","retailer":"...","store_id":"...","store_name":"...","locality_code":"1000","region":"1000","product_code":"...","source_file_name":"...","source_file_name_raw":"...","source_file_stem":"...","source_chain_name_normalized":"..."}
+```
+
+Rich baseline files are still local JSONL diagnostics only. They must not be treated as a new runtime schema and must not trigger Firestore writes unless the separate explicit fingerprint backfill mode is enabled.
+
+Production-scale JSONL baselines should be consumed with the streaming `phase6:diff-snapshot` loader. The loader reads one line at a time, ignores blank lines, reports malformed JSON with the source line number, and resolves duplicate `source_product_id` rows deterministically with the last row winning.
 
 ### `offer_change_events`
 - `event_id`
@@ -260,7 +286,7 @@ The local file intentionally omits bulky `fingerprint_payload` and offer display
 - `created_at`
 - `rules_version`
 
-`offer_change_events` is an append-only planned audit/event stream for incremental latest updates. The dry-run diff can estimate these events, but the real writer is deferred until the fingerprint baseline is backfilled and operator-reviewed.
+`offer_change_events` is an append-only planned audit/event stream for incremental latest updates. The dry-run diff can estimate these events, but the real writer is deferred until the fingerprint baseline is backfilled and operator-reviewed. The dry-run defaults `PRICER_INCREMENTAL_EVENT_POLICY` to `price_promo_availability`, which suppresses event writes for metadata-only, canonical-mapping-only, and other non-price changes while still updating current state and affected canonical summaries. Operators may set `PRICER_INCREMENTAL_EVENT_POLICY=all_changes` for full audit estimates or `PRICER_INCREMENTAL_EVENT_POLICY=none` for current-state-only estimates.
 
 ### `snapshot_manifests`
 - `manifest_id`
@@ -278,12 +304,25 @@ The local file intentionally omits bulky `fingerprint_payload` and offer display
 - `affected_canonical_product_ids`
 - `summaries_to_update`
 - `estimated_writes`
+- `estimated_write_policy_variants`
+- `actual_writes`
+- `failed_writes`
+- `event_policy`
+- `high_write_catchup_acknowledged`
+- `change_category_report`
+- `diff_diagnostics`
 - `destructive_deletes`
 - `created_at`
 - `updated_at`
 - `rules_version`
 
-`snapshot_manifests` records per-run incremental diff summaries and future committed-update reports. Dry-runs currently print the manifest shape without writing it.
+`snapshot_manifests` records per-run incremental diff summaries and committed incremental-update reports. Dry-runs print the manifest shape without writing it; real writer runs write exactly one manifest with estimated writes, actual writes, failed writes, selected event policy, and whether `PRICER_INCREMENTAL_ALLOW_HIGH_WRITE_CATCHUP=true` was acknowledged.
+
+Daily diff categories are `new_offers`, `price_changed`, `promo_changed`, `availability_changed`, `metadata_changed_only`, `canonical_mapping_changed`, `other_changed`, `unchanged`, and `missing_removed`. Dry-run reports include per-category counts, sample changed offers with `change_reasons`, write-requirement flags, and estimated write variants for full audit, price/promo/availability events, and current-state-only policies. Missing/removed offers remain report-only by default and do not trigger deletes or mark-unavailable writes.
+
+The real incremental writer is explicit opt-in through `PRICER_INCREMENTAL_DRY_RUN=false`; dry-run remains the default. It writes only changed/new `current_product_offers`, matching `current_offer_fingerprints`, policy-selected `offer_change_events`, affected `canonical_current_offer_summary` rows for changed/new offers, and one `snapshot_manifests` row. Unchanged offers are not rewritten. If estimated writes exceed `PRICER_INCREMENTAL_HIGH_WRITE_THRESHOLD` (default `100000`), a real run refuses before writes unless `PRICER_INCREMENTAL_ALLOW_HIGH_WRITE_CATCHUP=true` is set. `PRICER_INCREMENTAL_MARK_MISSING_UNAVAILABLE=true` is reserved for a separate explicit unavailable-marking policy and is not part of the default catch-up writer.
+
+`diff_diagnostics` is dry-run-only and helps operators decide whether large daily churn is meaningful before enabling the real writer. It reports top chains/retailers, top categories, source-product samples, price before/after samples, canonical mapping before/after samples, source-id shape checks, old-baseline detail availability, and a replacement/churn heuristic that matches missing and new offers by normalized product name plus chain/store/category and by normalized product name plus retailer/category when both sides have enough fields. The heuristic reports `likely_same_real_offer_with_new_id`, `likely_genuinely_new`, `likely_genuinely_removed`, and `unknown`, plus Billa-specific new/missing/replacement diagnostics. Compact exported baselines may omit old-side names/categories/chains; when that happens the heuristic is marked unavailable rather than inferred.
 
 ### `canonical_current_offer_summary`
 - `canonical_product_id`
@@ -311,17 +350,22 @@ The local file intentionally omits bulky `fingerprint_payload` and offer display
 - `last_seen_at`
 - `updated_at`
 - `available_chains[]`
+- `price_normalization`
+- `comparison_basis`
+- `price_per_comparison_basis`
 - `rules_version`
 
 `canonical_current_offer_summary` is keyed by `canonical_product_id` and gives product detail, price lookup, watchlist, and basket routes a bounded summary over current offers. Phase 15 product detail/search keeps price fields unavailable when no current price exists, but supplements missing compact current summaries with route-scoped canonical mapping/source-product evidence so count fields can still show `0` current offers plus historical/source counts and `last_seen_at`.
+
+Phase 15 product detail/search also expose `price_normalization` on each product result/detail. This is deterministic metadata for future price comparison and should be interpreted separately from current price availability.
 
 ### Phase 6 incremental ingest modes
 
 - Phase 6 source-row validation now runs before `raw_price_snapshots`, `source_products`, `source_product_enrichment`, `canonical_products`, `canonical_product_mappings`, or current read models can be created from a row. Rows with invalid source identity fields or invalid product-name quality, such as embedded product-name newlines, multi-row CSV fragments, store/address fragments, excessive delimiter plus length evidence, or repeated code/category/price fragments, are counted as malformed and logged with reasons/samples. Quote-only brand-style names are warnings rather than malformed rows.
 - Existing product records can be reported with `npm run phase6:audit-bad-products`. The command defaults to dry-run/report-only and separates `valid`, `warning`, `suspicious`, and `invalid` product quality; only `invalid` records are quarantinable candidates. With reviewed approval, the same command can mark invalid records with additive no-delete quarantine fields; warning-only records are not marked.
 - Initial latest snapshot load may write many current/catalog records once. It is an operator backfill path, not the normal daily path.
-- Daily latest update should diff the new snapshot against `current_offer_fingerprints` or an exported fingerprint baseline, then write only new/changed `current_product_offers`, updated fingerprints, append-only change events, affected canonical summaries, and one manifest/report.
-- Missing offers are reported as removed/missing by default and are not deleted. Mark-unavailable behavior requires an explicit later policy.
+- Daily latest update should diff the new snapshot against `current_offer_fingerprints` or an exported fingerprint baseline, then write only new/changed `current_product_offers`, updated fingerprints, policy-selected append-only change events, affected canonical summaries, and one manifest/report. Real writes require `PRICER_INCREMENTAL_DRY_RUN=false`.
+- Missing offers are reported as removed/missing by default and are not deleted. Mark-unavailable behavior requires the separate explicit `PRICER_INCREMENTAL_MARK_MISSING_UNAVAILABLE=true` policy and is not enabled for the first Billa catch-up run.
 - Historical backfill should append date-specific `raw_price_snapshots`, `product_daily_prices`, `ingest_runs`, and `pipeline_logs` only. It must not publish `current_product_offers` or `canonical_current_offer_summary` unless explicitly requested.
 - Canonical parser/enrichment backfills should touch canonical/enrichment documents only and must not rewrite raw/history/current offer collections.
 
@@ -515,10 +559,25 @@ The local file intentionally omits bulky `fingerprint_payload` and offer display
 - `enrichment.llm_uncertainty_reasons[]`
 - `enrichment.explanation_short`
 - `enrichment.reviewed_status`
+- `enrichment.taxonomy_classification.taxonomy_path_raw[]`
+- `enrichment.taxonomy_classification.taxonomy_path_term_ids[]`
+- `enrichment.taxonomy_classification.taxonomy_path_labels[]`
+- `enrichment.taxonomy_classification.primary_taxonomy_term_id`
+- `enrichment.taxonomy_classification.primary_taxonomy_label`
+- `enrichment.taxonomy_classification.raw_category_terms[]`
+- `enrichment.taxonomy_classification.registry_matches[]`
+- `enrichment.taxonomy_classification.proposed_terms[]`
+- `enrichment.taxonomy_classification.confidence`
+- `enrichment.taxonomy_classification.needs_review`
+- `enrichment.taxonomy_classification.evidence[]`
 - `canonical_product_id`
 - `canonical_name_hash`
 - `enrichment_source`
 - `enrichment_version`
+- `enrichment_repair_status`: `clean`, `repaired`, or `partial` for v3 pilot writes
+- `repair_warnings[]`
+- `discarded_fields[]`
+- `needs_human_review`
 - `updated_at`
 - `explicit_claim_evidence[]`
 - `model_name`
@@ -527,11 +586,47 @@ The local file intentionally omits bulky `fingerprint_payload` and offer display
 
 `canonical_enrichment_store` is additive only. It is keyed by canonical fingerprint, currently aligned with `canonical_product_id`, and must not rewrite deterministic canonical grouping or marker truth.
 
+The category path is a generalized product taxonomy, not a food-only taxonomy. Every enriched product should have at least `category_l1` and `category_l2` when supported, with optional `category_l3`/`category_l4` detail. Examples include `Food & Beverage > Dairy > Yogurt`, `Food & Beverage > Meat > Beef`, `Personal Care > Hair Care > Shampoo`, `Household > Cleaning > Detergent`, `Home Appliances > Cleaning Appliances > Vacuum Cleaner`, `Baby & Kids > Baby Food > Puree`, and `Pet Care > Pet Food > Cat Food`. Dairy-specific fields remain category-specific extensions and must not be removed or treated as the whole taxonomy.
+
 The canonical marker backfill may read a single enrichment document by `canonical_fingerprint` only after a canonical brand cleanup is planned. In a real run it patches `enrichment.brand` only when the enrichment brand is missing or equal to the stale canonical brand; it does not create enrichment records, call LLMs, or enrich raw/source rows.
 
 Phase 15.9 extends canonical enrichment for a focused semantic-search pilot. The new fields are optional and backward-compatible: existing v1 records without `product_type`, `search_aliases_*`, boolean category flags, or name-hash metadata remain valid. Rich v2 records use `enrichment.enrichment_version = "canonical_semantic_v2"` and cache by `canonical_product_id + canonical_name_hash + enrichment_version`, so unchanged v2 records are skipped by the pilot. The pilot selector reads only `canonical_products` plus existing `canonical_enrichment_store` and real opt-in runs write only `canonical_enrichment_store`; they must never update raw/source/offer rows, prices, mappings, or canonical product grouping.
 
-Phase 15 LLM hardening adds optional `canonical_semantic_v3` records behind `PRICER_ENRICHMENT_VERSION=canonical_semantic_v3`. V3 records still live in `canonical_enrichment_store`, but `enrichment.schema_version = "canonical_semantic_v3"` separates raw observed terms, descriptions, registry matches, proposed aliases/new terms, search buckets, confidence, warnings, and review flags. V3 may write pending registry proposals and failed-response artifacts, but it remains additive and must not activate new terms or mutate canonical grouping truth.
+Phase 15 LLM hardening adds optional `canonical_semantic_v3` records behind `PRICER_ENRICHMENT_VERSION=canonical_semantic_v3`. V3 records still live in `canonical_enrichment_store`, but `enrichment.schema_version = "canonical_semantic_v3"` separates raw observed terms, descriptions, registry matches, proposed aliases/new terms, search buckets, confidence, warnings, and review flags. V3 now uses `enrichment.taxonomy_classification` plus the `product_taxonomy` registry domain as the primary open product taxonomy. `taxonomy_path_labels` stores a human-readable broad-to-specific path, `taxonomy_path_term_ids` aligns index-for-index and uses `null` for proposed or unmatched nodes, and `primary_taxonomy_label` is normally the deepest confident node. The older `product_category` domain and category object remain readable for backward compatibility; legacy `food_category` matches are food-only. New non-food terms such as `hair_care`, `shampoo`, `detergent`, or `vacuum_cleaner` must not be proposed under `food_category`. V3 may write pending registry proposals and failed-response artifacts, but it remains additive and must not activate new terms or mutate canonical grouping truth.
+
+V3 partial salvage distinguishes fatal response failures from repairable field-level issues. Malformed JSON, missing whole enrichment objects, unexpected or duplicate product IDs, and product-identity mismatches are rejected and, for malformed provider content, persisted in `canonical_enrichment_failed_responses`. Repairable issues such as taxonomy primary/path mismatch, misplaced non-product registry matches, null registry spillover, invalid optional semantic usage fields, or invalid optional registry matches are normalized by dropping or moving only the bad subfield. Repaired or partial records still write to `canonical_enrichment_store` with `enrichment_repair_status`, `repair_warnings`, `discarded_fields`, and `needs_human_review = true`.
+
+V3 category-specific attributes are conditional. `enrichment.attributes.dairy` is only for dairy products. `enrichment.attributes.personal_care` may carry shampoo/conditioner and other personal-care metadata such as `target_hair_type`, `target_skin_type`, `scent`, `active_claims`, and `use_area`. `enrichment.attributes.household` is reserved for additive household metadata. These objects are extension payloads over the general taxonomy, not replacements for `category_l1`/`category_l2` paths.
+
+V3.1 adds optional `enrichment.semantic_usage_profile` for richer additive culinary/search semantics intended to support future deterministic embedding description generation. The object preserves descriptive strings rather than forcing controlled enums:
+- `cuisine_contexts[]`
+- `flavor_profile.primary_tastes[]`
+- `flavor_profile.descriptors[]`
+- `flavor_profile.intensity`
+- `culinary_roles[]`
+- `dish_roles[]`
+- `meal_contexts[]`
+- `common_uses[]`
+- `preparation_contexts[]`
+- `pairing_suggestions[]`
+- `substitute_terms[]`
+- `consumer_search_intents[]`
+- `not_for[]`
+- `confidence`
+- `evidence[]`
+- `needs_review`
+
+These values are conservative inferred metadata only. They do not create dietary/nutrition claims and do not mutate canonical product truth, source rows, mappings, offers, prices, or registry terms.
+
+V3.1 also adds optional `enrichment.semantic_embedding_summary` as an embedding-ready prose companion. It is derived/provided metadata only; structured fields remain source of truth. Older v3 records without the field normalize to an empty summary object:
+- `summary`
+- `summary_language` (`en`, `bg`, `mixed`, or `unknown`)
+- `included_aspects[]`
+- `evidence[]` capped by `PRICER_LLM_MAX_EVIDENCE_ITEMS_PER_FIELD` (default `3`)
+- `confidence`
+- `needs_review`
+
+The summary must stay concise (max two sentences, max 120 words), but should be rich enough for embeddings: product type, packaging/quantity, category/form/storage, flavor or texture profile, cuisine context, explicit or strongly implied ingredients, common use cases, dish/meal role, preparation or pairing context, and consumer-search meaning where supported. It must use only explicit or conservatively implied facts and avoid unsupported claims such as organic, lactose-free, baby-safe, halal, vegan, gluten-free, or sugar-free.
 
 ### `semantic_term_registry`
 - `term_id`
@@ -549,7 +644,7 @@ Phase 15 LLM hardening adds optional `canonical_semantic_v3` records behind `PRI
 - `created_at`
 - `updated_at`
 
-`semantic_term_registry` is the reusable normalization vocabulary for `canonical_semantic_v3`. Initial seed domains are `packaging`, `product_form`, `food_category`, `dairy_type`, `milk_source`, `quality_tier`, `storage_type`, `flavor`, `dietary_claim`, `material`, and `preparation_state`. Seed rows are reviewable vocabulary, not product truth.
+`semantic_term_registry` is the reusable normalization vocabulary for `canonical_semantic_v3`. Initial seed domains are `packaging`, `product_form`, `product_taxonomy`, `product_category`, legacy `food_category`, `dairy_type`, `milk_source`, `quality_tier`, `storage_type`, `flavor`, `dietary_claim`, `material`, and `preparation_state`. `product_taxonomy` seed rows include broad departments (`Grocery`, `Personal Care`, `Household`, `Baby & Kids`, `Pet Care`, `Automotive`, `Sports & Outdoors`, `Tools & Hardware`, `Garden & Outdoor`, `Electronics`, `Home Appliances`, `Clothing`, `Health`, and `Office & School`) plus starter tested child branches such as `Grocery > Meat & Seafood > Poultry > Chicken`, `Grocery > Bread & Bakery`, `Personal Care > Bath & Body > Soap > Bar Soap`, `Personal Care > Hair Care > Shampoo`, `Automotive > Car Care > Fluids > Motor Oil`, and `Garden & Outdoor > Garden Tools > Shovels`. Seed rows are starter vocabulary, not a closed list or product truth.
 
 ### `semantic_term_registry_proposals`
 - `proposal_id`
@@ -557,8 +652,10 @@ Phase 15 LLM hardening adds optional `canonical_semantic_v3` records behind `PRI
 - `action`
 - `proposed_label`
 - `proposed_alias`
+- `proposed_aliases[]`
 - `existing_term_id`
 - `parent_term_id`
+- `parent_label`
 - `evidence_product_ids[]`
 - `evidence_terms[]`
 - `confidence`
@@ -566,7 +663,7 @@ Phase 15 LLM hardening adds optional `canonical_semantic_v3` records behind `PRI
 - `created_at`
 - `updated_at`
 
-`semantic_term_registry_proposals` stores pending LLM-proposed aliases, terms, and relationships. Proposals are deduped by domain/action/label-or-alias/existing term and default to `pending`; LLM output must never directly create an active registry term.
+`semantic_term_registry_proposals` stores pending LLM-proposed aliases, terms, and relationships. General proposals are deduped by domain/action/label-or-alias/existing term; `product_taxonomy` new-term proposals are deduped by domain plus normalized proposed label plus `parent_term_id`, and capture proposed aliases when supplied. Proposals default to `pending`; LLM output must never directly create an active registry term.
 
 ### `canonical_enrichment_failed_responses`
 - `failed_response_id`
@@ -2505,6 +2602,7 @@ Every DB5C review or promotion decision appends a history row. This remains appe
 - Phase 15 product search includes a deterministic in-code BG/EN grocery synonym table for query expansion and ranking only. It does not add persistence and does not merge or canonicalize products.
 - Product search results may include backward-compatible `search_debug` metadata with normalized query, expanded terms, matched concepts, match tier, matched tokens, matched enrichment category/product type/aliases, demotion reason, and score for Admin QA visibility.
 - Product search results include backward-compatible `current_offer_summary` metadata for bounded search candidate canonical product ids. Price min/max/avg come from `canonical_current_offer_summary` when present. Missing compact current summaries are returned as evidence summaries with `current_offer_count = 0`, historical/source counts from scoped `canonical_product_mappings` plus `source_products`, and no raw snapshot/current-offer scan.
+- Phase 15 price normalization adds additive `price_normalization` metadata to product detail/search and current-offer summaries. Deterministic explicit `size_marker` facts override inferred units; inferred kg/per_kg for meat, fish, deli, produce, and loose cheese never creates factual package size or fake weight fields. Product detail/search may repair compact current summaries whose stored normalization is missing or `unknown` by copying the product-level comparison basis and deriving only the per-comparison-basis price from already-present current summary prices.
 - Phase 15.9 adds deterministic cookies/snacks/cola/soft-drink aliases before any LLM enrichment, plus enrichment-backed ranking over optional canonical fields such as `product_type`, `product_family`, `search_aliases_bg`, `search_aliases_en`, `synonym_terms`, `should_match_queries`, `negative_match_hints`, `do_not_match_queries`, `is_beverage`, `is_personal_care`, `dairy_type`, and `beverage_type`.
 - Phase 15.9 adds `npm run phase15:enrichment-pilot`, which defaults to dry-run and selects a bounded pilot set for `milk_dairy_eval`, `bread_bakery_eval`, `cola_beverage_eval`, `cookies_snacks_eval`, `personal_care_false_positive_eval`, `baby_food_eval`, and `search_quality_eval` plus legacy group aliases. Real runs require explicit opt-in and write only `canonical_enrichment_store`.
 - Parser fixes for brand/unit/age markers affect future Phase 6 generated canonical records; existing production records can be refreshed by the canonical-only marker backfill without re-ingesting raw snapshots or rewriting offer/history rows. Phase 15 product detail/search expose structured `markers.size_marker` when the backfill has populated `canonical_attributes_json.size_marker`.

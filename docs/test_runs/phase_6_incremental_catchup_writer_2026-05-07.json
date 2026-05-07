@@ -1,0 +1,21 @@
+{
+  "id": "phase_6_incremental_catchup_writer_2026-05-07",
+  "date": "2026-05-07",
+  "command": "npm run test:phase6_incremental_ingest",
+  "status": "passed",
+  "summary": {
+    "passed": 30,
+    "failed": 0,
+    "total": 30
+  },
+  "coverage": [
+    "high-write real writer refusal without PRICER_INCREMENTAL_ALLOW_HIGH_WRITE_CATCHUP=true",
+    "high-write dry-run remains no-write while reporting the catch-up gate status",
+    "high-write catch-up acknowledgement permits the real writer plan",
+    "unchanged current offers are skipped",
+    "new Billa-like offers are written",
+    "only affected canonical_current_offer_summary rows are written",
+    "missing_removed stays report-only with no deletes by default"
+  ],
+  "notes": "No production writer was run and no Firestore data was deleted."
+}

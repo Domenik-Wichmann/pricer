@@ -17,6 +17,7 @@ const {
   createRuntimeDataBackboneStore,
   getEnrichmentByFingerprint,
   resolveCollectionName,
+  resolveRuntimeStoreConfig,
   resolveStoreBackend,
   storeEnrichment,
   withRuntimeReadContext,
@@ -203,14 +204,21 @@ const {
   planHistoricalIngest,
 } = require('./phase6/admin_ingest_jobs');
 const {
+  DEFAULT_INCREMENTAL_EVENT_POLICY,
+  DEFAULT_INCREMENTAL_HIGH_WRITE_THRESHOLD,
   INCREMENTAL_INGEST_RULES_VERSION,
   buildCurrentOfferFingerprint,
   buildCurrentOfferFingerprints,
   buildCompactCurrentOfferBaselineRecord,
   buildCompactCurrentOfferBaselineRecords,
+  buildRichCurrentOfferBaselineRecord,
+  buildRichCurrentOfferBaselineRecords,
   buildOfferChangeEvents,
+  buildIncrementalWriterPlan,
   buildSnapshotManifest,
+  changedRowsForWriter,
   diffCurrentOffers,
+  normalizeIncrementalEventPolicy,
 } = require('./phase6/incremental_ingest');
 const { runDailyProductionPipeline } = require('./phase6/jobs');
 const { appendPipelineLog, createPipelineLog, recordPipelineLog } = require('./phase6/logging');
@@ -326,6 +334,10 @@ const {
   GROCERY_SYNONYM_CONCEPTS,
   buildGroceryQueryExpansion,
 } = require('./phase15/search_synonyms');
+const {
+  PRICE_NORMALIZATION_RULES_VERSION,
+  inferPriceNormalization,
+} = require('./phase15/price_normalization');
 const {
   DEFAULT_PRODUCT_LAYER_MODE,
   FACET_FIELDS,
@@ -1180,11 +1192,18 @@ module.exports = {
   buildCurrentOfferFingerprints,
   buildCompactCurrentOfferBaselineRecord,
   buildCompactCurrentOfferBaselineRecords,
+  buildRichCurrentOfferBaselineRecord,
+  buildRichCurrentOfferBaselineRecords,
   buildCurrentOfferReadModel,
   buildOfferChangeEvents,
+  buildIncrementalWriterPlan,
   buildSnapshotManifest,
+  changedRowsForWriter,
   diffCurrentOffers,
+  DEFAULT_INCREMENTAL_EVENT_POLICY,
+  DEFAULT_INCREMENTAL_HIGH_WRITE_THRESHOLD,
   INCREMENTAL_INGEST_RULES_VERSION,
+  normalizeIncrementalEventPolicy,
   buildDailyAggregation,
   buildDailyIngestSchedule,
   buildDemandKey,
@@ -1542,6 +1561,7 @@ module.exports = {
   buildRetailerLocationId,
   buildRetailerLocationsFromState,
   buildProductListItem,
+  inferPriceNormalization,
   buildCanonicalEnrichmentAnalytics,
   checkPostgresHealth,
   checksumFile,
@@ -1581,6 +1601,7 @@ module.exports = {
   PILOT_ENRICHMENT_VERSION,
   PILOT_GROUPS,
   SEMANTIC_REGISTRY_DOMAINS,
+  PRICE_NORMALIZATION_RULES_VERSION,
   EXPENSIVE_AVG_MULTIPLIER,
   GOOD_DEAL_AVG_MULTIPLIER,
   upsertCanonicalDisambiguationDecision,
@@ -1593,6 +1614,7 @@ module.exports = {
   upsertUnit,
   upsertUnitConversion,
   createRuntimeDataBackboneStore,
+  resolveRuntimeStoreConfig,
   withRuntimeReadContext,
   addWatchlistItem,
   annotateOptimizerResultWithDeals,

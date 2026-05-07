@@ -1,0 +1,30 @@
+{
+  "id": "phase15_registry_taxonomy_2026-05-07",
+  "date": "2026-05-07",
+  "phase": 15.9,
+  "scope": "Registry-backed hierarchical product taxonomy for canonical_semantic_v3 enrichment",
+  "commands": [
+    {
+      "command": "npm run test:phase15",
+      "status": "passed",
+      "summary": "73 passed, 0 failed"
+    },
+    {
+      "command": "node tests/phase_15_2_product_api.test.js",
+      "status": "passed",
+      "summary": "29 passed, 0 failed"
+    }
+  ],
+  "coverage": [
+    "product_taxonomy registry seed domain and hierarchy support",
+    "taxonomy_classification schema validation and old-v3 compatibility",
+    "soap, shampoo, chicken fillet, bread, motor oil, and garden shovel taxonomy paths",
+    "unknown taxonomy proposed terms and pending proposal writes with aliases",
+    "non-food food_category rejection",
+    "taxonomy search_debug/debug:enrichment output"
+  ],
+  "notes": [
+    "No live LLM request was run.",
+    "npm run debug:enrichment -- --latest 5 --version canonical_semantic_v3 was not run because it requires runtime data and is optional unless relevant."
+  ]
+}

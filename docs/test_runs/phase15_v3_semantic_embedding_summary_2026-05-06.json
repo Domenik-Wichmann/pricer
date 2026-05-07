@@ -1,0 +1,23 @@
+{
+  "id": "phase15_v3_semantic_embedding_summary_2026-05-06",
+  "date": "2026-05-06",
+  "commands": [
+    {
+      "command": "npm run test:phase15",
+      "status": "passed",
+      "summary": "65 passed, 0 failed, 65 total"
+    },
+    {
+      "command": "npm run validate:docs",
+      "status": "passed",
+      "summary": "JSON docs parse successfully"
+    }
+  ],
+  "notes": [
+    "Verified canonical_semantic_v3 prompt/schema/validation include richer semantic_embedding_summary guidance.",
+    "Covered fresh milk, yogurt, sirene, and kashkaval embedding summaries with flavor/texture, cuisine, ingredient, use-case, dish/meal-role, and search-context meaning.",
+    "Verified unsupported claim wording and summaries over two sentences are rejected.",
+    "Verified older v3 payloads without semantic_embedding_summary normalize to an empty summary object.",
+    "Verified debug:enrichment includes semantic_embedding_summary in inspection output."
+  ]
+}

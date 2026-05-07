@@ -17,6 +17,88 @@ const LAYER_SELECTIONS = Object.freeze({
 
 const DEFAULT_VIEW_LIMIT = 50;
 const MAX_VIEW_LIMIT = 200;
+const BASE_PRODUCT_INTENTS = Object.freeze([
+  {
+    ids: ['chicken'],
+    terms: ['chicken', '\u043f\u0438\u043b\u0435\u0448\u043a\u043e', '\u043f\u0438\u043b\u0435'],
+  },
+  {
+    ids: ['milk'],
+    terms: ['milk', '\u043c\u043b\u044f\u043a\u043e'],
+  },
+  {
+    ids: ['beef'],
+    terms: ['beef', '\u0442\u0435\u043b\u0435\u0448\u043a\u043e', '\u0433\u043e\u0432\u0435\u0436\u0434\u043e'],
+  },
+  {
+    ids: ['cheese', 'cheese_sirene', 'yellow_cheese_kashkaval'],
+    terms: ['cheese', '\u0441\u0438\u0440\u0435\u043d\u0435', '\u043a\u0430\u0448\u043a\u0430\u0432\u0430\u043b'],
+  },
+  {
+    ids: ['bread'],
+    terms: ['bread', '\u0445\u043b\u044f\u0431'],
+  },
+  {
+    ids: ['soap'],
+    terms: ['soap', '\u0441\u0430\u043f\u0443\u043d'],
+  },
+  {
+    ids: ['shampoo'],
+    terms: ['shampoo', '\u0448\u0430\u043c\u043f\u043e\u0430\u043d'],
+  },
+]);
+const BASE_PRODUCT_EVIDENCE_TERMS = Object.freeze([
+  'fillet',
+  'breast',
+  'thigh',
+  'meat',
+  'fresh',
+  'chilled',
+  'frozen',
+  'raw',
+  'loose',
+  '\u0444\u0438\u043b\u0435',
+  '\u0431\u0443\u0442\u0447\u0435',
+  '\u0433\u044a\u0440\u0434\u0438',
+  '\u043c\u0435\u0441\u043e',
+  '\u043e\u0445\u043b\u0430\u0434\u0435\u043d\u043e',
+  '\u0437\u0430\u043c\u0440\u0430\u0437\u0435\u043d\u043e',
+  '\u043d\u0430\u0441\u0438\u043f\u043d\u043e',
+]);
+const PROCESSED_PRODUCT_TERMS = Object.freeze([
+  'flavored',
+  'puree',
+  'baby food',
+  'soup',
+  'ready meal',
+  '\u043f\u044e\u0440\u0435',
+  '\u0431\u0435\u0431\u0435\u0448\u043a\u043e',
+  '\u0431\u0435\u0431\u0435\u0448\u043a\u0430',
+  '\u0441\u0443\u043f\u0430',
+  '\u0433\u043e\u0442\u043e\u0432\u043e',
+  '\u044f\u0441\u0442\u0438\u0435',
+  '\u0441\u043d\u0430\u043a\u0441',
+  '\u0432\u043a\u0443\u0441',
+]);
+const BABY_FOOD_TERMS = Object.freeze([
+  'baby food',
+  'baby puree',
+  'infant formula',
+  'toddler milk',
+  '\u0431\u0435\u0431\u0435\u0448\u043a\u043e',
+  '\u0431\u0435\u0431\u0435\u0448\u043a\u0430',
+  '\u043f\u044e\u0440\u0435',
+  '\u0430\u0434\u0430\u043f\u0442\u0438\u0440\u0430\u043d\u043e',
+]);
+const PREPARED_MEAL_TERMS = Object.freeze([
+  'soup',
+  'ready meal',
+  'prepared dish',
+  '\u0441\u0443\u043f\u0430',
+  '\u0433\u043e\u0442\u043e\u0432\u043e',
+  '\u0433\u043e\u0442\u043e\u0432\u0430',
+  '\u044f\u0441\u0442\u0438\u0435',
+]);
 const ENRICHMENT_FILTER_FIELDS = Object.freeze([
   'category_l1',
   'category_l2',
@@ -440,6 +522,7 @@ function computeSearchScore(view, searchPlan, context) {
       { value: view.enrichment.product_family, weight: 1.1 },
       { value: view.enrichment.category, weight: 0.8 },
       { value: view.enrichment.subcategory, weight: 0.8 },
+      { value: view.enrichment.taxonomy_classification?.primary_taxonomy_label, weight: 1.0 },
       { value: view.enrichment.brand, weight: 0.8 },
       { value: view.enrichment.brand_normalized, weight: 1.0 },
       { value: view.enrichment.product_line, weight: 0.7 },
@@ -449,6 +532,7 @@ function computeSearchScore(view, searchPlan, context) {
       ...(view.enrichment.search_aliases_en || []).map((value) => ({ value, weight: 1.2 })),
       ...(view.enrichment.synonym_terms || []).map((value) => ({ value, weight: 0.9 })),
       ...(view.enrichment.should_match_queries || []).map((value) => ({ value, weight: 1.0 })),
+      ...extractTaxonomySearchTerms(view.enrichment).map((value) => ({ value, weight: 0.9 })),
       ...(view.enrichment.attributes || []).map((value) => ({ value, weight: 0.4 })),
       ...(view.enrichment.diet_tags || []).map((value) => ({ value, weight: 0.3 })),
       ...(view.enrichment.usage_context || []).map((value) => ({ value, weight: 0.3 })),
@@ -521,8 +605,10 @@ function computeCategoryGuardrail(view, searchPlan) {
   const conceptIds = new Set(searchPlan.matched_concept_ids || []);
   const beverageIntent = conceptIds.has('cola') || conceptIds.has('soft_drink');
   const snackIntent = conceptIds.has('snacks') || conceptIds.has('biscuits') || conceptIds.has('chips') || conceptIds.has('crackers');
+  const baseProductAdjustment = computeBaseProductSelectionAdjustment(view, searchPlan);
   const reasons = [];
-  let scoreAdjustment = 0;
+  let scoreAdjustment = baseProductAdjustment.score_adjustment;
+  reasons.push(...baseProductAdjustment.reasons);
 
   if (beverageIntent && isBeverageView(view)) {
     scoreAdjustment += 18;
@@ -549,6 +635,69 @@ function computeCategoryGuardrail(view, searchPlan) {
     score_adjustment: scoreAdjustment,
     reasons,
   };
+}
+
+function computeBaseProductSelectionAdjustment(view, searchPlan) {
+  const intent = getBaseProductIntent(searchPlan);
+  if (!intent) {
+    return {
+      score_adjustment: 0,
+      reasons: [],
+    };
+  }
+
+  const values = normalizedFieldValues(view);
+  const reasons = [];
+  let scoreAdjustment = 0;
+  const hasBaseEvidence = containsAnySearchTerm(values, BASE_PRODUCT_EVIDENCE_TERMS) ||
+    containsAnySearchTerm(values, intent.terms);
+  const hasProcessedEvidence = containsAnySearchTerm(values, PROCESSED_PRODUCT_TERMS);
+  const hasBabyFoodEvidence = containsAnySearchTerm(values, BABY_FOOD_TERMS);
+  const hasPreparedMealEvidence = containsAnySearchTerm(values, PREPARED_MEAL_TERMS);
+
+  if (hasBaseEvidence && !hasProcessedEvidence && !hasBabyFoodEvidence && !hasPreparedMealEvidence) {
+    scoreAdjustment += 10;
+    reasons.push('base_product_boost');
+  }
+  if (hasProcessedEvidence) {
+    scoreAdjustment -= 15;
+    reasons.push('processed_product_demotion');
+  }
+  if (hasBabyFoodEvidence) {
+    scoreAdjustment -= 12;
+    reasons.push('baby_food_demotion');
+  }
+  if (hasPreparedMealEvidence) {
+    scoreAdjustment -= 10;
+    reasons.push('prepared_meal_demotion');
+  }
+
+  return {
+    score_adjustment: scoreAdjustment,
+    reasons,
+  };
+}
+
+function getBaseProductIntent(searchPlan) {
+  const conceptIds = new Set(searchPlan.matched_concept_ids || []);
+  const queryValues = [
+    searchPlan.normalized_query,
+    ...(searchPlan.query_tokens || []),
+  ].map((value) => normalizeSearchValue(value)).filter(Boolean);
+
+  return BASE_PRODUCT_INTENTS.find((intent) =>
+    intent.ids.some((id) => conceptIds.has(id)) ||
+    intent.terms.some((term) => queryValues.some((value) => value === term || value.includes(term)))
+  ) || null;
+}
+
+function containsAnySearchTerm(values, terms) {
+  return values.some((value) =>
+    terms.some((term) => {
+      const normalizedTerm = normalizeSearchValue(term);
+      return normalizedTerm && value.includes(normalizedTerm);
+    })
+  );
 }
 
 function computeWeightedFieldBonus(weightedFields, searchPlan) {
@@ -644,6 +793,8 @@ function normalizedFieldValues(view) {
     enrichment.beverage_type,
     enrichment.storage_type,
     enrichment.shopping_family_id,
+    enrichment.taxonomy_classification?.primary_taxonomy_label,
+    ...(extractTaxonomySearchTerms(enrichment)),
     ...(enrichment.flavor || []),
     ...(enrichment.flavor_terms || []),
     ...(enrichment.search_aliases_bg || []),
@@ -654,6 +805,45 @@ function normalizedFieldValues(view) {
     ...(enrichment.negative_match_hints || []),
     ...(enrichment.do_not_match_queries || []),
   ].map((value) => normalizeSearchValue(value)).filter(Boolean);
+}
+
+function extractTaxonomySearchTerms(enrichment = {}) {
+  const taxonomy = enrichment?.taxonomy_classification;
+  if (!taxonomy || typeof taxonomy !== 'object' || Array.isArray(taxonomy)) {
+    return [];
+  }
+  return [
+    ...(Array.isArray(taxonomy.taxonomy_path_labels) ? taxonomy.taxonomy_path_labels : []),
+    ...(Array.isArray(taxonomy.raw_category_terms) ? taxonomy.raw_category_terms : []),
+    taxonomy.primary_taxonomy_label,
+    ...(Array.isArray(taxonomy.registry_matches)
+      ? taxonomy.registry_matches.flatMap((match) => [
+        match?.canonical_label,
+        ...(Array.isArray(match?.evidence) ? match.evidence : []),
+      ])
+      : []),
+  ].filter(Boolean);
+}
+
+function extractTaxonomyLabels(enrichment = {}) {
+  const taxonomy = enrichment?.taxonomy_classification;
+  if (!taxonomy || typeof taxonomy !== 'object' || Array.isArray(taxonomy)) {
+    return [];
+  }
+  return [
+    ...(Array.isArray(taxonomy.taxonomy_path_labels) ? taxonomy.taxonomy_path_labels : []),
+    taxonomy.primary_taxonomy_label,
+  ].filter(Boolean);
+}
+
+function extractTaxonomyRegistryAliases(enrichment = {}) {
+  const taxonomy = enrichment?.taxonomy_classification;
+  if (!taxonomy || typeof taxonomy !== 'object' || Array.isArray(taxonomy)) {
+    return [];
+  }
+  return (Array.isArray(taxonomy.registry_matches) ? taxonomy.registry_matches : [])
+    .flatMap((match) => Array.isArray(match?.evidence) ? match.evidence : [])
+    .filter(Boolean);
 }
 
 function buildSearchDebug(score, searchPlan, view) {
@@ -670,6 +860,8 @@ function buildSearchDebug(score, searchPlan, view) {
     view.enrichment?.category_l1,
     view.enrichment?.category_l2,
     view.enrichment?.category_l3,
+    view.enrichment?.taxonomy_classification?.primary_taxonomy_label,
+    ...(extractTaxonomySearchTerms(view.enrichment)),
     ...(view.enrichment?.search_aliases_bg || []),
     ...(view.enrichment?.search_aliases_en || []),
   ].join(' '));
@@ -677,6 +869,7 @@ function buildSearchDebug(score, searchPlan, view) {
   const matchedAliases = [
     ...(view.enrichment?.search_aliases_bg || []),
     ...(view.enrichment?.search_aliases_en || []),
+    ...extractTaxonomyRegistryAliases(view.enrichment),
   ].filter((alias) => {
     const normalizedAlias = normalizeSearchValue(alias);
     return normalizedAlias && (
@@ -710,6 +903,18 @@ function buildSearchDebug(score, searchPlan, view) {
       enrichment_version: view.enrichment?.enrichment_version || null,
       dairy_type: view.enrichment?.dairy_type || null,
       beverage_type: view.enrichment?.beverage_type || null,
+      primary_taxonomy_label: view.enrichment?.taxonomy_classification?.primary_taxonomy_label || null,
+      taxonomy_path_labels: view.enrichment?.taxonomy_classification?.taxonomy_path_labels || [],
+      matched_taxonomy_labels: extractTaxonomyLabels(view.enrichment).filter((label) => {
+        const normalizedLabel = normalizeSearchValue(label);
+        return normalizedLabel && (
+          searchPlan.normalized_query.includes(normalizedLabel) ||
+          haystack.includes(normalizedLabel) ||
+          searchPlan.expanded_terms.includes(normalizedLabel) ||
+          searchPlan.query_tokens.some((token) => normalizedLabel.includes(token) || token.includes(normalizedLabel))
+        );
+      }),
+      taxonomy_registry_aliases: extractTaxonomyRegistryAliases(view.enrichment),
       is_food: view.enrichment?.is_food ?? null,
       is_beverage: view.enrichment?.is_beverage ?? null,
       is_personal_care: view.enrichment?.is_personal_care ?? null,

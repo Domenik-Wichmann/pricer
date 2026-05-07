@@ -1,0 +1,27 @@
+{
+  "id": "phase_6_rich_baseline_diff_2026-05-07",
+  "date": "2026-05-07",
+  "commands": [
+    {
+      "command": "npm run test:phase6_incremental_ingest",
+      "status": "passed",
+      "summary": "26 passed, 0 failed, 26 total"
+    },
+    {
+      "command": "node --max-old-space-size=8192 scripts/export_phase6_current_offer_fingerprints.js with PRICER_INCREMENTAL_BASELINE_MODE=rich in 100k-row local JSONL chunks",
+      "status": "passed",
+      "summary": "Exported 1321726 prod current-offer rows to runtime_data/prod_current_offer_fingerprints_rich_2026-05-07.full.jsonl; Firestore writes enabled=false; destructive_deletes=false"
+    },
+    {
+      "command": "npm run phase6:diff-snapshot with PRICER_SNAPSHOT_DATE=2026-05-05 and PRICER_INCREMENTAL_BASELINE_PATH=runtime_data/prod_current_offer_fingerprints_rich_2026-05-07.full.jsonl",
+      "status": "passed",
+      "summary": "Dry-run only: new_offers=207338, changed_offers=55901, unchanged_offers=1100700, removed_missing_offers=165125, Billa new=176205, Billa missing=0, Billa likely replacements=0"
+    }
+  ],
+  "notes": [
+    "No real incremental writer was implemented or run.",
+    "No Firestore writes, deletes, publisher, or ingest-heavy publication commands were run.",
+    "The rich baseline had diagnostic fields for every loaded row: product name, category, chain/retailer, and store/locality availability were all 1321726 of 1321726.",
+    "The replacement heuristic found 44912 likely same-real-offer/new-id pairs overall, concentrated outside Billa in this run."
+  ]
+}

@@ -11,6 +11,8 @@ const {
   importDailySnapshotFile,
   importDailySnapshotText,
   InMemoryDataBackboneStore,
+  resolveCollectionName,
+  resolveRuntimeStoreConfig,
   upgradeEnrichmentToEnglish,
   upgradeTranslations,
 } = require('../app/functions/src');
@@ -82,6 +84,30 @@ test('source product key stability across dates', () => {
   });
 
   assert.equal(first, second);
+});
+
+test('runtime store config resolves Firestore target without secrets', () => {
+  const config = resolveRuntimeStoreConfig({
+    PRICER_STORE_BACKEND: 'firestore',
+    PRICER_FIRESTORE_PROJECT_ID: 'pricer-ee440',
+    PRICER_FIRESTORE_DATABASE_ID: '(default)',
+    PRICER_FIRESTORE_COLLECTION_PREFIX: 'prod',
+    GOOGLE_APPLICATION_CREDENTIALS: 'C:\\secrets\\service-account.json',
+    FIRESTORE_EMULATOR_HOST: '127.0.0.1:8080',
+  });
+
+  assert.equal(config.backend, 'firestore');
+  assert.equal(config.firestore.projectId, 'pricer-ee440');
+  assert.equal(config.firestore.databaseId, '(default)');
+  assert.equal(config.firestore.collectionPrefix, 'prod');
+  assert.equal(config.firestore.googleApplicationCredentialsPresent, true);
+  assert.equal(config.firestore.emulator.active, true);
+  assert.equal(config.firestore.emulator.firestoreEmulatorHost, '127.0.0.1:8080');
+});
+
+test('runtime collection names use the configured Firestore prefix only when present', () => {
+  assert.equal(resolveCollectionName('prod', 'canonical_products'), 'prod_canonical_products');
+  assert.equal(resolveCollectionName('', 'canonical_products'), 'canonical_products');
 });
 
 test('outlet differentiation', () => {

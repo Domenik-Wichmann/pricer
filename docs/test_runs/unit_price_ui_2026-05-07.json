@@ -1,0 +1,30 @@
+{
+  "id": "unit_price_ui_2026-05-07",
+  "date": "2026-05-07",
+  "scope": "Admin and mobile unit-price UI display",
+  "commands": [
+    {
+      "command": "npm run admin-web:build",
+      "status": "passed",
+      "notes": "Vite/React/TypeScript admin console built successfully."
+    },
+    {
+      "command": "flutter test test/widget_smoke_test.dart",
+      "working_directory": "app/mobile",
+      "status": "passed",
+      "notes": "75 Flutter widget/parser tests passed, including unit-price rendering and missing-price regressions."
+    },
+    {
+      "command": "npm run validate:docs",
+      "status": "passed",
+      "notes": "JSON documentation files parsed successfully."
+    }
+  ],
+  "coverage": [
+    "Product search with per_kg/per_liter unit prices",
+    "Product detail current price and unit price",
+    "Watchlist and basket price surfaces",
+    "Null or unknown normalization hidden without n/a",
+    "Zero current offer count parsing preserved as 0"
+  ]
+}

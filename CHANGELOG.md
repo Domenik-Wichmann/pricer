@@ -1,5 +1,127 @@
 # Changelog
 
+## 2026-05-07 - Phase 15 V3 Partial Enrichment Salvage
+
+- Added a v3-only normalization/repair pass before strict enrichment validation so repairable field-level issues can still write a usable `canonical_semantic_v3` record.
+- Stored repair metadata on enrichment records with `enrichment_repair_status`, `repair_warnings`, `discarded_fields`, and record-level `needs_human_review` for repaired/partial writes.
+- Kept wrong product IDs, missing enrichment objects, malformed JSON, and invalid batch shapes as fatal rejections, with malformed provider content persisted to `canonical_enrichment_failed_responses`.
+- Extended `debug:enrichment` and Phase 15 tests for taxonomy primary repair, misplaced registry matches, invalid optional usage fields, wrong product IDs, and malformed JSON quarantine.
+
+## 2026-05-07 - Phase 15 Base Product Selection Weighting
+
+- Added soft Phase 15 search weighting for broad base-product queries so raw/simple matches such as chilled chicken fillet rank above processed chicken baby puree or snack flavor products.
+- Added debug reasons for `base_product_boost`, `processed_product_demotion`, `baby_food_demotion`, and `prepared_meal_demotion` in product search debug output.
+- Added Phase 15 and Phase 15.2 regressions proving `пилешко` ranks raw chicken above baby puree while keeping processed products as soft-scored candidates.
+
+## 2026-05-07 - Phase 15 V3 Taxonomy Primary Alignment
+
+- Hardened `canonical_semantic_v3` taxonomy validation so `primary_taxonomy_label` and `primary_taxonomy_term_id` are repaired into `taxonomy_path_labels` / `taxonomy_path_term_ids` when provider output is otherwise usable.
+- Derived missing or unusable primary taxonomy fields from the last valid taxonomy path item instead of rejecting the whole enrichment.
+- Added chicken-run regressions for primary label and primary term-id path mismatches.
+
+## 2026-05-07 - Phase 6 Incremental Catch-Up Writer Safety
+
+- Added the explicit opt-in real incremental writer path behind `PRICER_INCREMENTAL_DRY_RUN=false`; dry-run remains default.
+- Added high-write catch-up gating with `PRICER_INCREMENTAL_HIGH_WRITE_THRESHOLD` and required `PRICER_INCREMENTAL_ALLOW_HIGH_WRITE_CATCHUP=true` acknowledgement for large real runs such as the 2026-05-05 Billa catch-up.
+- Kept missing/removed offers report-only by default, with no deletes and no unavailable marking unless a separate explicit flag is introduced for that policy.
+- Added deterministic writer coverage for unchanged-offer skipping, new Billa-like offer writes, affected-summary-only writes, event policy handling, manifest actual/failed write fields, and no-delete defaults.
+
+## 2026-05-07 - Phase 15 V3 Taxonomy Validation Hardening
+
+- Tightened the v3 prompt and response schema so `taxonomy_classification.registry_matches` is product-taxonomy-only.
+- Hardened v3 validation so misplaced legacy `product_category` / `food_category` matches inside `taxonomy_classification.registry_matches` are filtered or moved to the backward-compatible `category.registry_matches` surface instead of rejecting the full item.
+- Added a chicken-run regression for mixed `product_taxonomy` and `food_category` taxonomy matches, including a null food-category spillover that is ignored rather than failing enrichment.
+
+## 2026-05-07 - Phase 6 Rich Current-Offer Baseline Diagnostics
+
+- Added `PRICER_INCREMENTAL_BASELINE_MODE=compact|rich` for local current-offer JSONL exports; rich mode includes old-side product name, canonical name, category, chain/retailer, store/locality/region, product code, source file, and fingerprint fields while still writing no Firestore records by default.
+- Hardened baseline export progress/resume behavior with append-safe newline handling and `PRICER_INCREMENTAL_BASELINE_START_AFTER_DOCUMENT_ID` for chunked read-only exports.
+- Expanded incremental diff diagnostics to use rich old-side fields, classify likely same-real-offer/new-id replacements versus likely genuine new/removed rows, and report Billa-specific new/missing/replacement diagnostics.
+- Fixed duplicate `inferPriceNormalization` index imports that blocked script startup under a fresh Node process.
+- Ran a full read-only rich baseline export and 2026-05-05 dry-run diff; Billa new offers remained concentrated at 176,205 with zero Billa missing rows in the baseline, so the Billa spike is not explained by old Billa source-product-id replacement churn in this run.
+
+## 2026-05-07 - Phase 15 Registry-Backed Product Taxonomy
+
+- Added additive `canonical_semantic_v3.enrichment.taxonomy_classification` with open hierarchical product taxonomy paths, registry term-id alignment, raw category terms, registry matches, pending proposed terms, confidence, review flags, and evidence.
+- Added the `product_taxonomy` semantic registry domain with broad starter departments plus tested grocery, personal-care, automotive, and garden child branches; LLM proposals remain pending and are deduped by domain, normalized label, and parent.
+- Updated v3 prompts, validation, enrichment debug output, and search debug/scoring evidence to prefer registry-backed taxonomy while allowing new labels/proposals without hardcoded domain booleans or food-only categories.
+- Added Phase 15 coverage for soap, shampoo, chicken fillet, bread, motor oil, garden shovel, unknown niche taxonomy proposals, old v3 compatibility, non-food `food_category` rejection, and taxonomy debug/search evidence.
+
+## 2026-05-07 - Phase 15 Current Summary Price Normalization
+
+- Fixed Phase 15 product search/detail so compact `current_offer_summary` rows with missing or `unknown` normalization inherit the product-level comparison basis when available.
+- Derived `current_offer_summary.price_per_comparison_basis` from current summary prices for loose-weight kg products and explicit packages without adding fake quantities.
+- Added Phase 15.2 regressions for loose-weight chicken/meat and explicit 400 g package summaries across search and detail responses.
+
+## 2026-05-07 - Unit Price UI Display
+
+- Added normalized per-unit price display to Admin Product Search/Product Detail and mobile product search/detail/watchlist/basket price surfaces when Phase 15 comparison-basis fields are present.
+- Added shared client-side unit-price formatting for `per_kg`, `per_liter`, and unit-style bases while hiding missing/unknown normalization instead of rendering `n/a`.
+- Tightened product UI fallbacks so missing current prices read as “No current price” and zero offer counts remain visible as `0`.
+- Added Flutter regression coverage for `/kg`, `/L`, null normalization, zero offer count parsing, missing-price display, and existing primary price rendering.
+
+## 2026-05-07 - Phase 15 Price Normalization Metadata
+
+- Added deterministic Phase 15 price-normalization metadata for explicit package quantities and conservative inferred selling units.
+- Inferred meat/fish/deli/produce/loose-cheese items now carry kg/per_kg comparison-basis metadata without inventing factual package quantities.
+- Added product detail/search and current-offer summary fields for `price_normalization`, `comparison_basis`, and `price_per_comparison_basis`, while leaving prices null when offers or explicit quantities are missing.
+- Added Phase 15 tests for chicken fillet, loose produce, explicit 400 g cheese, explicit 250 ml shampoo, and ambiguous no-size products.
+
+## 2026-05-07 - Phase 6 Incremental Diff Policy Report
+
+- Expanded `phase6:diff-snapshot` dry-run reporting with precise change categories, per-category sample reasons, and write-requirement flags.
+- Added `PRICER_INCREMENTAL_EVENT_POLICY=all_changes|price_promo_availability|none`, defaulting to `price_promo_availability` so metadata-only changes do not create offer-change events unless explicitly enabled.
+- Added estimated write variants for full audit, price/promo/availability events, and current-state-only policies while keeping the real writer deferred and report-only.
+- Added report-only `diff_diagnostics` for daily churn audits, including top chains/categories, source-product samples, price old/new samples, canonical mapping before/after samples, source-id shape checks, and an availability-aware replacement heuristic.
+
+## 2026-05-07 - Phase 6 Baseline Streaming
+
+- Changed `phase6:diff-snapshot` to stream large `.jsonl` current-offer fingerprint baselines line-by-line instead of reading the whole file into one string.
+- Added baseline load progress reporting, blank-line handling, malformed-line errors with line numbers, and deterministic duplicate `source_product_id` handling with last row wins.
+- Kept small JSON baseline files supported and added Phase 6 incremental tests for JSONL streaming, blank lines, malformed lines, duplicates, and JSON compatibility.
+
+## 2026-05-07 - Runtime Store Diagnostics
+
+- Added `npm run debug:runtime-store` to print the selected runtime backend, Firestore project/database/prefix, resolved collection names, emulator status, key row counts, and first canonical product samples without printing secrets.
+- Added shared runtime store config resolution tests for Firestore project/database/prefix and collection-name construction.
+- Documented the Phase 15 enrichment pilot command sequence for reading the same `prod_` Firestore collections used by the deployed/admin product APIs.
+
+## 2026-05-06 - Phase 15 General Product Taxonomy
+
+- Added a generalized Phase 15 product taxonomy across food, personal care, household, baby/kids, pet care, home appliances, health, and non-food miscellaneous products.
+- Added `product_category` semantic registry seeds while keeping legacy `sem_food_category_*` records backward-compatible for food-only terms.
+- Hardened v3 validation so non-food terms such as hair care or shampoo cannot be proposed under `food_category`; shampoo now maps through `Personal Care > Hair Care > Shampoo`.
+- Added conditional v3 `attributes.personal_care` and debug output for generalized category paths plus personal-care attributes, while preserving dairy-specific extensions.
+- Added Phase 15 tests for shampoo, conditioner, yogurt, sirene, beef, bread, vacuum cleaner, product-category registry use, and food-category guardrails.
+
+## 2026-05-06 - Default xAI Grok Non-Reasoning Model
+
+- Changed the shared default xAI Grok chat model from `grok-4-1-fast-reasoning` to `grok-4-1-fast-non-reasoning` across backend fallback paths.
+
+## 2026-05-06 - Phase 15 V3.1 Semantic Embedding Summary
+
+- Added additive `canonical_semantic_v3` `semantic_embedding_summary` fields for concise embedding-ready product prose, language, included aspects, capped evidence, confidence, and review flag.
+- Updated the v3 prompt/schema/validator to keep the summary under two sentences, allow up to 120 words for richer embedding context, prefer English with useful Bulgarian terms, reject unsupported claim wording, and preserve old v3 records by normalizing missing summaries to an empty object.
+- Expanded summary guidance to include flavor/texture profile, cuisine context, explicit or strongly implied ingredients, use cases, dish/meal role, preparation or pairing context, and consumer-search meaning when supported.
+- Added `PRICER_LLM_MAX_EVIDENCE_ITEMS_PER_FIELD` with default `3`, kept registry-context caps env-configurable, and kept live v3 prompts compact when `response_format.json_schema` carries the full schema.
+- Updated `debug:enrichment` to print the embedding summary.
+- Added Phase 15 coverage for fresh milk, yogurt, sirene, kashkaval, false-claim rejection, summary length enforcement, evidence caps, old-v3 compatibility, and debug output.
+
+## 2026-05-05 - Phase 15 V3.1 Semantic Usage Profile
+
+- Added additive `canonical_semantic_v3` `semantic_usage_profile` fields for cuisine contexts, flavor profile, culinary/dish roles, meal contexts, common uses, preparation contexts, pairings, substitutes, consumer-search intents, not-for hints, confidence, evidence, and review flag.
+- Updated the v3 prompt/schema to request conservative culinary/search usage inference without forcing controlled enums or inventing explicit claims such as organic/lactose-free.
+- Kept older v3 payloads compatible by normalizing missing `semantic_usage_profile` to an empty profile.
+- Updated `debug:enrichment` to print the semantic usage profile.
+- Added Phase 15 coverage for yogurt, sirene, kashkaval, fresh milk, old-v3 compatibility, and debug output.
+
+## 2026-05-05 - Phase 15 Enrichment Debug Inspection
+
+- Added `npm run debug:enrichment -- <canonical_product_id...>` to inspect written canonical enrichment records with category, packaging, product-form, dairy, quantity/storage, registry action, warning, review, and confidence fields.
+- Added `npm run debug:enrichment -- --latest 10 --version canonical_semantic_v3` for newest-record inspection by enrichment version.
+- Changed the default Phase 15 enrichment LLM request timeout from 60 seconds to 5 minutes while keeping `PRICER_LLM_REQUEST_TIMEOUT_MS` override support.
+- Added Phase 15 tests for the debug formatter/latest filter and timeout default.
+
 ## 2026-05-05 - Canonical Product Source Evidence Counts
 
 - Changed Phase 15 product detail/search summaries so canonical products with no current offers return `current_offer_count: 0` instead of a missing/null count summary.
@@ -18,11 +140,14 @@
 - Added v3 validation that preserves unfamiliar raw values such as `кофичка` and `пакетирано`, accepts valid sibling items when another item fails, writes pending proposals only, and quarantines malformed provider JSON without canonical writes.
 - Added Phase 15 tests for v3 prompt/schema context, messy raw values, structured output, pending/deduped registry proposals, LLM non-activation, and failed-response quarantine.
 - Hardened the Phase 15 xAI provider path with bounded retry/backoff, per-request AbortController timeouts, `Connection: close` socket mitigation, retryable HTTP/network classification, and run-summary attempt history for transient socket closures such as `UND_ERR_SOCKET`.
+- Fixed Phase 15 pilot selection over existing `canonical_semantic_v3` enrichment records by reading object-shaped attributes/category/packaging/product_form evidence safely, preserving v2 array attributes, and reporting malformed evidence shapes as run warnings instead of crashing.
+
+- Compacted v3 real request prompts so the full JSON schema is carried by `response_format.json_schema` rather than duplicated in the user message, bounded registry context to relevant domains/terms with `PRICER_REGISTRY_CONTEXT_MAX_TERMS_PER_DOMAIN` and `PRICER_REGISTRY_CONTEXT_MAX_TOTAL_TERMS`, and added per-attempt duration/request-size metrics plus request-bloat classification.
 
 ## 2026-05-05 - Canonical Semantic Enrichment V2 Pilot
 
 - Extended Phase 15 canonical enrichment with backward-compatible `canonical_semantic_v2` fields for richer product identity, classification, food/beverage/dairy/baby/package/search/shopping-intent, and quality/audit semantics.
-- Changed the default xAI Grok model across backend LLM paths to `grok-4-1-fast-reasoning`, including Phase 15 enrichment, Phase 6 disambiguation/Grok helpers, and recipe extraction fallbacks.
+- Changed the default xAI Grok model across backend LLM paths to `grok-4-1-fast-non-reasoning`, including Phase 15 enrichment, Phase 6 disambiguation/Grok helpers, and recipe extraction fallbacks.
 - Switched the enrichment pilot to the rich batch prompt and strict batch validator, requiring one validated result per requested `canonical_product_id` before writing.
 - Added `npm run phase15:enrichment-healthcheck` for config-only xAI diagnostics by default, plus explicit live healthcheck opt-in and provider/network/HTTP error detail reporting for real pilot batches.
 - Added same canonical-id/name-hash/version cache skipping so already-enriched v2 records are not prompted or rewritten.

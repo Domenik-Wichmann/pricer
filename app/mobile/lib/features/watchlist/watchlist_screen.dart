@@ -276,6 +276,11 @@ class _WatchlistPriceCard extends StatelessWidget {
       bestPrice?.chainName,
       bestPrice?.storeName,
     ].whereType<String>().where((value) => value.trim().isNotEmpty).join(' / ');
+    final unitPriceLabel = formatUnitPrice(
+      context,
+      price: bestPrice?.pricePerComparisonBasis,
+      comparisonBasis: bestPrice?.comparisonBasis,
+    );
 
     return InkWell(
       key: Key('watchlist-price-card-${item.watchId}'),
@@ -318,6 +323,12 @@ class _WatchlistPriceCard extends StatelessWidget {
                     label: 'Best price',
                     value: formatPrice(context, bestPrice!.price!),
                     icon: Icons.sell_outlined,
+                  ),
+                if (unitPriceLabel != null)
+                  MetricBadge(
+                    label: 'Unit',
+                    value: unitPriceLabel,
+                    icon: Icons.straighten,
                   ),
                 _DealBadge(level: item.dealLevel),
                 if (item.targetHit)

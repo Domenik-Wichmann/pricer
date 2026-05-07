@@ -5,6 +5,7 @@ const {
   isRuntimeSafeCurrentOffer,
   isRuntimeSafeSourceProduct,
 } = require('../phase6/product_validation');
+const { inferPriceNormalization } = require('../phase15/price_normalization');
 
 function buildCurrentOfferReadModel({
   state,
@@ -72,6 +73,10 @@ function buildCurrentProductOffer({
   });
   const retailPrice = normalizePrice(snapshot.retail_price);
   const promoPrice = normalizePrice(snapshot.promo_price);
+  const priceNormalization = inferPriceNormalization({
+    canonicalProduct,
+    currentPrice,
+  });
 
   return {
     offer_id: buildCurrentOfferId(sourceProductId),
@@ -101,6 +106,9 @@ function buildCurrentProductOffer({
     retail_price: retailPrice,
     promo_price: promoPrice,
     unit_price: null,
+    price_normalization: priceNormalization,
+    comparison_basis: priceNormalization.comparison_basis,
+    price_per_comparison_basis: priceNormalization.price_per_comparison_basis,
     is_sale: promoPrice !== null && retailPrice !== null && promoPrice > 0 && promoPrice < retailPrice,
     is_promotion: promoPrice !== null && retailPrice !== null && promoPrice > 0 && promoPrice < retailPrice,
     observed_at: snapshot.ingested_at || null,
@@ -157,6 +165,7 @@ function buildCanonicalCurrentOfferSummary({
   const prices = sortedOffers.map((offer) => Number(offer.current_price)).filter((value) => Number.isFinite(value));
   const chains = [...new Set(sortedOffers.map((offer) => offer.chain_id || offer.chain_name).filter(Boolean))].sort();
   const cheapest = sortedOffers[0] || null;
+  const cheapestPriceNormalization = cheapest?.price_normalization || null;
 
   return {
     canonical_product_id: canonicalProductId,
@@ -173,6 +182,9 @@ function buildCanonicalCurrentOfferSummary({
     cheapest_chain: cheapest?.chain_name || cheapest?.retailer || null,
     cheapest_retailer: cheapest?.retailer || cheapest?.chain_name || null,
     cheapest_price: cheapest?.current_price ?? null,
+    price_normalization: cheapestPriceNormalization,
+    comparison_basis: cheapestPriceNormalization?.comparison_basis || 'unknown',
+    price_per_comparison_basis: cheapestPriceNormalization?.price_per_comparison_basis ?? null,
     currency: cheapest?.currency || DEFAULT_CURRENT_OFFER_CURRENCY,
     snapshot_date: sortedOffers.map((offer) => offer.snapshot_date).filter(Boolean).sort().at(-1) || null,
     updated_at: generatedAt,

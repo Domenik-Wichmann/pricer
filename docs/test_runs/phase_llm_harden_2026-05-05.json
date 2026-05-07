@@ -5,7 +5,7 @@
     {
       "command": "npm run test:phase15",
       "status": "passed",
-      "summary": "49 passed, 0 failed, 49 total"
+      "summary": "55 passed, 0 failed, 55 total"
     },
     {
       "command": "npm run validate:docs",
@@ -15,6 +15,8 @@
   ],
   "notes": [
     "Covers canonical_semantic_v3 prompt/schema registry context, raw messy term preservation, unsafe packet-mapping avoidance, structured output request shape, pending registry proposals, duplicate proposal dedupe, LLM non-activation, malformed provider response quarantine, and existing v2 regression coverage.",
-    "Covers provider retry reliability for first-try success, UND_ERR_SOCKET, HTTP 503, HTTP 429, non-retryable HTTP 400, retry exhaustion, timeout aborts, v3 response_format preservation across retries, and pilot summary retry metrics."
+    "Covers v3 registry context bounding, relevant-domain selection, prompt schema compaction when response_format json_schema is included, dry-run prompt/request/schema/registry metrics, and v3 default request-count/token summaries.",
+    "Covers provider retry reliability for first-try success, UND_ERR_SOCKET, HTTP 503, HTTP 429, non-retryable HTTP 400, retry exhaustion, timeout aborts, v3 response_format preservation across retries, per-attempt duration/request-size metrics, possible local request bloat classification, and pilot summary retry metrics.",
+    "Covers pilot selection over existing canonical_semantic_v3 object-shaped attributes/category/packaging/product_form evidence, v2 attributes array compatibility, and malformed existing-enrichment evidence warnings."
   ]
 }

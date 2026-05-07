@@ -8,6 +8,7 @@ const { FieldPath, getFirestore } = require('firebase-admin/firestore');
 const {
   buildCompactCurrentOfferBaselineRecord,
   buildCurrentOfferFingerprint,
+  buildRichCurrentOfferBaselineRecord,
   resolveCollectionName,
 } = require('../app/functions/src');
 
@@ -31,8 +32,11 @@ async function exportCurrentOfferFingerprintBaseline({
   limit = null,
   progressEvery = DEFAULT_PROGRESS_EVERY,
   batchSize = DEFAULT_BATCH_SIZE,
+  startAfterDocumentId = null,
+  appendOutput = false,
   backfillFirestore = false,
   backfillDryRun = true,
+  baselineMode = 'compact',
   now = new Date().toISOString(),
   firestore = null,
   logger = (line) => console.error(line),
@@ -50,17 +54,19 @@ async function exportCurrentOfferFingerprintBaseline({
   const db = firestore || getFirestore(getOrCreateFirebaseApp(projectId), databaseId);
   const currentOffersCollection = resolveCollectionName(collectionPrefix, 'current_product_offers');
   const fingerprintsCollection = resolveCollectionName(collectionPrefix, 'current_offer_fingerprints');
-  const writer = createJsonlWriter(outputPath);
+  const normalizedBaselineMode = normalizeBaselineMode(baselineMode);
+  const writer = createJsonlWriter(outputPath, { append: appendOutput });
   const startedAt = Date.now();
   let processed = 0;
   let exported = 0;
   let backfillWrites = 0;
   let failedBackfillWrites = 0;
   let lastDoc = null;
+  let lastDocumentId = startAfterDocumentId || null;
   let batch = db.batch();
   let pendingWrites = 0;
 
-  logger(`[phase6-baseline] START export from ${currentOffersCollection} to ${path.resolve(outputPath)}.`);
+  logger(`[phase6-baseline] START export mode=${normalizedBaselineMode} from ${currentOffersCollection} to ${path.resolve(outputPath)} append=${appendOutput} start_after=${lastDocumentId || 'none'}.`);
   if (backfillFirestore) {
     logger(`[phase6-baseline] Backfill mode enabled for ${fingerprintsCollection}; dry_run=${backfillDryRun}.`);
   }
@@ -97,6 +103,8 @@ async function exportCurrentOfferFingerprintBaseline({
         .limit(pageSize);
       if (lastDoc) {
         query = query.startAfter(lastDoc);
+      } else if (lastDocumentId) {
+        query = query.startAfter(lastDocumentId);
       }
 
       const snapshot = await query.get();
@@ -106,7 +114,10 @@ async function exportCurrentOfferFingerprintBaseline({
 
       for (const doc of snapshot.docs) {
         const offer = doc.data();
-        const baselineRecord = buildCompactCurrentOfferBaselineRecord(offer, {
+        const baselineRecordBuilder = normalizedBaselineMode === 'rich'
+          ? buildRichCurrentOfferBaselineRecord
+          : buildCompactCurrentOfferBaselineRecord;
+        const baselineRecord = baselineRecordBuilder(offer, {
           generatedAt: now,
           firstSeenSnapshotDate: offer.first_seen_snapshot_date || offer.snapshot_date || null,
           lastSeenSnapshotDate: offer.last_seen_snapshot_date || offer.snapshot_date || null,
@@ -138,6 +149,7 @@ async function exportCurrentOfferFingerprintBaseline({
       }
 
       lastDoc = snapshot.docs[snapshot.docs.length - 1];
+      lastDocumentId = lastDoc.id;
       if (snapshot.docs.length < pageSize) {
         break;
       }
@@ -158,6 +170,10 @@ async function exportCurrentOfferFingerprintBaseline({
     fingerprint_collection: fingerprintsCollection,
     output_path: path.resolve(outputPath),
     output_format: 'jsonl',
+    baseline_mode: normalizedBaselineMode,
+    append_output: appendOutput,
+    start_after_document_id: startAfterDocumentId || null,
+    last_document_id: lastDocumentId,
     limit,
     processed_current_product_offers: processed,
     exported_fingerprints: exported,
@@ -172,10 +188,13 @@ async function exportCurrentOfferFingerprintBaseline({
   return summary;
 }
 
-function createJsonlWriter(outputPath) {
+function createJsonlWriter(outputPath, { append = false } = {}) {
   const resolvedPath = path.resolve(outputPath);
   fs.mkdirSync(path.dirname(resolvedPath), { recursive: true });
-  const stream = fs.createWriteStream(resolvedPath, { encoding: 'utf8' });
+  if (append && fs.existsSync(resolvedPath) && fs.statSync(resolvedPath).size > 0 && !fileEndsWithNewline(resolvedPath)) {
+    fs.appendFileSync(resolvedPath, '\n', 'utf8');
+  }
+  const stream = fs.createWriteStream(resolvedPath, { encoding: 'utf8', flags: append ? 'a' : 'w' });
   return {
     async write(row) {
       if (!stream.write(`${JSON.stringify(row)}\n`)) {
@@ -189,6 +208,21 @@ function createJsonlWriter(outputPath) {
   };
 }
 
+function fileEndsWithNewline(filePath) {
+  const fd = fs.openSync(filePath, 'r');
+  try {
+    const size = fs.fstatSync(fd).size;
+    if (size === 0) {
+      return true;
+    }
+    const buffer = Buffer.alloc(1);
+    fs.readSync(fd, buffer, 0, 1, size - 1);
+    return buffer[0] === 0x0a;
+  } finally {
+    fs.closeSync(fd);
+  }
+}
+
 function resolveBaselineOptions(env = process.env) {
   return {
     projectId: requiredEnv(env, 'PRICER_FIRESTORE_PROJECT_ID'),
@@ -198,9 +232,22 @@ function resolveBaselineOptions(env = process.env) {
     limit: normalizeOptionalPositiveInteger(env.PRICER_INCREMENTAL_BASELINE_LIMIT, 'PRICER_INCREMENTAL_BASELINE_LIMIT'),
     progressEvery: normalizeOptionalPositiveInteger(env.PRICER_INCREMENTAL_PROGRESS_EVERY, 'PRICER_INCREMENTAL_PROGRESS_EVERY') || DEFAULT_PROGRESS_EVERY,
     batchSize: normalizeOptionalPositiveInteger(env.PRICER_INCREMENTAL_BASELINE_BATCH_SIZE, 'PRICER_INCREMENTAL_BASELINE_BATCH_SIZE') || DEFAULT_BATCH_SIZE,
+    startAfterDocumentId: optionalEnv(env, 'PRICER_INCREMENTAL_BASELINE_START_AFTER_DOCUMENT_ID') ||
+      optionalEnv(env, 'PRICER_INCREMENTAL_BASELINE_START_AFTER_SOURCE_PRODUCT_ID') ||
+      null,
+    appendOutput: env.PRICER_INCREMENTAL_BASELINE_APPEND === 'true',
     backfillFirestore: env.PRICER_INCREMENTAL_BASELINE_BACKFILL_FIRESTORE === 'true',
     backfillDryRun: env.PRICER_INCREMENTAL_BASELINE_BACKFILL_DRY_RUN !== 'false',
+    baselineMode: env.PRICER_INCREMENTAL_BASELINE_MODE || 'compact',
   };
+}
+
+function normalizeBaselineMode(value) {
+  const normalized = String(value || 'compact').trim().toLowerCase();
+  if (!['compact', 'rich'].includes(normalized)) {
+    throw new Error('PRICER_INCREMENTAL_BASELINE_MODE must be compact or rich.');
+  }
+  return normalized;
 }
 
 function getOrCreateFirebaseApp(projectId) {
@@ -262,5 +309,6 @@ if (require.main === module) {
 
 module.exports = {
   exportCurrentOfferFingerprintBaseline,
+  normalizeBaselineMode,
   resolveBaselineOptions,
 };

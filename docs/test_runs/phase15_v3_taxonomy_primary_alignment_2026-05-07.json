@@ -1,0 +1,23 @@
+{
+  "id": "phase15_v3_taxonomy_primary_alignment_2026-05-07",
+  "date": "2026-05-07",
+  "phase": 15.9,
+  "scope": "Phase 15 canonical_semantic_v3 taxonomy primary label and term-id alignment repair",
+  "commands": [
+    {
+      "command": "npm run test:phase15",
+      "status": "passed",
+      "summary": "75 passed, 0 failed"
+    }
+  ],
+  "coverage": [
+    "chicken primary_taxonomy_label present but missing from taxonomy_path_labels",
+    "chicken primary_taxonomy_term_id present but missing from taxonomy_path_term_ids",
+    "null or unusable primary fields derived from the deepest valid taxonomy path item",
+    "taxonomy_path_labels, taxonomy_path_raw, and taxonomy_path_term_ids remain index-aligned after repair"
+  ],
+  "notes": [
+    "No live LLM request was run.",
+    "The fix is validation-only for enrichment payloads and does not mutate canonical products, source products, mappings, offers, prices, or registry term activation."
+  ]
+}

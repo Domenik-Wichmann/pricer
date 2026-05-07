@@ -1,0 +1,23 @@
+{
+  "id": "phase15_v3_taxonomy_validation_2026-05-07",
+  "date": "2026-05-07",
+  "phase": 15.9,
+  "scope": "Phase 15 canonical_semantic_v3 taxonomy registry-match validation hardening",
+  "commands": [
+    {
+      "command": "npm run test:phase15",
+      "status": "passed",
+      "summary": "74 passed, 0 failed"
+    }
+  ],
+  "coverage": [
+    "taxonomy_classification.registry_matches prompt/schema product_taxonomy-only guidance",
+    "mixed chicken taxonomy regression with product_taxonomy plus misplaced food_category matches",
+    "usable misplaced legacy matches moved to category.registry_matches",
+    "null food_category spillover ignored without rejecting the product enrichment"
+  ],
+  "notes": [
+    "No live LLM request was run.",
+    "The fix is validation-only for enrichment payloads and does not mutate canonical products, source products, mappings, offers, prices, or registry term activation."
+  ]
+}

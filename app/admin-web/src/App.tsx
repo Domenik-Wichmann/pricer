@@ -253,6 +253,19 @@ function formatFieldValue(value: unknown): string {
   return String(value);
 }
 
+function compactFieldValue(value: unknown): string | null {
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+  if (Array.isArray(value)) {
+    return value.length ? value.join(', ') : null;
+  }
+  if (typeof value === 'object') {
+    return formatJson(value);
+  }
+  return String(value);
+}
+
 function formatQuantityWithUnit(quantity: unknown, unit: unknown): string | null {
   if (quantity === null || quantity === undefined || quantity === '') {
     return null;
@@ -261,14 +274,46 @@ function formatQuantityWithUnit(quantity: unknown, unit: unknown): string | null
   return `${String(quantity)}${unitText}`;
 }
 
-function formatPriceAmount(value: unknown, currency: unknown): string {
+function formatPriceAmount(value: unknown, currency: unknown, missingLabel = 'n/a'): string {
   if (value === null || value === undefined || value === '') {
-    return 'n/a';
+    return missingLabel;
   }
   const currencyText = currency === null || currency === undefined || currency === ''
     ? ''
     : ` ${String(currency)}`;
   return `${String(value)}${currencyText}`;
+}
+
+function getUnitSuffix(comparisonBasis: unknown): string | null {
+  switch (comparisonBasis) {
+    case 'per_kg':
+      return '/kg';
+    case 'per_liter':
+      return '/L';
+    case 'per_unit':
+    case 'per_piece':
+      return '/unit';
+    default:
+      return null;
+  }
+}
+
+function formatUnitPriceAmount({
+  price,
+  currency,
+  comparisonBasis,
+  normalization,
+}: {
+  price: unknown;
+  currency: unknown;
+  comparisonBasis?: unknown;
+  normalization?: Record<string, unknown>;
+}): string | null {
+  const suffix = getUnitSuffix(comparisonBasis || normalization?.comparison_basis);
+  if (!suffix || price === null || price === undefined || price === '') {
+    return null;
+  }
+  return `${formatPriceAmount(price, currency, '')}${suffix}`;
 }
 
 function formatCount(value: unknown, fallback = 0): string {
@@ -308,14 +353,29 @@ function formatSearchPriceSummary(summary: Record<string, unknown>): string {
   const sourceRowCount = summary.source_row_count;
   const retailerCount = summary.retailer_count;
   const lastSeenAt = summary.last_seen_at;
-  const cheapestRetailer = summary.cheapest_chain || summary.cheapest_retailer || 'n/a';
+  const cheapestRetailer = summary.cheapest_chain || summary.cheapest_retailer;
+  const unitPrice = formatUnitPriceAmount({
+    price: summary.price_per_comparison_basis,
+    currency,
+    comparisonBasis: summary.comparison_basis,
+    normalization: asRecord(summary.price_normalization),
+  });
   const fields = [
-    `cheapest ${formatPriceAmount(summary.min_current_price ?? summary.cheapest_price, currency)}`,
-    `highest ${formatPriceAmount(summary.max_current_price, currency)}`,
-    `avg ${formatPriceAmount(summary.avg_current_price, currency)}`,
+    `cheapest ${formatPriceAmount(summary.min_current_price ?? summary.cheapest_price, currency, 'No current price')}`,
     `${formatCount(offerCount)} current offers`,
-    `retailer ${String(cheapestRetailer)}`,
   ];
+  if (summary.max_current_price !== null && summary.max_current_price !== undefined) {
+    fields.push(`highest ${formatPriceAmount(summary.max_current_price, currency)}`);
+  }
+  if (summary.avg_current_price !== null && summary.avg_current_price !== undefined) {
+    fields.push(`avg ${formatPriceAmount(summary.avg_current_price, currency)}`);
+  }
+  if (unitPrice) {
+    fields.push(unitPrice);
+  }
+  if (cheapestRetailer) {
+    fields.push(`retailer ${String(cheapestRetailer)}`);
+  }
   if (historicalOfferCount !== null && historicalOfferCount !== undefined) {
     fields.push(`${formatCount(historicalOfferCount)} historical offers`);
   }
@@ -520,6 +580,13 @@ function ProductSearchResultRow({ item }: { item: Record<string, unknown> }) {
   const highestPrice = currentOfferSummary.max_current_price;
   const averagePrice = currentOfferSummary.avg_current_price;
   const currency = currentOfferSummary.currency;
+  const sizeText = compactFieldValue(sizeMarker.normalized_display || sizeMarker.display || markers.volume_marker);
+  const unitPrice = formatUnitPriceAmount({
+    price: currentOfferSummary.price_per_comparison_basis,
+    currency,
+    comparisonBasis: currentOfferSummary.comparison_basis,
+    normalization: asRecord(currentOfferSummary.price_normalization),
+  });
   const pricesAreSame = arePriceValuesEffectivelySame([price, highestPrice, averagePrice]);
   const lowPriceClassName = pricesAreSame ? 'price-chip price-chip--low price-chip--same' : 'price-chip price-chip--low';
   const highPriceClassName = pricesAreSame ? 'price-chip price-chip--high price-chip--same' : 'price-chip price-chip--high';
@@ -533,26 +600,32 @@ function ProductSearchResultRow({ item }: { item: Record<string, unknown> }) {
         <strong>{formatFieldValue(productName)}</strong>
         <code>{formatFieldValue(item.canonical_product_id)}</code>
         <small>
-          {formatFieldValue(item.canonical_brand || item.canonical_product_type || matched.product_type)}
-          {' | '}
-          size: {formatFieldValue(sizeMarker.normalized_display || sizeMarker.display || markers.volume_marker)}
+          {[
+            compactFieldValue(item.canonical_brand || item.canonical_product_type || matched.product_type),
+            sizeText ? `size: ${sizeText}` : null,
+          ].filter(Boolean).join(' | ')}
         </small>
       </div>
       <div className="product-price-grid">
-        <SummaryField label="Cheapest" value={formatPriceAmount(price, currency)} className={lowPriceClassName} />
+        <SummaryField label="Cheapest" value={formatPriceAmount(price, currency, 'No current price')} className={lowPriceClassName} />
         <SummaryField label="Highest" value={formatPriceAmount(highestPrice, currency)} className={highPriceClassName} />
         <SummaryField label="Average" value={formatPriceAmount(averagePrice, currency)} className={averagePriceClassName} />
+        {unitPrice ? <SummaryField label="Unit price" value={unitPrice} /> : null}
         <SummaryField label="Offers" value={formatCount(currentOfferSummary.current_offer_count ?? currentOfferSummary.offer_count)} />
       </div>
       <div className="product-result-meta">
         <span>{formatSearchPriceSummary(currentOfferSummary)}</span>
-        <small>
-          {formatFieldValue(matched.category)} / {formatFieldValue(matched.product_type)}
-          {' | '}
-          aliases: {formatFieldValue(matched.aliases)}
-          {' | '}
-          demotion: {formatFieldValue(debug.demotion_reason)}
-        </small>
+        {[compactFieldValue(matched.category), compactFieldValue(matched.product_type), compactFieldValue(matched.aliases), compactFieldValue(debug.demotion_reason)].some(Boolean)
+          ? (
+            <small>
+              {[
+                [compactFieldValue(matched.category), compactFieldValue(matched.product_type)].filter(Boolean).join(' / '),
+                compactFieldValue(matched.aliases) ? `aliases: ${compactFieldValue(matched.aliases)}` : null,
+                compactFieldValue(debug.demotion_reason) ? `demotion: ${compactFieldValue(debug.demotion_reason)}` : null,
+              ].filter(Boolean).join(' | ')}
+            </small>
+          )
+          : null}
       </div>
     </article>
   );
@@ -613,6 +686,12 @@ function ProductDetailSummary({
   const offerSummary = asRecord(body.current_offer_summary);
   const brand = body.canonical_brand || enrichment.brand;
   const category = body.canonical_product_type || body.canonical_category_code || enrichment.category_l3 || enrichment.category_l2;
+  const summaryUnitPrice = formatUnitPriceAmount({
+    price: offerSummary.price_per_comparison_basis,
+    currency: offerSummary.currency,
+    comparisonBasis: offerSummary.comparison_basis,
+    normalization: asRecord(offerSummary.price_normalization),
+  });
 
   return (
     <section className="detail-summary" aria-label="Product detail summary">
@@ -642,15 +721,24 @@ function ProductDetailSummary({
           : null}
         {offerSummary.last_seen_at ? <span>last seen: {formatFieldValue(offerSummary.last_seen_at)}</span> : null}
         {offerSummary.cheapest_chain ? <span>cheapest: {formatFieldValue(offerSummary.cheapest_chain)}</span> : null}
+        {summaryUnitPrice ? <span>{summaryUnitPrice}</span> : null}
       </div>
       {offers.length ? (
         <div className="offer-list">
           {offers.map((offer) => {
             const sourceProductId = String(offer.source_product_id || '');
+            const normalization = asRecord(offer.price_normalization);
+            const offerUnitPrice = formatUnitPriceAmount({
+              price: normalization.price_per_comparison_basis,
+              currency: offer.currency,
+              comparisonBasis: normalization.comparison_basis,
+              normalization,
+            });
             return (
               <div className="offer-row" key={String(offer.offer_id || sourceProductId)}>
                 <div>
-                  <strong>{formatFieldValue(offer.current_price)} {formatFieldValue(offer.currency)}</strong>
+                  <strong>{formatPriceAmount(offer.current_price, offer.currency, 'No current price')}</strong>
+                  {offerUnitPrice ? <span>{offerUnitPrice}</span> : null}
                   <span>{formatFieldValue(offer.chain_name || offer.retailer)}</span>
                   <small>{formatFieldValue(offer.snapshot_date)} · {sourceProductId}</small>
                 </div>

@@ -1144,7 +1144,13 @@ class _ProductSearchResultCard extends StatelessWidget {
       if (baseProduct.isNotEmpty) 'Base: $baseProduct',
     ];
     final dealLabel = _dealLabel(result.deal);
-    final price = result.bestPrice?.price;
+    final bestPrice = result.displayBestPrice;
+    final price = bestPrice?.price;
+    final unitPriceLabel = formatUnitPrice(
+      context,
+      price: bestPrice?.pricePerComparisonBasis,
+      comparisonBasis: bestPrice?.comparisonBasis,
+    );
 
     return AppSectionCard(
       child: ListTile(
@@ -1192,6 +1198,12 @@ class _ProductSearchResultCard extends StatelessWidget {
                       label: 'Price',
                       value: formatPrice(context, price),
                       icon: Icons.sell_outlined,
+                    ),
+                  if (unitPriceLabel != null)
+                    MetricBadge(
+                      label: 'Unit',
+                      value: unitPriceLabel,
+                      icon: Icons.straighten,
                     ),
                 ],
               ),

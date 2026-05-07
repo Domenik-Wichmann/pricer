@@ -16,6 +16,7 @@ const {
   loadCanonicalCurrentOfferSummaries,
   loadCurrentOffersByCanonicalProductIds,
 } = require('../phase16/current_offers');
+const { inferPriceNormalization } = require('./price_normalization');
 
 const DEFAULT_PRODUCT_LAYER_MODE = LAYER_SELECTIONS.CANONICAL_WITH_ENRICHMENT;
 const DEFAULT_SEARCH_LIMIT = 25;
@@ -271,6 +272,7 @@ async function buildProductDetailResponse({
     canonicalProductId: view.canonical_product_id,
     canonicalProduct: view.canonical_truth,
     canonicalMappings: view.canonical_mappings,
+    productPriceNormalization: item.price_normalization,
   });
   return {
     layer_mode: view.layer_selection,
@@ -294,6 +296,7 @@ async function loadBoundedCurrentOffersForDetail({
   canonicalProductId,
   canonicalProduct = null,
   canonicalMappings = [],
+  productPriceNormalization = null,
 }) {
   try {
     const [offers, summaries] = await Promise.all([
@@ -332,6 +335,7 @@ async function loadBoundedCurrentOffersForDetail({
         summary: summaries[0] || null,
         evidence,
         currentOfferCount: offers.length,
+        productPriceNormalization: productPriceNormalization || inferPriceNormalization({ canonicalProduct }),
       }),
     };
   } catch (error) {
@@ -360,6 +364,7 @@ function buildProductDetailOffer(offer) {
     current_price: offer.current_price ?? null,
     currency: offer.currency || 'EUR',
     unit_price: offer.unit_price ?? null,
+    price_normalization: offer.price_normalization || null,
     is_sale: offer.is_sale === true,
     is_promotion: offer.is_promotion === true,
     snapshot_date: offer.snapshot_date || null,
@@ -369,6 +374,12 @@ function buildProductDetailOffer(offer) {
 }
 
 function buildProductListItem(view) {
+  const markers = extractCanonicalMarkers(view.canonical_truth);
+  const priceNormalization = inferPriceNormalization({
+    canonicalProduct: view.canonical_truth,
+    enrichment: view.enrichment,
+    markers,
+  });
   const item = {
     canonical_product_id: view.canonical_product_id,
     canonical_name: view.canonical_truth.canonical_display_name || null,
@@ -376,9 +387,13 @@ function buildProductListItem(view) {
     canonical_product_type: view.canonical_truth.canonical_product_type || null,
     canonical_category_code: view.canonical_truth.canonical_category_code || null,
     source_example_name: view.canonical_truth.source_example_name || null,
-    markers: extractCanonicalMarkers(view.canonical_truth),
+    markers,
     enrichment: view.enrichment,
-    current_offer_summary: buildCompactCurrentOfferSummary(view.current_offer_summary),
+    price_normalization: priceNormalization,
+    current_offer_summary: buildCompactCurrentOfferSummary(
+      view.current_offer_summary,
+      { productPriceNormalization: priceNormalization }
+    ),
   };
   if (view.search_debug) {
     item.search_debug = view.search_debug;
@@ -386,7 +401,9 @@ function buildProductListItem(view) {
   return item;
 }
 
-function buildCompactCurrentOfferSummary(summary) {
+function buildCompactCurrentOfferSummary(summary, {
+  productPriceNormalization = null,
+} = {}) {
   if (!summary || typeof summary !== 'object') {
     return null;
   }
@@ -404,7 +421,7 @@ function buildCompactCurrentOfferSummary(summary) {
     0
   );
 
-  return {
+  const compact = {
     min_current_price: summary.min_current_price ?? null,
     max_current_price: summary.max_current_price ?? null,
     avg_current_price: summary.avg_current_price ?? null,
@@ -430,7 +447,123 @@ function buildCompactCurrentOfferSummary(summary) {
     snapshot_date: summary.snapshot_date || null,
     last_seen_at: summary.last_seen_at || summary.snapshot_date || null,
     updated_at: summary.updated_at || null,
+    price_normalization: summary.price_normalization || null,
+    comparison_basis: summary.comparison_basis || summary.price_normalization?.comparison_basis || 'unknown',
+    price_per_comparison_basis: summary.price_per_comparison_basis ?? null,
   };
+  return applySummaryPriceNormalization(compact, productPriceNormalization);
+}
+
+function applySummaryPriceNormalization(summary, productPriceNormalization = null) {
+  if (!summary || typeof summary !== 'object') {
+    return summary;
+  }
+
+  const storedNormalization = summary.price_normalization && typeof summary.price_normalization === 'object'
+    ? summary.price_normalization
+    : null;
+  const sourceNormalization = storedNormalization ||
+    (productPriceNormalization && typeof productPriceNormalization === 'object' ? productPriceNormalization : null);
+  const summaryComparisonBasis = normalizeComparisonBasisForSummary(summary.comparison_basis);
+  const storedComparisonBasis = normalizeComparisonBasisForSummary(storedNormalization?.comparison_basis);
+  const sourceComparisonBasis = normalizeComparisonBasisForSummary(sourceNormalization?.comparison_basis);
+  const comparisonBasis = summaryComparisonBasis !== 'unknown'
+    ? summaryComparisonBasis
+    : (storedComparisonBasis !== 'unknown' ? storedComparisonBasis : sourceComparisonBasis);
+  const currentPrice = firstFiniteNumber([
+    summary.price_per_comparison_basis,
+    summary.cheapest_price,
+    summary.min_current_price,
+    summary.avg_current_price,
+    summary.max_current_price,
+  ]);
+  const pricePerComparisonBasis = firstFiniteNumber([
+    summary.price_per_comparison_basis,
+    sourceNormalization?.price_per_comparison_basis,
+    computeSummaryPricePerComparisonBasis({
+      currentPrice,
+      comparisonBasis,
+      normalization: sourceNormalization,
+    }),
+  ]);
+
+  return {
+    ...summary,
+    price_normalization: sourceNormalization
+      ? {
+          ...sourceNormalization,
+          comparison_basis: comparisonBasis,
+          price_per_comparison_basis: pricePerComparisonBasis,
+        }
+      : null,
+    comparison_basis: comparisonBasis,
+    price_per_comparison_basis: pricePerComparisonBasis,
+  };
+}
+
+function computeSummaryPricePerComparisonBasis({
+  currentPrice,
+  comparisonBasis,
+  normalization,
+}) {
+  const price = normalizePositiveNumber(currentPrice);
+  if (!price || !normalization || typeof normalization !== 'object') {
+    return null;
+  }
+  if (!['per_kg', 'per_liter', 'per_piece'].includes(comparisonBasis)) {
+    return null;
+  }
+  if (normalization.explicit_quantity_detected === false) {
+    return roundMoney(price);
+  }
+
+  const explicitQuantity = normalization.explicit_quantity && typeof normalization.explicit_quantity === 'object'
+    ? normalization.explicit_quantity
+    : {};
+  const quantity = normalizePositiveNumber(explicitQuantity.total_quantity ?? explicitQuantity.quantity);
+  const unit = typeof (explicitQuantity.total_unit || explicitQuantity.unit) === 'string'
+    ? (explicitQuantity.total_unit || explicitQuantity.unit).trim().toLowerCase()
+    : '';
+  const comparisonQuantity = comparisonQuantityForUnit({ quantity, unit, comparisonBasis });
+  return comparisonQuantity ? roundMoney(price / comparisonQuantity) : null;
+}
+
+function comparisonQuantityForUnit({ quantity, unit, comparisonBasis }) {
+  if (!quantity) {
+    return null;
+  }
+  if (comparisonBasis === 'per_kg') {
+    if (unit === 'kg') return quantity;
+    if (unit === 'g') return quantity / 1000;
+  }
+  if (comparisonBasis === 'per_liter') {
+    if (unit === 'l') return quantity;
+    if (unit === 'ml') return quantity / 1000;
+  }
+  if (comparisonBasis === 'per_piece' && unit === 'pcs') {
+    return quantity;
+  }
+  return null;
+}
+
+function normalizeComparisonBasisForSummary(value) {
+  if (['per_kg', 'per_liter', 'per_piece', 'per_unit', 'per_pack'].includes(value)) {
+    return value === 'per_unit' ? 'per_piece' : value;
+  }
+  return 'unknown';
+}
+
+function firstFiniteNumber(values) {
+  for (const value of values) {
+    if (value === null || value === undefined || value === '') {
+      continue;
+    }
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+  return null;
 }
 
 function buildBoundedDetailMappings(canonicalMappings = []) {
@@ -578,6 +711,11 @@ async function buildProductSearchResponseWithCurrentOfferSummaries({
     const currentOfferSummary = mergeCurrentOfferSummaryWithEvidence({
       summary: summariesById.get(view.canonical_product_id) || null,
       evidence: evidenceById.get(view.canonical_product_id) || null,
+      productPriceNormalization: inferPriceNormalization({
+        canonicalProduct: view.canonical_truth,
+        enrichment: view.enrichment,
+        markers: extractCanonicalMarkers(view.canonical_truth),
+      }),
     });
     return {
       index,
@@ -750,8 +888,9 @@ function mergeCurrentOfferSummaryWithEvidence({
   summary,
   evidence,
   currentOfferCount = null,
+  productPriceNormalization = null,
 }) {
-  const base = buildCompactCurrentOfferSummary(summary || {});
+  const base = buildCompactCurrentOfferSummary(summary || {}, { productPriceNormalization });
   const evidenceSummary = evidence && typeof evidence === 'object' ? evidence : {};
   const normalizedCurrentOfferCount = normalizeCount(
     currentOfferCount ?? base.current_offer_count ?? base.offer_count,
@@ -1118,6 +1257,15 @@ function normalizeFacetValue(value) {
 function normalizeCount(value, fallback = 0) {
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed >= 0 ? Math.trunc(parsed) : fallback;
+}
+
+function normalizePositiveNumber(value) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
+function roundMoney(value) {
+  return Number.isFinite(value) ? Math.round(value * 100) / 100 : null;
 }
 
 function maxTextValue(values) {

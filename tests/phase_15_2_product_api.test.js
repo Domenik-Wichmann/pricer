@@ -13,6 +13,7 @@ const {
   handleGetEnrichmentAnalyticsSummaryRequest,
   handleSearchCanonicalProductsRequest,
   importDailySnapshotCsvStream,
+  inferPriceNormalization,
   selectEnrichmentPilotCandidates,
   storeEnrichment,
   upsertCanonicalDisambiguationDecision,
@@ -217,6 +218,278 @@ test('product detail returns expected shape with default canonical_with_enrichme
   assert.equal(response.body.current_offers.length, 1);
   assert.equal(response.body.current_offers[0].source_product_id, response.body.provenance.source_product_ids[0]);
   assert.equal(response.body.current_offer_summary.offer_count, 1);
+  assert.equal(response.body.price_normalization.explicit_quantity_detected, true);
+  assert.equal(response.body.price_normalization.comparison_basis, 'per_liter');
+  assert.equal(response.body.current_offer_summary.comparison_basis, 'per_liter');
+  assert.equal(response.body.current_offer_summary.price_per_comparison_basis, 2.99);
+});
+
+test('price normalization infers safe selling basis without inventing package quantities', () => {
+  const chicken = inferPriceNormalization({
+    canonicalProduct: {
+      canonical_display_name: '\u041f\u0438\u043b\u0435\u0448\u043a\u043e \u0444\u0438\u043b\u0435 \u043e\u0445\u043b\u0430\u0434\u0435\u043d\u043e',
+      source_example_name: '\u041f\u0438\u043b\u0435\u0448\u043a\u043e \u0444\u0438\u043b\u0435 \u043e\u0445\u043b\u0430\u0434\u0435\u043d\u043e',
+      canonical_attributes_json: JSON.stringify({}),
+    },
+  });
+  assert.equal(chicken.explicit_quantity_detected, false);
+  assert.equal(chicken.inferred_selling_unit, 'kg');
+  assert.equal(chicken.comparison_basis, 'per_kg');
+  assert.equal(chicken.explicit_quantity, null);
+  assert.equal(chicken.price_per_comparison_basis, null);
+  assert.equal(chicken.needs_uom_review, false);
+
+  const produce = inferPriceNormalization({
+    canonicalProduct: {
+      canonical_display_name: '\u0414\u043e\u043c\u0430\u0442\u0438 \u0440\u043e\u0437\u043e\u0432\u0438',
+      source_example_name: '\u0414\u043e\u043c\u0430\u0442\u0438 \u0440\u043e\u0437\u043e\u0432\u0438',
+      canonical_product_type: 'produce',
+      canonical_attributes_json: JSON.stringify({}),
+    },
+  });
+  assert.equal(produce.inferred_selling_unit, 'kg');
+  assert.equal(produce.comparison_basis, 'per_kg');
+  assert.equal(produce.explicit_quantity_detected, false);
+
+  const cheese = inferPriceNormalization({
+    canonicalProduct: {
+      canonical_display_name: '\u0421\u0438\u0440\u0435\u043d\u0435 400\u0433\u0440',
+      source_example_name: '\u0421\u0438\u0440\u0435\u043d\u0435 400\u0433\u0440',
+      canonical_attributes_json: JSON.stringify({
+        size_marker: {
+          raw_text: '400\u0433\u0440',
+          quantity: 400,
+          unit: 'g',
+          total_quantity: 400,
+          total_unit: 'g',
+          normalized_display: '400 g',
+        },
+      }),
+    },
+    currentPrice: 4.8,
+  });
+  assert.equal(cheese.explicit_quantity_detected, true);
+  assert.equal(cheese.explicit_quantity.total_quantity, 400);
+  assert.equal(cheese.comparison_basis, 'per_kg');
+  assert.equal(cheese.price_per_comparison_basis, 12);
+
+  const shampoo = inferPriceNormalization({
+    canonicalProduct: {
+      canonical_display_name: '\u0428\u0430\u043c\u043f\u043e\u0430\u043d 250\u043c\u043b',
+      source_example_name: '\u0428\u0430\u043c\u043f\u043e\u0430\u043d 250\u043c\u043b',
+      canonical_attributes_json: JSON.stringify({
+        size_marker: {
+          raw_text: '250\u043c\u043b',
+          quantity: 250,
+          unit: 'ml',
+          total_quantity: 250,
+          total_unit: 'ml',
+          normalized_display: '250 ml',
+        },
+      }),
+    },
+    currentPrice: 3.5,
+  });
+  assert.equal(shampoo.explicit_quantity_detected, true);
+  assert.equal(shampoo.comparison_basis, 'per_liter');
+  assert.equal(shampoo.price_per_comparison_basis, 14);
+
+  const ambiguous = inferPriceNormalization({
+    canonicalProduct: {
+      canonical_display_name: 'Premium breakfast classic',
+      source_example_name: 'Premium breakfast classic',
+      canonical_attributes_json: JSON.stringify({}),
+    },
+  });
+  assert.equal(ambiguous.inferred_selling_unit, 'unknown');
+  assert.equal(ambiguous.comparison_basis, 'unknown');
+  assert.equal(ambiguous.needs_uom_review, true);
+});
+
+test('search and detail derive loose-weight current summary unit price from product normalization', async () => {
+  const store = new InMemoryDataBackboneStore({
+    canonical_products: [{
+      canonical_product_id: 'cp_loose_chicken',
+      canonical_display_name: '\u041f\u0438\u043b\u0435\u0448\u043a\u043e \u0444\u0438\u043b\u0435 \u043e\u0445\u043b\u0430\u0434\u0435\u043d\u043e',
+      canonical_brand: null,
+      canonical_product_type: 'chicken',
+      canonical_category_code: '28',
+      canonical_attributes_json: JSON.stringify({}),
+      source_example_name: '\u041f\u0438\u043b\u0435\u0448\u043a\u043e \u0444\u0438\u043b\u0435 \u043e\u0445\u043b\u0430\u0434\u0435\u043d\u043e',
+      source_product_count: 1,
+    }],
+    canonical_product_mappings: [{
+      source_product_id: 'src_loose_chicken',
+      canonical_product_id: 'cp_loose_chicken',
+      mapping_confidence: 0.96,
+      mapping_method: 'fixture',
+      mapped_at: '2026-04-23T12:00:00.000Z',
+    }],
+    source_products: [{
+      source_product_id: 'src_loose_chicken',
+      latest_product_name_raw: '\u041f\u0438\u043b\u0435\u0448\u043a\u043e \u0444\u0438\u043b\u0435 \u043e\u0445\u043b\u0430\u0434\u0435\u043d\u043e',
+      source_chain_name_raw: 'Store A',
+      source_chain_name_normalized: 'store-a',
+      store_name_raw: 'Store A Sofia',
+      last_seen_date: '2026-04-23',
+    }],
+    canonical_enrichment_store: [],
+    current_product_offers: [{
+      offer_id: 'offer_src_loose_chicken',
+      canonical_product_id: 'cp_loose_chicken',
+      source_product_id: 'src_loose_chicken',
+      current_price: 9.99,
+      currency: 'EUR',
+      chain_name: 'Store A',
+      retailer: 'Store A',
+      snapshot_date: '2026-04-23',
+      price_normalization: null,
+      comparison_basis: 'unknown',
+      price_per_comparison_basis: null,
+    }],
+    canonical_current_offer_summary: [{
+      canonical_product_id: 'cp_loose_chicken',
+      canonical_name: '\u041f\u0438\u043b\u0435\u0448\u043a\u043e \u0444\u0438\u043b\u0435 \u043e\u0445\u043b\u0430\u0434\u0435\u043d\u043e',
+      min_current_price: 9.99,
+      max_current_price: 9.99,
+      avg_current_price: 9.99,
+      offer_count: 1,
+      current_offer_count: 1,
+      chain_count: 1,
+      retailer_count: 1,
+      cheapest_offer_id: 'offer_src_loose_chicken',
+      cheapest_source_product_id: 'src_loose_chicken',
+      cheapest_chain: 'Store A',
+      cheapest_price: 9.99,
+      currency: 'EUR',
+      price_normalization: null,
+      comparison_basis: 'unknown',
+      price_per_comparison_basis: null,
+      snapshot_date: '2026-04-23',
+    }],
+    gap_signal_store: [],
+  });
+
+  const detail = await handleGetCanonicalProductRequest({
+    store,
+    params: { id: 'cp_loose_chicken' },
+  });
+  const search = await handleSearchCanonicalProductsRequest({
+    store,
+    body: { query: '\u043f\u0438\u043b\u0435\u0448\u043a\u043e', limit: 5 },
+  });
+  const detailSummary = detail.body.current_offer_summary;
+  const searchSummary = search.body.results[0].current_offer_summary;
+
+  assert.equal(detail.status, 200);
+  assert.equal(detail.body.price_normalization.inferred_selling_unit, 'kg');
+  assert.equal(detail.body.price_normalization.comparison_basis, 'per_kg');
+  assert.equal(detailSummary.comparison_basis, 'per_kg');
+  assert.equal(detailSummary.price_per_comparison_basis, 9.99);
+  assert.equal(detailSummary.price_normalization.comparison_basis, 'per_kg');
+  assert.equal(detailSummary.price_normalization.price_per_comparison_basis, 9.99);
+  assert.equal(detailSummary.price_normalization.explicit_quantity_detected, false);
+  assert.equal(search.status, 200);
+  assert.equal(searchSummary.comparison_basis, 'per_kg');
+  assert.equal(searchSummary.price_per_comparison_basis, 9.99);
+  assert.equal(searchSummary.price_normalization.comparison_basis, 'per_kg');
+  assert.equal(searchSummary.price_normalization.price_per_comparison_basis, 9.99);
+});
+
+test('search and detail derive explicit package current summary unit price from product normalization', async () => {
+  const sizeMarker = {
+    raw_text: '400\u0433',
+    quantity: 400,
+    unit: 'g',
+    total_quantity: 400,
+    total_unit: 'g',
+    normalized_display: '400 g',
+  };
+  const store = new InMemoryDataBackboneStore({
+    canonical_products: [{
+      canonical_product_id: 'cp_sirene_400g',
+      canonical_display_name: '\u0421\u0438\u0440\u0435\u043d\u0435 400\u0433',
+      canonical_brand: null,
+      canonical_product_type: 'cheese',
+      canonical_category_code: '28',
+      canonical_attributes_json: JSON.stringify({ size_marker: sizeMarker }),
+      source_example_name: '\u0421\u0438\u0440\u0435\u043d\u0435 400\u0433',
+      source_product_count: 1,
+    }],
+    canonical_product_mappings: [{
+      source_product_id: 'src_sirene_400g',
+      canonical_product_id: 'cp_sirene_400g',
+      mapping_confidence: 0.96,
+      mapping_method: 'fixture',
+      mapped_at: '2026-04-23T12:00:00.000Z',
+    }],
+    source_products: [{
+      source_product_id: 'src_sirene_400g',
+      latest_product_name_raw: '\u0421\u0438\u0440\u0435\u043d\u0435 400\u0433',
+      source_chain_name_raw: 'Store A',
+      source_chain_name_normalized: 'store-a',
+      store_name_raw: 'Store A Sofia',
+      last_seen_date: '2026-04-23',
+    }],
+    canonical_enrichment_store: [],
+    current_product_offers: [{
+      offer_id: 'offer_src_sirene_400g',
+      canonical_product_id: 'cp_sirene_400g',
+      source_product_id: 'src_sirene_400g',
+      current_price: 4.8,
+      currency: 'EUR',
+      chain_name: 'Store A',
+      retailer: 'Store A',
+      snapshot_date: '2026-04-23',
+      price_normalization: null,
+      comparison_basis: 'unknown',
+      price_per_comparison_basis: null,
+    }],
+    canonical_current_offer_summary: [{
+      canonical_product_id: 'cp_sirene_400g',
+      canonical_name: '\u0421\u0438\u0440\u0435\u043d\u0435 400\u0433',
+      min_current_price: 4.8,
+      max_current_price: 4.8,
+      avg_current_price: 4.8,
+      offer_count: 1,
+      current_offer_count: 1,
+      chain_count: 1,
+      retailer_count: 1,
+      cheapest_offer_id: 'offer_src_sirene_400g',
+      cheapest_source_product_id: 'src_sirene_400g',
+      cheapest_chain: 'Store A',
+      cheapest_price: 4.8,
+      currency: 'EUR',
+      price_normalization: null,
+      comparison_basis: 'unknown',
+      price_per_comparison_basis: null,
+      snapshot_date: '2026-04-23',
+    }],
+    gap_signal_store: [],
+  });
+
+  const detail = await handleGetCanonicalProductRequest({
+    store,
+    params: { id: 'cp_sirene_400g' },
+  });
+  const search = await handleSearchCanonicalProductsRequest({
+    store,
+    body: { query: '\u0441\u0438\u0440\u0435\u043d\u0435', limit: 5 },
+  });
+  const detailSummary = detail.body.current_offer_summary;
+  const searchSummary = search.body.results[0].current_offer_summary;
+
+  assert.equal(detail.status, 200);
+  assert.equal(detail.body.price_normalization.explicit_quantity_detected, true);
+  assert.equal(detail.body.price_normalization.comparison_basis, 'per_kg');
+  assert.equal(detailSummary.comparison_basis, 'per_kg');
+  assert.equal(detailSummary.price_per_comparison_basis, 12);
+  assert.equal(detailSummary.price_normalization.price_per_comparison_basis, 12);
+  assert.equal(detailSummary.price_normalization.explicit_quantity.total_quantity, 400);
+  assert.equal(search.status, 200);
+  assert.equal(searchSummary.comparison_basis, 'per_kg');
+  assert.equal(searchSummary.price_per_comparison_basis, 12);
+  assert.equal(searchSummary.price_normalization.price_per_comparison_basis, 12);
 });
 
 test('product detail uses scoped catalog reads without raw snapshots', async () => {
@@ -614,6 +887,25 @@ test('search uses enrichment aliases and product_type for cookies and snacks', a
     search_aliases_bg: ['\u0447\u0438\u043f\u0441', '\u0441\u043d\u0430\u043a\u0441'],
     search_aliases_en: ['snacks', 'chips'],
   }));
+  const cookieEnrichment = state.canonical_enrichment_store.find((record) => record.canonical_fingerprint === 'cp_cookie_alias');
+  cookieEnrichment.enrichment.taxonomy_classification = {
+    taxonomy_path_labels: ['Grocery', 'Snacks & Sweets', 'Biscuits'],
+    taxonomy_path_term_ids: ['sem_product_taxonomy_grocery', 'sem_product_taxonomy_snacks_sweets', null],
+    primary_taxonomy_label: 'Biscuits',
+    primary_taxonomy_term_id: null,
+    raw_category_terms: ['cookies', 'biscuits'],
+    registry_matches: [{
+      domain: 'product_taxonomy',
+      term_id: 'sem_product_taxonomy_snacks_sweets',
+      canonical_label: 'snacks_sweets',
+      confidence: 0.9,
+      evidence: ['cookies'],
+    }],
+    proposed_terms: [],
+    confidence: 0.9,
+    needs_review: false,
+    evidence: ['cookies'],
+  };
   await store.save(state);
 
   const cookies = await handleSearchCanonicalProductsRequest({ store, body: { query: 'cookies', limit: 5 } });
@@ -622,6 +914,8 @@ test('search uses enrichment aliases and product_type for cookies and snacks', a
   assert.equal(cookies.status, 200);
   assert.equal(cookies.body.results[0].canonical_product_id, 'cp_cookie_alias');
   assert.equal(cookies.body.results[0].search_debug.matched_enrichment.product_type, 'cookie');
+  assert.deepEqual(cookies.body.results[0].search_debug.matched_enrichment.taxonomy_path_labels, ['Grocery', 'Snacks & Sweets', 'Biscuits']);
+  assert.equal(cookies.body.results[0].search_debug.matched_enrichment.primary_taxonomy_label, 'Biscuits');
   assert.equal(snacks.status, 200);
   assert.equal(snacks.body.results.some((item) => item.canonical_product_id === 'cp_chips_alias'), true);
 });
@@ -758,6 +1052,34 @@ test('generic milk search demotes baby formula below ordinary milk when both exi
   assert.equal(milkResponse.status, 200);
   assert.notEqual(milkResponse.body.results[0].canonical_product_id, 'cp_formula');
   assert.equal(formulaResponse.body.results[0].canonical_product_id, 'cp_formula');
+});
+
+test('base chicken search ranks raw chicken above baby puree', async () => {
+  const store = new InMemoryDataBackboneStore({
+    canonical_products: [
+      productFixture('cp_baby_chicken_puree', '\u0411\u0435\u0431\u0435\u0448\u043a\u043e \u043f\u044e\u0440\u0435 \u0441 \u043f\u0438\u043b\u0435\u0448\u043a\u043e \u043c\u0435\u0441\u043e 190 \u0433', 'baby_food'),
+      productFixture('cp_raw_chicken_fillet', '\u041f\u0418\u041b\u0415\u0428\u041a\u041e \u0424\u0418\u041b\u0415 \u041e\u0425\u041b\u0410\u0414\u0415\u041d\u041e', 'chicken'),
+      productFixture('cp_chicken_snack', '\u0421\u043d\u0430\u043a\u0441 \u0441 \u0432\u043a\u0443\u0441 \u043f\u0438\u043b\u0435\u0448\u043a\u043e', 'snack'),
+    ],
+    canonical_enrichment_store: [],
+    gap_signal_store: [],
+  });
+
+  const response = await handleSearchCanonicalProductsRequest({
+    store,
+    body: { query: '\u043f\u0438\u043b\u0435\u0448\u043a\u043e', limit: 5 },
+  });
+
+  assert.equal(response.status, 200);
+  assert.equal(response.body.results[0].canonical_product_id, 'cp_raw_chicken_fillet');
+  const raw = response.body.results.find((item) => item.canonical_product_id === 'cp_raw_chicken_fillet');
+  const babyPuree = response.body.results.find((item) => item.canonical_product_id === 'cp_baby_chicken_puree');
+  const snack = response.body.results.find((item) => item.canonical_product_id === 'cp_chicken_snack');
+  assert.equal(raw.search_debug.guardrail_reasons.includes('base_product_boost'), true);
+  assert.equal(babyPuree.search_debug.guardrail_reasons.includes('processed_product_demotion'), true);
+  assert.equal(babyPuree.search_debug.guardrail_reasons.includes('baby_food_demotion'), true);
+  assert.equal(snack.search_debug.guardrail_reasons.includes('processed_product_demotion'), true);
+  assert.equal(raw.search_debug.score > babyPuree.search_debug.score, true);
 });
 
 test('search falls back to compact catalog load when prefix has no candidates', async () => {

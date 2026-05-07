@@ -1,0 +1,22 @@
+{
+  "id": "phase15_v3_semantic_usage_profile_2026-05-05",
+  "date": "2026-05-05",
+  "commands": [
+    {
+      "command": "npm run test:phase15",
+      "status": "passed",
+      "summary": "62 passed, 0 failed, 62 total"
+    },
+    {
+      "command": "npm run validate:docs",
+      "status": "passed",
+      "summary": "JSON docs parse successfully"
+    }
+  ],
+  "notes": [
+    "Verified canonical_semantic_v3 prompt/schema/validation include semantic_usage_profile.",
+    "Covered conservative usage profiles for yogurt, sirene, kashkaval, and fresh milk.",
+    "Verified older v3 payloads without semantic_usage_profile normalize to an empty profile for compatibility.",
+    "Verified debug:enrichment includes semantic_usage_profile in inspection output."
+  ]
+}

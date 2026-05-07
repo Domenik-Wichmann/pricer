@@ -1,0 +1,19 @@
+{
+  "date": "2026-05-07",
+  "phase": "15.2",
+  "focus": "Current offer summary price normalization repair for product search/detail",
+  "commands": [
+    {
+      "command": "npm run test:phase15_2",
+      "status": "passed",
+      "result": "29 passed, 0 failed",
+      "notes": "Covers loose-weight chicken/meat current summaries, explicit 400 g package summaries, existing product price normalization, zero current-offer evidence summaries, and bounded product API behavior."
+    },
+    {
+      "command": "npm run test:phase15",
+      "status": "passed",
+      "result": "69 passed, 0 failed",
+      "notes": "Covers shared Phase 15 enrichment and price-normalization behavior after current-summary response shaping changes."
+    }
+  ]
+}

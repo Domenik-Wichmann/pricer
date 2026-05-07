@@ -5,7 +5,7 @@ const DEFAULT_SCHEDULE = Object.freeze({
 });
 const DEFAULT_LOOKBACK_DAYS = 7;
 const DEFAULT_GROK_ENDPOINT = 'https://api.x.ai/v1/chat/completions';
-const DEFAULT_GROK_MODEL = 'grok-4-1-fast-reasoning';
+const DEFAULT_GROK_MODEL = 'grok-4-1-fast-non-reasoning';
 const DEFAULT_EMBEDDING_ENDPOINT = 'https://api.x.ai/v1/embeddings';
 const DEFAULT_EMBEDDING_MODEL = 'embedding-text-v1';
 const DEFAULT_MAX_GROK_CALLS = 3;

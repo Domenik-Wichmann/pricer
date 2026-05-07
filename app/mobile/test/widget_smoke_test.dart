@@ -192,6 +192,20 @@ class FakeApiClient extends QueryApiClient {
         usageContext: [],
         qualityTier: null,
       ),
+      currentOfferSummary: CurrentOfferSummary(
+        minCurrentPrice: 2.49,
+        maxCurrentPrice: 2.99,
+        avgCurrentPrice: 2.70,
+        cheapestPrice: 2.49,
+        currency: 'EUR',
+        currentOfferCount: 2,
+        comparisonBasis: 'per_kg',
+        pricePerComparisonBasis: 9.96,
+        priceNormalization: PriceNormalization(
+          comparisonBasis: 'per_kg',
+          pricePerComparisonBasis: 9.96,
+        ),
+      ),
     );
   }
 
@@ -206,6 +220,8 @@ class FakeApiClient extends QueryApiClient {
             price: 2.49,
             currency: 'EUR',
             chainName: 'Store A',
+            comparisonBasis: 'per_kg',
+            pricePerComparisonBasis: 9.96,
           ),
           deal: ProductDealInfo(
             dealLevel: 'good',
@@ -250,6 +266,22 @@ class FakeApiClient extends QueryApiClient {
             price: 1.69,
             currency: 'EUR',
             chainName: 'Store A',
+            comparisonBasis: 'per_liter',
+            pricePerComparisonBasis: 1.69,
+          ),
+          currentOfferSummary: CurrentOfferSummary(
+            minCurrentPrice: 1.69,
+            maxCurrentPrice: 1.89,
+            avgCurrentPrice: 1.79,
+            cheapestPrice: 1.69,
+            currency: 'EUR',
+            currentOfferCount: 2,
+            comparisonBasis: 'per_liter',
+            pricePerComparisonBasis: 1.69,
+            priceNormalization: PriceNormalization(
+              comparisonBasis: 'per_liter',
+              pricePerComparisonBasis: 1.69,
+            ),
           ),
           deal: ProductDealInfo(
             dealLevel: 'good',
@@ -408,6 +440,8 @@ class FakeApiClient extends QueryApiClient {
               price: 2.49,
               currency: 'EUR',
               chainName: 'Store A',
+              comparisonBasis: 'per_kg',
+              pricePerComparisonBasis: 9.96,
             ),
           ),
           deal: ProductDealInfo(
@@ -1504,6 +1538,64 @@ void main() {
     expect(find.textContaining('grocery / dairy'), findsOneWidget);
     expect(find.textContaining('Brand: Vereya'), findsOneWidget);
     expect(find.text('Good deal'), findsOneWidget);
+    expect(find.textContaining('/L'), findsOneWidget);
+  });
+
+  testWidgets('search result hides missing unit price without n/a',
+      (tester) async {
+    final apiClient = FakeApiClient(
+      productSearchResponse: const ProductSearchResponse(
+        layerMode: 'canonical_with_enrichment',
+        total: 1,
+        limit: 25,
+        offset: 0,
+        results: [
+          ProductSearchResult(
+            canonicalProductId: 'cp_no_unit',
+            canonicalName: 'Packaged tea',
+            markers: {},
+            enrichment: ProductEnrichment(
+              categoryL1: 'grocery',
+              categoryL2: 'tea',
+              categoryL3: null,
+              categoryL4: null,
+              brand: null,
+              baseProduct: 'tea',
+              productLine: null,
+              flavor: [],
+              attributes: [],
+              dietTags: [],
+              allergens: [],
+              productForm: null,
+              packaging: null,
+              usageContext: [],
+              qualityTier: null,
+            ),
+            bestPrice: ProductBestPrice(
+              price: 3.40,
+              currency: 'EUR',
+            ),
+          ),
+        ],
+      ),
+    );
+
+    await tester.pumpWidget(
+      PricerApp(
+        dependencies: buildDependencies(apiClient: apiClient),
+        locale: const Locale('en'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final navigator = tester.state<NavigatorState>(find.byType(Navigator));
+    navigator.pushNamed(AppRoutes.search, arguments: {'query': 'tea'});
+    await tester.pumpAndSettle();
+
+    expect(find.text('Packaged tea'), findsOneWidget);
+    expect(find.textContaining('n/a'), findsNothing);
+    expect(find.textContaining('/kg'), findsNothing);
+    expect(find.textContaining('/L'), findsNothing);
   });
 
   testWidgets('search result tap navigates to product route', (tester) async {
@@ -2412,6 +2504,54 @@ void main() {
     expect(response.results.single.deal, isNull);
   });
 
+  test('search response parser reads unit prices and zero counts', () {
+    final response = ProductSearchResponse.fromJson({
+      'results': [
+        {
+          'canonical_product_id': 'cp_flour',
+          'canonical_name': 'Flour',
+          'current_offer_summary': {
+            'min_current_price': 2.40,
+            'currency': 'EUR',
+            'current_offer_count': 0,
+            'comparison_basis': 'per_kg',
+            'price_per_comparison_basis': 2.40,
+          },
+        },
+        {
+          'canonical_product_id': 'cp_juice',
+          'canonical_name': 'Juice',
+          'current_offer_summary': {
+            'min_current_price': 1.20,
+            'currency': 'EUR',
+            'price_normalization': {
+              'comparison_basis': 'per_liter',
+              'price_per_comparison_basis': 2.40,
+            },
+          },
+        },
+        {
+          'canonical_product_id': 'cp_unknown',
+          'canonical_name': 'Unknown pack',
+          'current_offer_summary': {
+            'min_current_price': 4.20,
+            'currency': 'EUR',
+            'comparison_basis': 'unknown',
+            'price_per_comparison_basis': null,
+          },
+        },
+      ],
+    });
+
+    expect(response.results[0].currentOfferSummary?.currentOfferCount, 0);
+    expect(response.results[0].displayBestPrice?.comparisonBasis, 'per_kg');
+    expect(response.results[0].displayBestPrice?.pricePerComparisonBasis, 2.40);
+    expect(response.results[1].displayBestPrice?.comparisonBasis, 'per_liter');
+    expect(response.results[1].displayBestPrice?.pricePerComparisonBasis, 2.40);
+    expect(
+        response.results[2].displayBestPrice?.pricePerComparisonBasis, isNull);
+  });
+
   testWidgets('home summary shows loading then quick actions', (tester) async {
     final completer = Completer<HomeSummary>();
     final apiClient = FakeApiClient(homeSummaryCompleter: completer);
@@ -2787,6 +2927,7 @@ void main() {
     expect(find.byKey(const Key('product-deal-card')), findsOneWidget);
     expect(find.text('Good deal'), findsOneWidget);
     expect(find.textContaining('Store A'), findsOneWidget);
+    expect(find.textContaining('/kg'), findsOneWidget);
   });
 
   testWidgets('product detail survives deal-check failure', (tester) async {
@@ -2808,7 +2949,8 @@ void main() {
 
     expect(find.byKey(const Key('product-detail-screen')), findsOneWidget);
     expect(find.text('Coffee'), findsWidgets);
-    expect(find.text('Deal status unavailable'), findsOneWidget);
+    expect(find.text('Current price'), findsOneWidget);
+    expect(find.text('Deal status unavailable.'), findsOneWidget);
   });
 
   testWidgets('product watchlist button calls client and shows success',
@@ -2958,6 +3100,7 @@ void main() {
     expect(apiClient.lastWatchlistPricesOwnerId, 'anon-test');
     expect(find.text('Coffee'), findsOneWidget);
     expect(find.textContaining('EUR 2.49'), findsOneWidget);
+    expect(find.textContaining('/kg'), findsOneWidget);
     expect(find.text('Store A'), findsOneWidget);
     expect(find.text('Deal good'), findsOneWidget);
     expect(find.text('Target hit'), findsOneWidget);
@@ -2977,6 +3120,11 @@ void main() {
     final navigator = tester.state<NavigatorState>(find.byType(Navigator));
     navigator.pushNamed(AppRoutes.watchlist);
     await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('Tea'),
+      200,
+      scrollable: find.byType(Scrollable).last,
+    );
 
     expect(find.text('Tea'), findsOneWidget);
     expect(find.text('Price missing'), findsOneWidget);

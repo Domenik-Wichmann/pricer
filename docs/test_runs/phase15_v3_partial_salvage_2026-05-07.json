@@ -1,0 +1,19 @@
+{
+  "id": "phase15_v3_partial_salvage_2026-05-07",
+  "date": "2026-05-07",
+  "phase": "15.9",
+  "commands": [
+    {
+      "command": "npm run test:phase15",
+      "status": "passed",
+      "summary": "Phase 15 tests: 81 passed, 0 failed, 81 total"
+    }
+  ],
+  "coverage": [
+    "canonical_semantic_v3 partial salvage writes repaired/partial records for taxonomy primary mismatches",
+    "misplaced food_category registry matches are moved to category registry matches when usable",
+    "invalid optional semantic_usage_profile fields are dropped while enrichment still writes",
+    "wrong product IDs remain fatal and do not write enrichment",
+    "malformed provider JSON is persisted to canonical_enrichment_failed_responses"
+  ]
+}

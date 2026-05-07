@@ -10,7 +10,7 @@
     {
       "command": "npm run phase15:enrichment-healthcheck",
       "status": "passed",
-      "summary": "Config-only healthcheck passed with dummy XAI_API_KEY, endpoint https://api.x.ai/v1/chat/completions, model test-model, and live_request_made false. Default model is now grok-4-1-fast-reasoning."
+      "summary": "Config-only healthcheck passed with dummy XAI_API_KEY, endpoint https://api.x.ai/v1/chat/completions, model test-model, and live_request_made false. Default model is now grok-4-1-fast-non-reasoning."
     },
     {
       "command": "npm run test:phase15_2",

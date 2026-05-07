@@ -12,6 +12,7 @@ The machine-readable registry lives in [docs/test_registry.json](/c:/Users/domwi
 ## Production Firestore runtime hardening coverage
 - Product search uses scoped canonical-product prefix reads and scoped mapping/source-product evidence reads, without requesting raw snapshots or daily prices.
 - Product search attaches `current_offer_summary` from scoped `canonical_current_offer_summary` lookups for bounded search candidate ids, returns zero-current-offer evidence summaries when missing, and keeps legacy result fields.
+- Product search/detail derive missing `current_offer_summary` comparison-basis and unit-price metadata from product-level Phase 15 normalization for loose-weight kg products and explicit packages.
 - Product detail queries canonical mappings by requested canonical product id.
 - Product history queries `product_daily_prices` by `source_product_id`.
 - Price lookup scopes reads to requested canonical and source ids.
@@ -28,6 +29,7 @@ The machine-readable registry lives in [docs/test_registry.json](/c:/Users/domwi
 - Firebase Hosting config points to `app/admin-web/dist` and keeps existing emulator ports
 - Admin console exposes Health, Home Summary, Product Search, Product Detail, Price History, Price Lookup, Basket Test, and Raw API tabs without changing mobile UI or backend business logic
 - Product Detail renders canonical fields, legacy marker fields, structured `size_marker` display/totals, bounded current offers, bounded source-product mappings, copy buttons, and a direct Price History launch
+- Product Search and Product Detail render Phase 15 normalized unit prices when current summaries/offers include a supported comparison basis, hide missing unit prices, and show human current-price fallbacks instead of `n/a`.
 - Ingest / Data Jobs renders historical snapshot inputs, dry-run target selection, PowerShell command preview, and job plan/list/create actions without running ZIP ingest in the browser.
 
 ## Historical ingest/admin coverage
@@ -49,7 +51,15 @@ The machine-readable registry lives in [docs/test_registry.json](/c:/Users/domwi
 - Compact baseline rows expose `offer_fingerprint`, price, promo flags, snapshot dates, and source/canonical ids without bulky offer display payloads.
 - Baseline JSONL files load into the diff command without Firestore reads.
 - Baseline export pages through current offers and writes only a local JSONL file by default.
+- Rich baseline rows preserve old-side product name, canonical name, category, chain/retailer, store/locality/region, product-code/source-file fields, and still write only local JSONL by default.
+- Replacement diagnostics use rich old-side fields to report likely same-real-offer/new-id replacements, likely genuine new/removed rows, unknown rows, and Billa-specific new/missing/replacement counts.
+- Baseline export append/resume mode can continue from a Firestore document id without corrupting JSONL row boundaries.
+- Real incremental writer planning refuses high-write real runs without `PRICER_INCREMENTAL_ALLOW_HIGH_WRITE_CATCHUP=true`, while dry-run remains no-write by default.
+- High-write catch-up acknowledgement allows a real writer plan to write new Billa-like offers, current-offer fingerprints, policy-selected events, affected summaries only, and one manifest.
+- Real writer coverage verifies unchanged offers are skipped and missing/removed offers stay report-only with no deletes by default.
 - Recorded run: `docs/test_runs/phase_6_incremental_ingest_diff_2026-05-05.json`.
+- Recorded run: `docs/test_runs/phase_6_rich_baseline_diff_2026-05-07.json`.
+- Recorded run: `docs/test_runs/phase_6_incremental_catchup_writer_2026-05-07.json`.
 
 ## Bulgarian product marker coverage
 - Phase 6 ingest extracts full-word Bulgarian volume and weight markers including decimal comma and decimal point values.
@@ -59,11 +69,33 @@ The machine-readable registry lives in [docs/test_registry.json](/c:/Users/domwi
 
 ## Semantic enrichment pilot coverage
 - Phase 15 product search has 101 deterministic BG/EN grocery synonym concepts for query expansion only.
+- `npm run test:phase15` verifies Phase 15 price-normalization metadata for inferred kg/per_kg loose-weight products, explicit 400 g cheese, explicit 250 ml shampoo, and ambiguous no-size products without fake package quantities.
 - English `cookies`, `snacks`, `Coca-Cola`, and `coke` expand to deterministic BG/EN retrieval aliases for biscuits/snacks and cola/soft drinks.
 - Product search ranks optional canonical enrichment fields including product type, family, category, BG/EN aliases, beverage flags, and personal-care flags.
 - Cola beverage intent does not rank enriched shampoo/personal-care products above enriched cola beverage products.
+- Base ingredient/product searches apply soft raw/simple boosts and processed, baby-food, or prepared-meal demotions; `пилешко` ranks raw chilled chicken fillet above baby chicken puree without hard-excluding puree.
 - The focused enrichment pilot selector finds bounded snacks/beverage/personal-care/baby-food candidates, dry-run writes nothing, and explicitly opted-in real runs write only `canonical_enrichment_store`.
 - Rich v2 enrichment prompts list exact `product_form` enum values, normalize unsupported `semi-solid` / `semi solid` near-misses to `null` with validation warnings, reject invalid per-item enum values without writing them, and still write valid siblings in the same batch.
+- Rich v2 taxonomy validation accepts generalized product paths for shampoo, conditioner, yogurt, sirene, beef, bread, and vacuum cleaner while keeping dairy-specific fields additive.
+- Pilot selection safely uses existing `canonical_semantic_v3` object-shaped attributes/category/packaging/product_form evidence, keeps v2 attributes arrays working, and reports malformed evidence shapes through run warnings instead of crashing.
+- `npm run debug:enrichment` prints read-only canonical enrichment inspection records by product id or latest/version filters, including generalized category paths, v3 raw terms, registry matches, proposals, dairy, personal-care attributes, quantity/storage, warnings, review flags, and confidence without exposing provider secrets.
+- V3.1 `semantic_usage_profile` preserves additive cuisine, flavor, culinary role, dish role, meal context, common-use, preparation, pairing, substitute, consumer-search-intent, and not-for metadata, while accepting older v3 payloads that do not yet carry the profile.
+- V3.1 `semantic_embedding_summary` preserves richer embedding-ready prose for fresh milk, yogurt, sirene, and kashkaval, including flavor/texture, cuisine, ingredient, use-case, dish/meal-role, and search-context meaning while rejecting unsupported claim wording, enforcing the max two-sentence rule, capping evidence arrays, and accepting older v3 payloads that do not yet carry the summary.
+- V3 `taxonomy_classification` validates open `product_taxonomy` paths for soap, shampoo, chicken fillet, bread, motor oil, and garden shovel, accepts unknown niche proposed terms, rejects malformed path arrays and high-confidence contradictions, and keeps old v3 records without taxonomy compatible.
+- V3 partial salvage writes usable repaired/partial records for taxonomy primary mismatches, misplaced registry matches, null spillover, and invalid optional semantic usage fields while marking human review and preserving fatal rejection/quarantine for wrong product IDs and malformed JSON.
+- V3 `taxonomy_classification.registry_matches` keeps only `product_taxonomy` matches, moves usable misplaced legacy matches to `category.registry_matches`, and ignores null food-category spillover without rejecting the full enrichment item.
+- V3 `taxonomy_classification` repairs usable primary label/term-id mismatches into the taxonomy path and derives missing or unusable primary fields from the deepest valid path item without rejecting the full enrichment item.
+- V3 real pilot writes `taxonomy_classification.proposed_terms` to pending `semantic_term_registry_proposals`, captures proposed aliases, dedupes by domain plus normalized label plus parent term id, and never activates LLM taxonomy terms.
+- Product search debug includes taxonomy path labels, primary taxonomy, matched taxonomy labels, and registry-match evidence without breaking older v2/v3 records.
+- Mobile product search/detail/watchlist/basket tests verify normalized `/kg` and `/L` unit-price labels, zero current-offer counts, null normalization hiding without `n/a`, and unchanged primary price display.
+- Recorded run: `docs/test_runs/phase15_registry_taxonomy_2026-05-07.json`.
+- Recorded run: `docs/test_runs/phase15_base_product_selection_2026-05-07.json`.
+- Recorded run: `docs/test_runs/phase15_v3_taxonomy_validation_2026-05-07.json`.
+- Recorded run: `docs/test_runs/phase15_v3_taxonomy_primary_alignment_2026-05-07.json`.
+- Recorded run: `docs/test_runs/unit_price_ui_2026-05-07.json`.
+- Recorded run: `docs/test_runs/phase15_v3_semantic_embedding_summary_2026-05-06.json`.
+- Recorded run: `docs/test_runs/phase15_v3_semantic_usage_profile_2026-05-05.json`.
+- Recorded run: `docs/test_runs/phase15_enrichment_debug_2026-05-05.json`.
 - Admin Product Search summarizes current price ranges, offer count, cheapest retailer/chain, and search debug category/product-type/alias/demotion fields for QA while preserving the raw JSON response.
 
 ## Grocery synonym and Admin QA search coverage
@@ -327,6 +359,7 @@ The machine-readable registry lives in [docs/test_registry.json](/c:/Users/domwi
 - product detail handlers return stable product-facing shapes with canonical ids, canonical names, markers, enrichment, and explicit layer mode
 - product search handlers default to `canonical_with_enrichment` and return bounded deterministic results
 - product detail and search return `current_offer_count = 0` instead of `n/a`/missing counts when a canonical product has no current offers but has mapped source-product evidence
+- product detail and search fill missing current-summary normalization for loose-weight chicken/meat and explicit 400 g package fixtures while preserving existing primary price fields
 - invalid layer modes are rejected safely instead of silently switching layers
 - enrichment-backed API filtering works for category, brand, base product, flavor, and attributes
 - facet handlers return deterministic counts for supported enrichment dimensions
@@ -1020,9 +1053,11 @@ The machine-readable registry lives in [docs/test_registry.json](/c:/Users/domwi
 
 ## Phase 15.9 canonical semantic enrichment v3 coverage
 - v3 prompt includes exact JSON schema, registry context, and instructions to preserve raw terms, use accurate registry matches, avoid false buckets, and propose aliases/new terms when needed
+- v3 product taxonomy uses `product_category`, keeps legacy `food_category` backward-compatible for existing food records, rejects non-food `food_category` actions, and maps shampoo as `Personal Care > Hair Care > Shampoo`
 - v3 validation preserves messy raw terms such as `кофичка`, keeps `пакетирано` under review instead of forcing `packet`, and validates strict shape/types without rejecting unfamiliar raw vocabulary
 - v3 provider request bodies use strict `response_format.json_schema` by default with a `json_object` fallback flag
+- v3 pilot prompts use bounded relevant registry context, avoid duplicating the full schema in real provider user messages when `response_format.json_schema` is present, and report prompt/request/schema/registry token-size metrics in dry-run summaries
 - v3 real pilot seeds `semantic_term_registry`, writes `canonical_semantic_v3` enrichment records, and creates only pending `semantic_term_registry_proposals`
 - duplicate v3 registry proposals are deduped, and LLM proposals do not directly activate terms
 - malformed v3 provider JSON is stored in `canonical_enrichment_failed_responses` redacted, while affected canonical enrichment writes are skipped
-- Phase 15 provider retries cover first-try success, `UND_ERR_SOCKET`, HTTP 503, HTTP 429, non-retryable HTTP 400, exhausted retry attempt history, timeout aborts, v3 `response_format` preservation across retries, and pilot summary retry metrics
+- Phase 15 provider retries cover first-try success, `UND_ERR_SOCKET`, HTTP 503, HTTP 429, non-retryable HTTP 400, exhausted retry attempt history, timeout aborts, v3 `response_format` preservation across retries, per-attempt duration/request-size metadata, possible local request bloat classification, and pilot summary retry metrics

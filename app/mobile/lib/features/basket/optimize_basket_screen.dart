@@ -340,23 +340,46 @@ class _BasketStoreCard extends StatelessWidget {
           ),
           if (store.items.isNotEmpty) ...[
             const SizedBox(height: AppSpacing.md),
-            for (final item in store.items)
-              ListTile(
-                dense: true,
-                contentPadding: EdgeInsets.zero,
-                title: Text(item.displayName),
-                titleTextStyle: Theme.of(context).textTheme.titleSmall,
-                subtitle: Text(
-                  item.priceStatus,
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-                trailing: Text(item.lineTotal == null
-                    ? '-'
-                    : formatPrice(context, item.lineTotal!)),
-              ),
+            for (final item in store.items) _BasketStoreItemTile(item: item),
           ],
         ],
       ),
+    );
+  }
+}
+
+class _BasketStoreItemTile extends StatelessWidget {
+  const _BasketStoreItemTile({
+    required this.item,
+  });
+
+  final BasketOptimizedItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    final unitPriceLabel = formatUnitPrice(
+      context,
+      price: item.pricePerComparisonBasis,
+      comparisonBasis: item.comparisonBasis,
+    );
+    final subtitle = [
+      item.priceStatus,
+      if (unitPriceLabel != null) unitPriceLabel,
+    ].where((value) => value.trim().isNotEmpty).join(' - ');
+
+    return ListTile(
+      dense: true,
+      contentPadding: EdgeInsets.zero,
+      title: Text(item.displayName),
+      titleTextStyle: Theme.of(context).textTheme.titleSmall,
+      subtitle: subtitle.isEmpty
+          ? null
+          : Text(
+              subtitle,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+      trailing: Text(
+          item.lineTotal == null ? '-' : formatPrice(context, item.lineTotal!)),
     );
   }
 }

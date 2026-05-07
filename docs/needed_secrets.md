@@ -64,7 +64,7 @@ The remaining MVP blockers are mostly setup and a few code tasks:
 | `XAI_API_KEY` | No for already-published app runtime; yes for live LLM enrichment/adjudication/recipe extraction and live Phase 15.9 healthcheck requests | Yes | `functions/src/phase6/grok.js:15-31`, `functions/src/phase6/disambiguation.js:337-353`, `functions/src/phase15/enrichment.js`, `functions/src/phase15/enrichment_pilot.js`, `functions/src/db/recipes/recipe_llm_extraction.js` | Present locally | Must be stored as runtime secret if live LLM paths are enabled; healthcheck reports only presence and never prints the key | Human/operator |
 | `ENABLE_LLM_ENRICHMENT` | No for core app runtime | No | `app/secrets/backend.env.example:31-36`, `functions/src/phase15/enrichment.js` | Example/local intended | Set only if live enrichment should run | Operator |
 | `ENABLE_LLM_DISAMBIGUATION` | No for core MVP | No | `functions/src/phase6/disambiguation.js:22` | Not present locally | Optional | Operator |
-| `XAI_GROK_MODEL` | No | No | `functions/src/phase6/grok.js:15-17`, `functions/src/phase6/disambiguation.js:337-339`, `functions/src/phase15/enrichment_pilot.js` | Present locally as `grok-4-1-fast-reasoning` | Optional; Phase 15.9 falls back to `PRICER_ENRICHMENT_MODEL` then `grok-4-1-fast-reasoning` | Codex/operator |
+| `XAI_GROK_MODEL` | No | No | `functions/src/phase6/grok.js:15-17`, `functions/src/phase6/disambiguation.js:337-339`, `functions/src/phase15/enrichment_pilot.js` | Present locally as `grok-4-1-fast-non-reasoning` | Optional; Phase 15.9 falls back to `PRICER_ENRICHMENT_MODEL` then `grok-4-1-fast-non-reasoning` | Codex/operator |
 | `XAI_EMBEDDING_MODEL` | No | No | `functions/src/phase6/embeddings.js:15-17` | Example only | Optional | Codex/operator |
 | `XAI_RECIPE_MODEL` | No for current mobile MVP | No | `functions/src/db/recipes/recipe_llm_extraction.js:39-41` | Not present locally | Later recipe ingest only | Operator |
 | `PRICER_INTERNAL_ANALYTICS_TOKEN` | No for consumer MVP; yes for internal analytics endpoints | Yes | `functions/src/phase18/internal_access.js:3-26` | Example only | Must be set before using guarded analytics endpoints | Human/operator |
@@ -120,6 +120,18 @@ npm run phase6:run
 ```
 
 That command downloads/imports the current KolkoStruva snapshot into the selected runtime store. It is not a Docker/Postgres publish path.
+
+To verify a local script is reading the same runtime product collections as the deployed/admin API before running Phase 15 enrichment:
+
+```powershell
+$env:PRICER_STORE_BACKEND='firestore'
+$env:PRICER_FIRESTORE_PROJECT_ID='pricer-ee440'
+$env:PRICER_FIRESTORE_DATABASE_ID='(default)'
+$env:PRICER_FIRESTORE_COLLECTION_PREFIX='prod'
+npm run debug:runtime-store
+```
+
+Expected production collection names include `prod_canonical_products`, `prod_canonical_enrichment_store`, and `prod_semantic_term_registry`. If the diagnostic reports empty-prefix names such as `canonical_products`, set `PRICER_FIRESTORE_COLLECTION_PREFIX='prod'` before running `npm run phase15:enrichment-pilot`.
 
 ## Minimum Production Setup Checklist
 

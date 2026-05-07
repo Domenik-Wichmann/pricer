@@ -584,23 +584,21 @@ async function createRuntimeDataBackboneStore({
   env = process.env,
   firestore = null,
 } = {}) {
-  const backend = resolveStoreBackend(env);
+  const config = resolveRuntimeStoreConfig(env);
+  const backend = config.backend;
 
   if (backend === 'memory') {
     return new InMemoryDataBackboneStore();
   }
 
   if (backend === 'json') {
-    const stateFile = env.PRICER_STATE_FILE
-      ? path.resolve(env.PRICER_STATE_FILE)
-      : path.resolve(process.cwd(), 'runtime_data', 'state.json');
-    return new JsonFileDataBackboneStore(stateFile);
+    return new JsonFileDataBackboneStore(config.stateFile);
   }
 
   if (backend === 'firestore') {
     return new FirestoreDataBackboneStore({
       firestore: firestore || createFirestoreClientFromEnv(env),
-      collectionPrefix: env.PRICER_FIRESTORE_COLLECTION_PREFIX || '',
+      collectionPrefix: config.firestore.collectionPrefix,
       allowFullLoad: env.PRICER_ALLOW_FIRESTORE_FULL_LOAD === 'true',
       allowFullSave: env.PRICER_ALLOW_FIRESTORE_FULL_SAVE === 'true',
     });
@@ -626,6 +624,41 @@ function resolveStoreBackend(env = process.env) {
   return env.PRICER_STATE_FILE ? 'json' : 'json';
 }
 
+function resolveRuntimeStoreConfig(env = process.env) {
+  const backend = resolveStoreBackend(env);
+  const stateFile = env.PRICER_STATE_FILE
+    ? path.resolve(env.PRICER_STATE_FILE)
+    : path.resolve(process.cwd(), 'runtime_data', 'state.json');
+  const projectId = cleanEnvString(env.PRICER_FIRESTORE_PROJECT_ID);
+  const databaseId = cleanEnvString(env.PRICER_FIRESTORE_DATABASE_ID) || '(default)';
+  const collectionPrefix = cleanEnvString(env.PRICER_FIRESTORE_COLLECTION_PREFIX);
+  const firestoreEmulatorHost = cleanEnvString(env.FIRESTORE_EMULATOR_HOST);
+  const legacyFirestoreEmulatorHost = cleanEnvString(env.FIREBASE_FIRESTORE_EMULATOR_ADDRESS);
+
+  return {
+    backend,
+    stateFile,
+    firestore: {
+      projectId,
+      databaseId,
+      collectionPrefix,
+      appName: cleanEnvString(env.PRICER_FIRESTORE_APP_NAME) || 'pricer-backend-store',
+      googleApplicationCredentialsPresent: Boolean(cleanEnvString(env.GOOGLE_APPLICATION_CREDENTIALS)),
+      emulator: {
+        active: Boolean(firestoreEmulatorHost || legacyFirestoreEmulatorHost),
+        firestoreEmulatorHost,
+        legacyFirestoreEmulatorHost,
+        firebaseEmulatorHub: cleanEnvString(env.FIREBASE_EMULATOR_HUB),
+        gcloudProject: cleanEnvString(env.GCLOUD_PROJECT),
+      },
+    },
+  };
+}
+
+function cleanEnvString(value) {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
 function createFirestoreClientFromEnv(env = process.env) {
   // Load firebase-admin lazily so test and local JSON flows do not require it.
   // Production can rely on ADC, GOOGLE_APPLICATION_CREDENTIALS, or the runtime's
@@ -635,8 +668,8 @@ function createFirestoreClientFromEnv(env = process.env) {
   // eslint-disable-next-line global-require
   const { getFirestore } = require('firebase-admin/firestore');
   const appName = env.PRICER_FIRESTORE_APP_NAME || 'pricer-backend-store';
-  const projectId = env.PRICER_FIRESTORE_PROJECT_ID || undefined;
-  const databaseId = env.PRICER_FIRESTORE_DATABASE_ID || undefined;
+  const projectId = cleanEnvString(env.PRICER_FIRESTORE_PROJECT_ID) || undefined;
+  const databaseId = cleanEnvString(env.PRICER_FIRESTORE_DATABASE_ID) || undefined;
 
   let app;
   try {
@@ -897,6 +930,7 @@ module.exports = {
   createRuntimeDataBackboneStore,
   getEnrichmentByFingerprint,
   resolveCollectionName,
+  resolveRuntimeStoreConfig,
   resolveStoreBackend,
   storeEnrichment,
   withRuntimeReadContext,

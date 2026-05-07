@@ -104,6 +104,8 @@
     "phase6:audit-bad-products": "node scripts/audit_phase6_bad_products_firestore.js",
     "phase6:backfill-canonical-markers": "node scripts/backfill_canonical_markers_firestore.js",
     "debug:canonical-summary": "node scripts/debug_canonical_product_summary.js",
+    "debug:enrichment": "node scripts/debug_canonical_enrichment.js",
+    "debug:runtime-store": "node scripts/debug_runtime_store.js",
     "phase15:enrichment-pilot": "node scripts/run_canonical_enrichment_pilot.js",
     "phase15:enrichment-healthcheck": "node scripts/run_canonical_enrichment_healthcheck.js",
     "phase7:run": "node scripts/run_phase7_demand.js",

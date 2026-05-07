@@ -43,9 +43,27 @@
       "status": "passed"
     },
     {
+      "id": "P15-PRICE-NORMALIZATION-001",
+      "description": "Phase 15 price normalization infers kg/per_kg for loose-weight meat and produce without fake package quantities, preserves explicit 400 g and 250 ml package facts, and flags ambiguous no-size products for review.",
+      "phase": 15,
+      "status": "passed"
+    },
+    {
+      "id": "P15-CURRENT-SUMMARY-NORMALIZATION-001",
+      "description": "Product search/detail current_offer_summary derives missing comparison_basis, price_per_comparison_basis, and price_normalization from product-level Phase 15 normalization for loose-weight kg products and explicit package products.",
+      "phase": 15.2,
+      "status": "passed"
+    },
+    {
       "id": "ADMIN-WEB-PRICE-SUMMARY-001",
       "description": "Admin Console Product Search displays cheapest, highest, average price, offer count, and cheapest retailer or chain while preserving raw JSON output.",
       "phase": "ADMIN-WEB-V0",
+      "status": "passed"
+    },
+    {
+      "id": "UI-UNIT-PRICE-001",
+      "description": "Admin and mobile product price surfaces render Phase 15 normalized unit prices for supported comparison bases, hide null or unknown unit prices without n/a, preserve zero offer counts, and keep existing primary price display.",
+      "phase": "PHASE-15-UI",
       "status": "passed"
     },
     {
@@ -61,8 +79,20 @@
       "status": "passed"
     },
     {
+      "id": "P15-BASE-PRODUCT-SELECTION-001",
+      "description": "Base ingredient/product searches apply soft raw/simple boosts and processed, baby-food, or prepared-meal demotions so пилешко ranks raw chilled chicken fillet above baby chicken puree without hard-excluding processed candidates.",
+      "phase": 15.9,
+      "status": "passed"
+    },
+    {
       "id": "P15-SEMANTIC-PILOT-003",
       "description": "Focused canonical enrichment pilot dry-run writes nothing, while explicitly opted-in real runs write only canonical_enrichment_store.",
+      "phase": 15.9,
+      "status": "passed"
+    },
+    {
+      "id": "P15-SEMANTIC-V3-PARTIAL-SALVAGE-001",
+      "description": "canonical_semantic_v3 partial salvage writes repaired or partial enrichment records for repairable field-level validation issues while keeping wrong product IDs and malformed JSON as fatal rejection/quarantine cases.",
       "phase": 15.9,
       "status": "passed"
     },
@@ -133,6 +163,24 @@
       "status": "passed"
     },
     {
+      "id": "P15-SEMANTIC-V3-006",
+      "description": "Pilot selection reads existing canonical_semantic_v3 object-shaped attributes, category, packaging, product form, and registry evidence without crashing, keeps v2 attributes arrays working, and reports malformed evidence shapes as run warnings.",
+      "phase": 15.9,
+      "status": "passed"
+    },
+    {
+      "id": "P15-SEMANTIC-V3-007",
+      "description": "canonical_semantic_v3 pilot prompts use bounded relevant registry context, avoid full unrelated registry domains, and carry the full schema through response_format json_schema instead of duplicating it in real provider user messages.",
+      "phase": 15.9,
+      "status": "passed"
+    },
+    {
+      "id": "P15-SEMANTIC-V3-008",
+      "description": "canonical_semantic_v3 dry-run summaries report prompt/request character counts, estimated prompt/request tokens, registry context term counts/domains, JSON schema size, response-format schema inclusion, and per-batch token estimates.",
+      "phase": 15.9,
+      "status": "passed"
+    },
+    {
       "id": "P15-PROVIDER-RETRY-001",
       "description": "Phase 15 xAI provider requests retry transient UND_ERR_SOCKET, HTTP 503, HTTP 429, and timeout failures with bounded attempt history while avoiding retries for non-retryable HTTP 400 errors.",
       "phase": 15.9,
@@ -140,7 +188,67 @@
     },
     {
       "id": "P15-PROVIDER-RETRY-002",
-      "description": "Phase 15 provider retry summaries expose provider_attempt_count, retry_count, retryable_error_count, per-batch attempt history, retry exhaustion, and preserve v3 response_format on every retry.",
+      "description": "Phase 15 provider retry summaries expose provider_attempt_count, retry_count, retryable_error_count, per-batch attempt history, retry exhaustion, per-attempt duration/request-size metadata, possible local request bloat classification, and preserve v3 response_format on every retry.",
+      "phase": 15.9,
+      "status": "passed"
+    },
+    {
+      "id": "P15-ENRICHMENT-DEBUG-001",
+      "description": "The Phase 15 enrichment debug command prints read-only canonical enrichment inspection records by product id or latest/version filters, including v3 raw terms, registry matches, proposals, dairy, quantity/storage, warnings, review flags, and confidence without exposing provider secrets.",
+      "phase": 15.9,
+      "status": "passed"
+    },
+    {
+      "id": "P15-SEMANTIC-V3-009",
+      "description": "canonical_semantic_v3.1 adds semantic_usage_profile for conservative cuisine, flavor, culinary role, dish role, meal context, common use, preparation, pairing, substitute, consumer-search-intent, and not-for metadata while preserving older v3 payload compatibility.",
+      "phase": 15.9,
+      "status": "passed"
+    },
+    {
+      "id": "P15-SEMANTIC-V3-010",
+      "description": "canonical_semantic_v3.1 adds semantic_embedding_summary for richer future-embedding prose with flavor/texture, cuisine, ingredient, use-case, dish/meal-role, and search-context meaning; validates fresh milk/yogurt/sirene/kashkaval summaries, rejects unsupported claim wording, enforces the max two-sentence rule, caps evidence arrays, and preserves older v3 payload compatibility.",
+      "phase": 15.9,
+      "status": "passed"
+    },
+    {
+      "id": "P15-SEMANTIC-TAXONOMY-001",
+      "description": "Rich Phase 15 taxonomy validation accepts generalized product paths for shampoo, conditioner, yogurt, sirene, beef, bread, and vacuum cleaner while keeping dairy-specific fields additive.",
+      "phase": 15.9,
+      "status": "passed"
+    },
+    {
+      "id": "P15-SEMANTIC-TAXONOMY-002",
+      "description": "canonical_semantic_v3 uses product_category for generalized taxonomy, maps shampoo as Personal Care > Hair Care > Shampoo with personal_care attributes, and rejects non-food proposals under legacy food_category.",
+      "phase": 15.9,
+      "status": "passed"
+    },
+    {
+      "id": "P15-SEMANTIC-TAXONOMY-003",
+      "description": "canonical_semantic_v3 taxonomy_classification validates open product_taxonomy paths for soap, shampoo, chicken fillet, bread, motor oil, and garden shovel, accepts unknown proposed terms, rejects malformed path arrays and high-confidence contradictions, and preserves old-v3 compatibility.",
+      "phase": 15.9,
+      "status": "passed"
+    },
+    {
+      "id": "P15-SEMANTIC-TAXONOMY-004",
+      "description": "canonical_semantic_v3 real pilot writes taxonomy proposed terms to pending semantic_term_registry_proposals, captures proposed aliases, dedupes by product_taxonomy label plus parent term, and never activates LLM taxonomy terms.",
+      "phase": 15.9,
+      "status": "passed"
+    },
+    {
+      "id": "P15-SEMANTIC-TAXONOMY-005",
+      "description": "Phase 15 product search debug includes taxonomy path labels, primary taxonomy, matched taxonomy labels, and registry-match evidence without breaking records that lack taxonomy_classification.",
+      "phase": 15.2,
+      "status": "passed"
+    },
+    {
+      "id": "P15-SEMANTIC-TAXONOMY-006",
+      "description": "canonical_semantic_v3 taxonomy_classification.registry_matches is product_taxonomy-only; misplaced legacy product_category or food_category matches are filtered or moved to category.registry_matches, and null food_category spillover does not reject the full enrichment item.",
+      "phase": 15.9,
+      "status": "passed"
+    },
+    {
+      "id": "P15-SEMANTIC-TAXONOMY-007",
+      "description": "canonical_semantic_v3 taxonomy_classification repairs usable primary_taxonomy_label and primary_taxonomy_term_id path mismatches, and derives missing or unusable primary fields from the deepest valid taxonomy path item instead of rejecting the enrichment item.",
       "phase": 15.9,
       "status": "passed"
     },
@@ -183,6 +291,24 @@
     {
       "id": "P6-FINGERPRINT-BASELINE-003",
       "description": "Current-offer fingerprint baseline export reads current offers by pages and writes only a local JSONL file by default.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-FINGERPRINT-BASELINE-004",
+      "description": "Rich current-offer baseline records preserve old-side product, canonical, category, chain/retailer, store/locality/region, product-code, and source-file diagnostics while remaining local JSONL only by default.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-INCREMENTAL-DIFF-005",
+      "description": "Replacement churn diagnostics use rich old-side fields to classify likely same-real-offer/new-id replacements, likely genuine new and removed rows, unknown rows, and Billa-specific churn counts.",
+      "phase": 6,
+      "status": "passed"
+    },
+    {
+      "id": "P6-FINGERPRINT-BASELINE-005",
+      "description": "Current-offer baseline export append/resume mode can continue after a Firestore document id without corrupting JSONL row boundaries.",
       "phase": 6,
       "status": "passed"
     },
@@ -4684,6 +4810,12 @@
       "id": "BG-MARKERS-002",
       "description": "Phase 6 ingest extracts Bulgarian count/package and multiplication markers such as 6 бр x 330 мл and 2 х 500 грама.",
       "phase": "BG-MARKERS",
+      "status": "passed"
+    },
+    {
+      "id": "P6-INCREMENTAL-CATCHUP-WRITER-001",
+      "description": "The real incremental writer remains dry-run by default, refuses high-write real runs without catch-up acknowledgement, writes unchanged offers zero times, writes new Billa-like offers when acknowledged, updates affected summaries only, and performs no deletes by default.",
+      "phase": 6,
       "status": "passed"
     }
   ]

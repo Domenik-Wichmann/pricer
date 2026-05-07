@@ -203,6 +203,7 @@ class _CanonicalProductScreenState extends State<CanonicalProductScreen> {
         _ProductOverviewCard(product: product),
         const SizedBox(height: AppSpacing.xl),
         _ProductDealCard(
+          product: product,
           dealItem: _dealItem,
           dealUnavailable: _dealUnavailable,
         ),
@@ -271,37 +272,48 @@ class _ProductOverviewCard extends StatelessWidget {
 
 class _ProductDealCard extends StatelessWidget {
   const _ProductDealCard({
+    required this.product,
     required this.dealItem,
     required this.dealUnavailable,
   });
 
+  final CanonicalProductDetail product;
   final ProductDealCheckItem? dealItem;
   final bool dealUnavailable;
 
   @override
   Widget build(BuildContext context) {
+    final summaryBestPrice = product.currentOfferSummary?.bestPrice;
     if (dealUnavailable) {
-      return const AppSectionCard(
-        key: Key('product-deal-card'),
-        child: AppSectionHeader(
-          title: 'Deal status unavailable',
-          subtitle: 'Product details are still available.',
-        ),
-      );
+      if (summaryBestPrice == null) {
+        return const AppSectionCard(
+          key: Key('product-deal-card'),
+          child: AppSectionHeader(
+            title: 'Deal status unavailable',
+            subtitle: 'Product details are still available.',
+          ),
+        );
+      }
     }
 
     final item = dealItem;
-    if (item == null) {
+    if (item == null && summaryBestPrice == null) {
       return const AppSectionCard(
         key: Key('product-deal-card'),
         child: AppSectionHeader(
-          title: 'No current deal signal',
+          title: 'No current price',
           subtitle: 'We do not have enough current price data yet.',
         ),
       );
     }
 
-    final price = item.bestPrice?.price;
+    final bestPrice = item?.bestPrice ?? summaryBestPrice;
+    final price = bestPrice?.price;
+    final unitPriceLabel = formatUnitPrice(
+      context,
+      price: bestPrice?.pricePerComparisonBasis,
+      comparisonBasis: bestPrice?.comparisonBasis,
+    );
     return AppSectionCard(
       key: const Key('product-deal-card'),
       backgroundColor: const Color(0xFFEAF5EF),
@@ -309,8 +321,14 @@ class _ProductDealCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           AppSectionHeader(
-            title: _dealTitle(item.deal.dealLevel),
-            subtitle: item.deal.reason.isEmpty ? null : item.deal.reason,
+            title: item == null
+                ? 'Current price'
+                : _dealTitle(item.deal.dealLevel),
+            subtitle: item == null
+                ? (dealUnavailable ? 'Deal status unavailable.' : null)
+                : item.deal.reason.isEmpty
+                    ? null
+                    : item.deal.reason,
             trailing: price == null
                 ? null
                 : Text(
@@ -318,10 +336,18 @@ class _ProductDealCard extends StatelessWidget {
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
           ),
-          if ((item.bestPrice?.chainName ?? '').isNotEmpty) ...[
+          if (unitPriceLabel != null) ...[
             const SizedBox(height: AppSpacing.sm),
             Text(
-              'Best price at ${item.bestPrice!.chainName}',
+              unitPriceLabel,
+              key: const Key('product-detail-unit-price'),
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
+          if ((bestPrice?.chainName ?? '').isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              'Best price at ${bestPrice!.chainName}',
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ],

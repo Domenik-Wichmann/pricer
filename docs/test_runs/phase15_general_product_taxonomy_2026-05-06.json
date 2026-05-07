@@ -1,0 +1,23 @@
+{
+  "id": "phase15_general_product_taxonomy_2026-05-06",
+  "date": "2026-05-06",
+  "commands": [
+    {
+      "command": "npm run test:phase15",
+      "status": "passed",
+      "summary": "67 passed, 0 failed, 67 total"
+    },
+    {
+      "command": "npm run validate:docs",
+      "status": "passed",
+      "summary": "JSON docs parse successfully"
+    }
+  ],
+  "notes": [
+    "Verified generalized Phase 15 category paths for shampoo, conditioner, yogurt, sirene, beef, bread, and vacuum cleaner.",
+    "Verified canonical_semantic_v3 uses product_category for generalized taxonomy while preserving legacy food_category compatibility for food terms.",
+    "Verified shampoo maps as Personal Care > Hair Care > Shampoo with personal_care attributes.",
+    "Verified non-food terms proposed under food_category are rejected.",
+    "Verified debug enrichment output includes generalized category paths."
+  ]
+}

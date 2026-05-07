@@ -352,12 +352,102 @@ class ProductSearchResponse {
   }
 }
 
+class PriceNormalization {
+  const PriceNormalization({
+    required this.comparisonBasis,
+    required this.pricePerComparisonBasis,
+  });
+
+  final String? comparisonBasis;
+  final double? pricePerComparisonBasis;
+
+  bool get hasUnitPrice =>
+      pricePerComparisonBasis != null &&
+      comparisonBasis != null &&
+      comparisonBasis != 'unknown';
+
+  factory PriceNormalization.fromJson(Map<String, dynamic> json) {
+    return PriceNormalization(
+      comparisonBasis: json['comparison_basis'] as String?,
+      pricePerComparisonBasis: _readDouble(json['price_per_comparison_basis']),
+    );
+  }
+}
+
+class CurrentOfferSummary {
+  const CurrentOfferSummary({
+    required this.minCurrentPrice,
+    required this.maxCurrentPrice,
+    required this.avgCurrentPrice,
+    required this.cheapestPrice,
+    required this.currency,
+    required this.currentOfferCount,
+    required this.comparisonBasis,
+    required this.pricePerComparisonBasis,
+    required this.priceNormalization,
+  });
+
+  final double? minCurrentPrice;
+  final double? maxCurrentPrice;
+  final double? avgCurrentPrice;
+  final double? cheapestPrice;
+  final String currency;
+  final int currentOfferCount;
+  final String? comparisonBasis;
+  final double? pricePerComparisonBasis;
+  final PriceNormalization? priceNormalization;
+
+  double? get displayPrice => minCurrentPrice ?? cheapestPrice;
+  String? get effectiveComparisonBasis =>
+      comparisonBasis ?? priceNormalization?.comparisonBasis;
+  double? get effectiveUnitPrice =>
+      pricePerComparisonBasis ?? priceNormalization?.pricePerComparisonBasis;
+
+  ProductBestPrice? get bestPrice {
+    final price = displayPrice;
+    if (price == null) {
+      return null;
+    }
+    return ProductBestPrice(
+      price: price,
+      currency: currency,
+      comparisonBasis: effectiveComparisonBasis,
+      pricePerComparisonBasis: effectiveUnitPrice,
+    );
+  }
+
+  factory CurrentOfferSummary.fromJson(Map<String, dynamic> json) {
+    final normalizationJson = json['price_normalization'] is Map
+        ? Map<String, dynamic>.from(json['price_normalization'] as Map)
+        : null;
+    final normalization = normalizationJson == null
+        ? null
+        : PriceNormalization.fromJson(normalizationJson);
+    return CurrentOfferSummary(
+      minCurrentPrice: _readDouble(json['min_current_price']),
+      maxCurrentPrice: _readDouble(json['max_current_price']),
+      avgCurrentPrice: _readDouble(json['avg_current_price']),
+      cheapestPrice: _readDouble(json['cheapest_price']),
+      currency: json['currency'] as String? ?? 'EUR',
+      currentOfferCount:
+          _readInt(json['current_offer_count'] ?? json['offer_count']) ?? 0,
+      comparisonBasis:
+          json['comparison_basis'] as String? ?? normalization?.comparisonBasis,
+      pricePerComparisonBasis:
+          _readDouble(json['price_per_comparison_basis']) ??
+              normalization?.pricePerComparisonBasis,
+      priceNormalization: normalization,
+    );
+  }
+}
+
 class ProductSearchResult {
   const ProductSearchResult({
     required this.canonicalProductId,
     required this.canonicalName,
     required this.markers,
     required this.enrichment,
+    this.currentOfferSummary,
     this.bestPrice,
     this.deal,
   });
@@ -366,8 +456,12 @@ class ProductSearchResult {
   final String canonicalName;
   final Map<String, String> markers;
   final ProductEnrichment enrichment;
+  final CurrentOfferSummary? currentOfferSummary;
   final ProductBestPrice? bestPrice;
   final ProductDealInfo? deal;
+
+  ProductBestPrice? get displayBestPrice =>
+      bestPrice ?? currentOfferSummary?.bestPrice;
 
   String get displayName {
     if (canonicalName.trim().isNotEmpty) {
@@ -382,6 +476,7 @@ class ProductSearchResult {
   factory ProductSearchResult.fromJson(Map<String, dynamic> json) {
     final bestPriceJson = json['best_price'];
     final dealJson = json['deal'];
+    final summaryJson = json['current_offer_summary'];
     return ProductSearchResult(
       canonicalProductId: json['canonical_product_id'] as String? ?? '',
       canonicalName: json['canonical_name'] as String? ?? '',
@@ -391,6 +486,11 @@ class ProductSearchResult {
       ),
       bestPrice: bestPriceJson is Map
           ? ProductBestPrice.fromJson(Map<String, dynamic>.from(bestPriceJson))
+          : null,
+      currentOfferSummary: summaryJson is Map
+          ? CurrentOfferSummary.fromJson(
+              Map<String, dynamic>.from(summaryJson),
+            )
           : null,
       deal: dealJson is Map
           ? ProductDealInfo.fromJson(Map<String, dynamic>.from(dealJson))
@@ -627,17 +727,20 @@ class CanonicalProductDetail {
     required this.canonicalName,
     required this.markers,
     required this.enrichment,
+    this.currentOfferSummary,
   });
 
   final String canonicalProductId;
   final String canonicalName;
   final Map<String, String> markers;
   final ProductEnrichment enrichment;
+  final CurrentOfferSummary? currentOfferSummary;
 
   String get displayName =>
       canonicalName.isNotEmpty ? canonicalName : canonicalProductId;
 
   factory CanonicalProductDetail.fromJson(Map<String, dynamic> json) {
+    final summaryJson = json['current_offer_summary'];
     return CanonicalProductDetail(
       canonicalProductId: json['canonical_product_id'] as String? ?? '',
       canonicalName: json['canonical_name'] as String? ?? '',
@@ -645,6 +748,11 @@ class CanonicalProductDetail {
       enrichment: ProductEnrichment.fromJson(
         Map<String, dynamic>.from(json['enrichment'] as Map? ?? const {}),
       ),
+      currentOfferSummary: summaryJson is Map
+          ? CurrentOfferSummary.fromJson(
+              Map<String, dynamic>.from(summaryJson),
+            )
+          : null,
     );
   }
 }
@@ -775,19 +883,34 @@ class ProductBestPrice {
     required this.currency,
     this.chainName,
     this.storeName,
+    this.comparisonBasis,
+    this.pricePerComparisonBasis,
   });
 
   final double? price;
   final String currency;
   final String? chainName;
   final String? storeName;
+  final String? comparisonBasis;
+  final double? pricePerComparisonBasis;
 
   factory ProductBestPrice.fromJson(Map<String, dynamic> json) {
+    final normalizationJson = json['price_normalization'] is Map
+        ? Map<String, dynamic>.from(json['price_normalization'] as Map)
+        : null;
+    final normalization = normalizationJson == null
+        ? null
+        : PriceNormalization.fromJson(normalizationJson);
     return ProductBestPrice(
       price: _readDouble(json['price']),
       currency: json['currency'] as String? ?? 'EUR',
       chainName: json['chain_name'] as String?,
       storeName: json['store_name'] as String?,
+      comparisonBasis:
+          json['comparison_basis'] as String? ?? normalization?.comparisonBasis,
+      pricePerComparisonBasis:
+          _readDouble(json['price_per_comparison_basis']) ??
+              normalization?.pricePerComparisonBasis,
     );
   }
 }
@@ -1414,6 +1537,8 @@ class BasketOptimizedItem {
     required this.lineTotal,
     required this.priceStatus,
     required this.warnings,
+    this.comparisonBasis,
+    this.pricePerComparisonBasis,
   });
 
   final String inputText;
@@ -1423,6 +1548,8 @@ class BasketOptimizedItem {
   final double? lineTotal;
   final String priceStatus;
   final List<BasketWarning> warnings;
+  final String? comparisonBasis;
+  final double? pricePerComparisonBasis;
 
   String get displayName {
     final name = canonicalName?.trim() ?? '';
@@ -1443,6 +1570,8 @@ class BasketOptimizedItem {
       warnings: _readObjectList(json['warnings'])
           .map(BasketWarning.fromJson)
           .toList(),
+      comparisonBasis: json['comparison_basis'] as String?,
+      pricePerComparisonBasis: _readDouble(json['price_per_comparison_basis']),
     );
   }
 }

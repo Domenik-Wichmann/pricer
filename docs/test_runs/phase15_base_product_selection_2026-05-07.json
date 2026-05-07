@@ -1,0 +1,34 @@
+{
+  "id": "phase15_base_product_selection_2026-05-07",
+  "date": "2026-05-07",
+  "phase": 15.9,
+  "scope": "Soft product-search weighting for base ingredient and product queries",
+  "commands": [
+    {
+      "command": "npm run test:phase15_2",
+      "status": "passed",
+      "summary": "30 passed, 0 failed"
+    },
+    {
+      "command": "npm run test:phase15",
+      "status": "passed",
+      "summary": "76 passed, 0 failed"
+    },
+    {
+      "command": "npm run validate:docs",
+      "status": "passed",
+      "summary": "JSON docs parse successfully"
+    }
+  ],
+  "coverage": [
+    "base_product_boost debug reason for raw/simple base-product evidence",
+    "processed_product_demotion for compound processed products",
+    "baby_food_demotion for baby puree/formula-style products",
+    "prepared_meal_demotion for soup/ready-meal evidence",
+    "Bulgarian query пилешко ranks raw chilled chicken fillet above baby chicken puree"
+  ],
+  "notes": [
+    "Scoring changes are soft ranking adjustments only and do not exclude processed products.",
+    "No persistence schema or canonical grouping behavior changed."
+  ]
+}
